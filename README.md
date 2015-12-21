@@ -1,16 +1,16 @@
 # Solvuu's build system.
 
 ## Install
-Do `opam instgall solvuu_build`.
+Do `opam install solvuu_build`.
 
 ## Instructions
 This project provides:
 
-  * An ocamlbuild plugin
+  * An ocamlbuild plugin  
     Use it by starting your project's `myocamlbuild.ml` file with
     `open Solvuu_build`.
 
-  * solvuu.mk
+  * solvuu.mk  
     A standard makefile, which assumes you are using the above
     ocamlbuild plugin. Your project's Makefile usually will need only
     the single line `include $(shell opam config var
