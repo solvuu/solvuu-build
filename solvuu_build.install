@@ -1,0 +1,17 @@
+lib: [
+  "lib/solvuu.mk"
+  "_build/META"
+  "?_build/lib/solvuu_build.a"
+  "?_build/lib/solvuu_build.annot"
+  "?_build/lib/solvuu_build.cma"
+  "?_build/lib/solvuu_build.cmi"
+  "?_build/lib/solvuu_build.cmo"
+  "?_build/lib/solvuu_build.cmt"
+  "?_build/lib/solvuu_build.cmti"
+  "?_build/lib/solvuu_build.cmx"
+  "?_build/lib/solvuu_build.cmxa"
+  "?_build/lib/solvuu_build.cmxs"
+  "?_build/lib/solvuu_build.dll"
+  "?_build/lib/solvuu_build.o"
+  "?_build/lib/solvuu_build.so"
+]

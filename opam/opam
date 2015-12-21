@@ -1,0 +1,23 @@
+opam-version: "1.2"
+name: "solvuu_build"
+version: "dev"
+maintainer: "Ashish Agarwal <ashish@solvuu.com>"
+authors: "Solvuu LLC"
+homepage: "http://solvuu.com"
+license: "PROPRIETARY"
+tags: ["org:solvuu"]
+
+build: [
+  [make "byte"]
+  [make "native"]
+]
+
+install: [
+  [make "_build/META"]
+]
+
+depends: [
+  "ocamlfind" {build}
+  "ocamlbuild"
+  "opam-lib"
+]
