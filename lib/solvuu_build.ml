@@ -184,6 +184,34 @@ module Make(Project:PROJECT) = struct
       )
     )
 
+  (** Chop known suffixes off filename or return None. *)
+  let chop_suffix filename : string option =
+    List.fold_left
+      [".ml"; ".mli"; ".ml.m4"; ".mll"; ".mly"]
+      ~init:None ~f:(fun accum suffix ->
+	match accum with
+	| Some _ as x -> x
+	| None ->
+	   if Filename.check_suffix filename suffix then
+	     Some (Filename.chop_suffix filename suffix)
+	   else
+	     None
+      )
+
+  let mlpack_file dir : string list =
+    if not (Sys.file_exists dir && Sys.is_directory dir) then
+      failwithf "cannot create mlpack file for dir %s" dir ()
+    else (
+      readdir dir
+      |> List.map ~f:chop_suffix
+      |> List.filter ~f:(function Some _ -> true | None -> false)
+      |> List.map ~f:(function
+	| Some x -> dir/(String.capitalize x) | None -> assert false
+      )
+      |> List.sort_uniq compare
+      |> List.map ~f:(sprintf "%s\n") (* I think due to bug in ocamlbuild. *)
+    )
+
   let merlin_file : string list =
     [
       "S ./lib/**";
@@ -290,6 +318,12 @@ module Make(Project:PROJECT) = struct
 	  Cmd (S [A "atdgen"; A "-j"; A "-j-std"; P (env "%.atd")])
 	)
       ;
+
+      List.iter all_libs ~f:(fun lib ->
+	make_static_file
+	  (sprintf "lib/%s_%s.mlpack" project_name lib)
+	  (mlpack_file ("lib"/lib))
+      );
 
       make_static_file ".merlin" merlin_file;
       make_static_file "META" meta_file;
