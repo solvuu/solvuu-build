@@ -106,9 +106,14 @@ module Make(Project:PROJECT) = struct
     include ListLabels
   end
 
+  let readdir dir : string list =
+    match Sys.file_exists dir && Sys.is_directory dir with
+    | false -> []
+    | true -> (Sys.readdir dir |> Array.to_list)
+
   let all_libs : string list =
     let found =
-      Sys.readdir "lib" |> Array.to_list
+      readdir "lib"
       |> List.filter ~f:(fun x -> Sys.is_directory ("lib"/x))
       |> List.sort ~cmp:compare
     in
@@ -122,7 +127,7 @@ module Make(Project:PROJECT) = struct
 
   let all_apps : string list =
     let found =
-      Sys.readdir "app" |> Array.to_list
+      readdir "app"
       |> List.map ~f:Filename.chop_extension
       |> List.sort ~cmp:compare
     in
