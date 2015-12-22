@@ -152,6 +152,7 @@ module Make(Project:PROJECT) = struct
   let tags_lines : string list =
     [
       "true: thread, bin_annot, annot, short_paths, safe_string, debug";
+      "true: warn(A-4-33-41-42-44-45-48)";
       "true: use_menhir";
       "\"lib\": include";
     ]
