@@ -210,7 +210,6 @@ module Make(Project:PROJECT) = struct
 	| Some x -> dir/(String.capitalize x) | None -> assert false
       )
       |> List.sort_uniq compare
-      |> List.map ~f:(sprintf "%s\n") (* I think due to bug in ocamlbuild. *)
     )
 
   let merlin_file : string list =
@@ -228,7 +227,6 @@ module Make(Project:PROJECT) = struct
       |> List.sort_uniq compare
       |> List.map ~f:(fun x -> sprintf "PKG %s" x)
     )
-    |> List.map ~f:(sprintf "%s\n") (* I think due to bug in ocamlbuild. *)
 
   let meta_file : string list =
     List.map all_libs ~f:(fun x ->
@@ -252,7 +250,6 @@ module Make(Project:PROJECT) = struct
     )
     |> List.flatten
     |> List.filter ~f:((<>) "")
-    |> List.map ~f:(sprintf "%s\n") (* I think due to bug in ocamlbuild. *)
 
   let install_file : string list =
     let suffixes = [
@@ -278,9 +275,9 @@ module Make(Project:PROJECT) = struct
       |> List.flatten
     in
     ["lib: ["]@lib_files@["]"; ""; "bin: ["]@app_files@["]"]
-    |> List.map ~f:(sprintf "%s\n") (* I think due to bug in ocamlbuild. *)
 
   let make_static_file path contents =
+    let contents = List.map contents ~f:(sprintf "%s\n") in
     rule path ~prod:path (fun _ _ -> Echo (contents,path))
 
   let dispatch () = dispatch (function
