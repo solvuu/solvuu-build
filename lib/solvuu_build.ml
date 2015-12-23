@@ -256,7 +256,7 @@ module Make(Project:PROJECT) = struct
       "a";"annot";"cma";"cmi";"cmo";"cmt";"cmti";"cmx";"cmxa";
       "cmxs";"dll";"o";"so"]
     in
-    let lib_files =
+    (
       List.map all_libs ~f:(fun lib ->
 	List.map suffixes ~f:(fun suffix ->
 	  sprintf "  \"?_build/lib/%s_%s.%s\""
@@ -265,16 +265,19 @@ module Make(Project:PROJECT) = struct
       )
       |> List.flatten
       |> fun l -> "  \"_build/META\""::l
-    in
-    let app_files =
+      |> fun l -> ["lib: ["]@l@["]"]
+    )
+    @(
       List.map all_apps ~f:(fun app ->
 	List.map ["byte"; "native"] ~f:(fun suffix ->
 	  sprintf "  \"?_build/app/%s.%s\" {\"%s\"}" app suffix app
 	)
       )
       |> List.flatten
-    in
-    ["lib: ["]@lib_files@["]"; ""; "bin: ["]@app_files@["]"]
+      |> function
+	| [] -> []
+	| l -> ["bin: ["]@l@["]"]
+    )
 
   let make_static_file path contents =
     let contents = List.map contents ~f:(sprintf "%s\n") in
