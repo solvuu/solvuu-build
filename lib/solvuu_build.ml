@@ -346,7 +346,7 @@ module Make(Project:PROJECT) = struct
 	  List.map (build project_files) ~f:Outcome.good
 	  |> List.map ~f:(fun result ->
 	    Cmd (S [A "ln"; A "-sf";
-		    P (!Options.build_dir/result);
+		    P ((Filename.basename !Options.build_dir)/result);
 		    P Pathname.pwd] )
 	  )
 	  |> fun l -> Seq l
