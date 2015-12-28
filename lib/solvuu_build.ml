@@ -281,7 +281,12 @@ module Make(Project:PROJECT) = struct
 
   let make_static_file path contents =
     let contents = List.map contents ~f:(sprintf "%s\n") in
-    rule path ~prod:path (fun _ _ -> Echo (contents,path))
+    rule path ~prod:path (fun _ _ ->
+      Seq [
+	Cmd (Sh (sprintf "mkdir -p %s" (Filename.dirname path)));
+	Echo (contents,path);
+      ]
+    )
 
   let dispatch () = dispatch (function
     | Before_options -> (
