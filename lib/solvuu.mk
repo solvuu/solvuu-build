@@ -2,8 +2,7 @@ PROJECT=$(shell grep "^name" opam/opam | cut -d\" -f2)
 LIBS = $(addprefix $(PROJECT)_,$(basename $(notdir $(wildcard lib/*))))
 APPS = $(basename $(notdir $(wildcard app/*)))
 
-OCAMLBUILD=ocamlbuild -use-ocamlfind -no-links \
-             -plugin-tag "package(solvuu_build)"
+OCAMLBUILD=ocamlbuild -use-ocamlfind -plugin-tag "package(solvuu_build)"
 
 default: byte project_files.stamp
 
