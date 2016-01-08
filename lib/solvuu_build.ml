@@ -36,13 +36,13 @@ module Info = struct
       match item.name with
       | `App _ -> ()
       | `Lib lib ->
-	 if List.mem lib ~set:!visited then
-	   failwithf "cycle involving %s detected in Info.t" lib ()
-	 else (
-	   visited := lib::!visited;
-	   let libs = List.map item.libs ~f:(fun x -> get t (`Lib x)) in
-	   List.iter libs ~f:loop
-	 )
+	if List.mem lib ~set:!visited then
+	  failwithf "cycle involving %s detected in Info.t" lib ()
+	else (
+	  visited := lib::!visited;
+	  let libs = List.map item.libs ~f:(fun x -> get t (`Lib x)) in
+	  List.iter libs ~f:loop
+	)
     in
     loop item
 
@@ -92,7 +92,7 @@ module Make(Project:PROJECT) = struct
 
   let opam : OpamFile.OPAM.t =
     OpamFile.OPAM.read @@ OpamFilename.(
-      create (Dir.of_string "opam") (Base.of_string "opam") )
+        create (Dir.of_string "opam") (Base.of_string "opam") )
 
   let project_name =
     opam |> OpamFile.OPAM.name |> OpamPackage.Name.to_string
@@ -157,32 +157,32 @@ module Make(Project:PROJECT) = struct
       "\"lib\": include";
     ]
     @(List.map all_libs ~f:(fun x ->
-      sprintf
-	"<lib/%s/*.cmx>: for-pack(%s_%s)"
-	x (String.capitalize project_name) x )
-    )
+        sprintf
+	  "<lib/%s/*.cmx>: for-pack(%s_%s)"
+	  x (String.capitalize project_name) x )
+     )
     @(
       let libs = (Info.libs Project.info :> Info.item list) in
       List.map libs ~f:(fun lib ->
-	lib.Info.name, Info.pkgs_all Project.info lib.Info.name
-      )
+	  lib.Info.name, Info.pkgs_all Project.info lib.Info.name
+        )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
       |> List.map ~f:(fun (name,pkgs) ->
-	sprintf "<lib/%s/*>: %s"
-	  (Info.name_as_string name)
-	  (String.concat ", " (List.map pkgs ~f:(sprintf "package(%s)")))
-      )
+	  sprintf "<lib/%s/*>: %s"
+	    (Info.name_as_string name)
+	    (String.concat ", " (List.map pkgs ~f:(sprintf "package(%s)")))
+        )
     )
     @(
       let apps = (Info.apps Project.info :> Info.item list) in
       List.map apps ~f:(fun app ->
-	app.Info.name, Info.pkgs_all Project.info app.Info.name )
+	  app.Info.name, Info.pkgs_all Project.info app.Info.name )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
       |> List.map ~f:(fun (name,pkgs) ->
-	sprintf "<app/%s.*>: %s"
-	  (Info.name_as_string name)
-	  (String.concat "," (List.map pkgs ~f:(sprintf "package(%s)")))
-      )
+	  sprintf "<app/%s.*>: %s"
+	    (Info.name_as_string name)
+	    (String.concat "," (List.map pkgs ~f:(sprintf "package(%s)")))
+        )
     )
 
   (** Chop known suffixes off filename or return None. *)
@@ -190,14 +190,14 @@ module Make(Project:PROJECT) = struct
     List.fold_left
       [".ml"; ".mli"; ".ml.m4"; ".mll"; ".mly"]
       ~init:None ~f:(fun accum suffix ->
-	match accum with
-	| Some _ as x -> x
-	| None ->
-	   if Filename.check_suffix filename suffix then
-	     Some (Filename.chop_suffix filename suffix)
-	   else
-	     None
-      )
+	  match accum with
+	  | Some _ as x -> x
+	  | None ->
+	    if Filename.check_suffix filename suffix then
+	      Some (Filename.chop_suffix filename suffix)
+	    else
+	      None
+        )
 
   let mlpack_file dir : string list =
     if not (Sys.file_exists dir && Sys.is_directory dir) then
@@ -207,8 +207,8 @@ module Make(Project:PROJECT) = struct
       |> List.map ~f:chop_suffix
       |> List.filter ~f:(function Some _ -> true | None -> false)
       |> List.map ~f:(function
-	| Some x -> dir/(String.capitalize x) | None -> assert false
-      )
+	  | Some x -> dir/(String.capitalize x) | None -> assert false
+        )
       |> List.sort_uniq compare
     )
 
@@ -230,24 +230,24 @@ module Make(Project:PROJECT) = struct
 
   let meta_file : string list =
     List.map all_libs ~f:(fun x ->
-      let lib_name = sprintf "%s_%s" project_name x in
-      let requires : string list =
-	(Info.pkgs_all Project.info (`Lib x))
-	@(List.map
-	    (Info.libs_direct Project.info (`Lib x))
-	    ~f:(sprintf "%s.%s" project_name)
-	)
-      in
-      [
-	sprintf "package \"%s\" (" x;
-	sprintf "  version = \"%s\"" project_version;
-	sprintf "  archive(byte) = \"%s.cma\"" lib_name;
-	sprintf "  archive(native) = \"%s.cmxa\"" lib_name;
-	sprintf "  requires = \"%s\"" (String.concat " " requires);
-	sprintf "  exists_if = \"%s.cma\"" lib_name;
-	sprintf ")";
-      ]
-    )
+        let lib_name = sprintf "%s_%s" project_name x in
+        let requires : string list =
+	  (Info.pkgs_all Project.info (`Lib x))
+	  @(List.map
+	      (Info.libs_direct Project.info (`Lib x))
+	      ~f:(sprintf "%s.%s" project_name)
+	   )
+        in
+        [
+	  sprintf "package \"%s\" (" x;
+	  sprintf "  version = \"%s\"" project_version;
+	  sprintf "  archive(byte) = \"%s.cma\"" lib_name;
+	  sprintf "  archive(native) = \"%s.cmxa\"" lib_name;
+	  sprintf "  requires = \"%s\"" (String.concat " " requires);
+	  sprintf "  exists_if = \"%s.cma\"" lib_name;
+	  sprintf ")";
+        ]
+      )
     |> List.flatten
     |> List.filter ~f:((<>) "")
 
@@ -258,101 +258,101 @@ module Make(Project:PROJECT) = struct
     in
     (
       List.map all_libs ~f:(fun lib ->
-	List.map suffixes ~f:(fun suffix ->
-	  sprintf "  \"?_build/lib/%s_%s.%s\""
-	    project_name lib suffix
-	)
-      )
+	  List.map suffixes ~f:(fun suffix ->
+	      sprintf "  \"?_build/lib/%s_%s.%s\""
+	        project_name lib suffix
+	    )
+        )
       |> List.flatten
       |> fun l -> "  \"_build/META\""::l
-      |> fun l -> ["lib: ["]@l@["]"]
+                  |> fun l -> ["lib: ["]@l@["]"]
     )
     @(
       List.map all_apps ~f:(fun app ->
-	List.map ["byte"; "native"] ~f:(fun suffix ->
-	  sprintf "  \"?_build/app/%s.%s\" {\"%s\"}" app suffix app
-	)
-      )
+	  List.map ["byte"; "native"] ~f:(fun suffix ->
+	      sprintf "  \"?_build/app/%s.%s\" {\"%s\"}" app suffix app
+	    )
+        )
       |> List.flatten
       |> function
-	| [] -> []
-	| l -> ["bin: ["]@l@["]"]
+      | [] -> []
+      | l -> ["bin: ["]@l@["]"]
     )
 
   let make_static_file path contents =
     let contents = List.map contents ~f:(sprintf "%s\n") in
     rule path ~prod:path (fun _ _ ->
-      Seq [
-	Cmd (Sh (sprintf "mkdir -p %s" (Filename.dirname path)));
-	Echo (contents,path);
-      ]
-    )
+        Seq [
+	  Cmd (Sh (sprintf "mkdir -p %s" (Filename.dirname path)));
+	  Echo (contents,path);
+        ]
+      )
 
   let dispatch () = dispatch (function
-    | Before_options -> (
-      Options.use_ocamlfind := true;
-      List.iter tags_lines ~f:Ocamlbuild_pack.Configuration.parse_string
+      | Before_options -> (
+          Options.use_ocamlfind := true;
+          List.iter tags_lines ~f:Ocamlbuild_pack.Configuration.parse_string
+        )
+      | After_rules -> (
+          rule "m4: ml.m4 -> ml"
+	    ~prod:"%.ml"
+	    ~dep:"%.ml.m4"
+	    (fun env _ ->
+	       let ml_m4 = env "%.ml.m4" in
+	       Cmd (S [
+	           A "m4";
+	           A "-D"; A ("VERSION=" ^ project_version);
+                   A "-D"; A ("GIT_COMMIT=" ^ git_commit);
+	           P ml_m4;
+	           Sh ">";
+	           P (env "%.ml");
+	         ]) )
+          ;
+
+          rule "atd: .atd -> _t.ml, _t.mli"
+	    ~dep:"%.atd"
+	    ~prods:["%_t.ml"; "%_t.mli"]
+	    (fun env _ ->
+	       Cmd (S [A "atdgen"; A "-t"; A "-j-std"; P (env "%.atd")])
+	    )
+          ;
+
+          rule "atd: .atd -> _j.ml, _j.mli"
+	    ~dep:"%.atd"
+	    ~prods:["%_j.ml"; "%_j.mli"]
+	    (fun env _ ->
+	       Cmd (S [A "atdgen"; A "-j"; A "-j-std"; P (env "%.atd")])
+	    )
+          ;
+
+          List.iter all_libs ~f:(fun lib ->
+	      make_static_file
+	        (sprintf "lib/%s_%s.mlpack" project_name lib)
+	        (mlpack_file ("lib"/lib))
+            );
+
+          make_static_file ".merlin" merlin_file;
+          make_static_file "META" meta_file;
+          make_static_file (sprintf "%s.install" project_name) install_file;
+
+          rule "project files"
+	    ~stamp:"project_files.stamp"
+	    (fun _ build ->
+	       let project_files = [[
+	           ".merlin";
+	           sprintf "%s.install" project_name;
+	         ]]
+	       in
+	       List.map (build project_files) ~f:Outcome.good
+	       |> List.map ~f:(fun result ->
+	           Cmd (S [A "ln"; A "-sf";
+		           P ((Filename.basename !Options.build_dir)/result);
+		           P Pathname.pwd] )
+	         )
+	       |> fun l -> Seq l
+	    )
+        )
+      | _ -> ()
     )
-    | After_rules -> (
-      rule "m4: ml.m4 -> ml"
-	~prod:"%.ml"
-	~dep:"%.ml.m4"
-	(fun env _ ->
-	  let ml_m4 = env "%.ml.m4" in
-	  Cmd (S [
-	    A "m4";
-	    A "-D"; A ("VERSION=" ^ project_version);
-            A "-D"; A ("GIT_COMMIT=" ^ git_commit);
-	    P ml_m4;
-	    Sh ">";
-	    P (env "%.ml");
-	  ]) )
-      ;
-
-      rule "atd: .atd -> _t.ml, _t.mli"
-	~dep:"%.atd"
-	~prods:["%_t.ml"; "%_t.mli"]
-	(fun env _ ->
-	  Cmd (S [A "atdgen"; A "-t"; A "-j-std"; P (env "%.atd")])
-	)
-      ;
-
-      rule "atd: .atd -> _j.ml, _j.mli"
-	~dep:"%.atd"
-	~prods:["%_j.ml"; "%_j.mli"]
-	(fun env _ ->
-	  Cmd (S [A "atdgen"; A "-j"; A "-j-std"; P (env "%.atd")])
-	)
-      ;
-
-      List.iter all_libs ~f:(fun lib ->
-	make_static_file
-	  (sprintf "lib/%s_%s.mlpack" project_name lib)
-	  (mlpack_file ("lib"/lib))
-      );
-
-      make_static_file ".merlin" merlin_file;
-      make_static_file "META" meta_file;
-      make_static_file (sprintf "%s.install" project_name) install_file;
-
-      rule "project files"
-	~stamp:"project_files.stamp"
-	(fun _ build ->
-	  let project_files = [[
-	    ".merlin";
-	    sprintf "%s.install" project_name;
-	  ]]
-	  in
-	  List.map (build project_files) ~f:Outcome.good
-	  |> List.map ~f:(fun result ->
-	    Cmd (S [A "ln"; A "-sf";
-		    P ((Filename.basename !Options.build_dir)/result);
-		    P Pathname.pwd] )
-	  )
-	  |> fun l -> Seq l
-	)
-    )
-    | _ -> ()
-  )
 
 end
