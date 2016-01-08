@@ -87,7 +87,12 @@ module type PROJECT = sig
   val info : Info.t
 end
 
-module Make(Project:PROJECT) = struct
+module Make(Project:PROJECT) : sig
+  val project_name : string
+  val project_version : string
+  val plugin : Ocamlbuild_plugin.hook -> unit
+  val dispatch : unit -> unit
+end = struct
   open Ocamlbuild_plugin
 
   let opam : OpamFile.OPAM.t =
@@ -142,10 +147,10 @@ module Make(Project:PROJECT) = struct
   let git_commit =
     if Sys.file_exists ".git" then
       sprintf "Some \"%s\""
-	(
-	  Ocamlbuild_pack.My_unix.run_and_read "git rev-parse HEAD"
-	  |> fun x -> String.sub x 0 (String.length x - 1)
-	)
+        (
+          Ocamlbuild_pack.My_unix.run_and_read "git rev-parse HEAD"
+          |> fun x -> String.sub x 0 (String.length x - 1)
+        )
     else
       "None"
 
@@ -265,7 +270,7 @@ module Make(Project:PROJECT) = struct
         )
       |> List.flatten
       |> fun l -> "  \"_build/META\""::l
-                  |> fun l -> ["lib: ["]@l@["]"]
+      |> fun l -> ["lib: ["]@l@["]"]
     )
     @(
       List.map all_apps ~f:(fun app ->
@@ -288,71 +293,72 @@ module Make(Project:PROJECT) = struct
         ]
       )
 
-  let dispatch () = dispatch (function
-      | Before_options -> (
-          Options.use_ocamlfind := true;
-          List.iter tags_lines ~f:Ocamlbuild_pack.Configuration.parse_string
-        )
-      | After_rules -> (
-          rule "m4: ml.m4 -> ml"
-	    ~prod:"%.ml"
-	    ~dep:"%.ml.m4"
-	    (fun env _ ->
-	       let ml_m4 = env "%.ml.m4" in
-	       Cmd (S [
-	           A "m4";
-	           A "-D"; A ("VERSION=" ^ project_version);
-                   A "-D"; A ("GIT_COMMIT=" ^ git_commit);
-	           P ml_m4;
-	           Sh ">";
-	           P (env "%.ml");
-	         ]) )
-          ;
+  let plugin = function
+    | Before_options -> (
+        Options.use_ocamlfind := true;
+        List.iter tags_lines ~f:Ocamlbuild_pack.Configuration.parse_string
+      )
+    | After_rules -> (
+        rule "m4: ml.m4 -> ml"
+	  ~prod:"%.ml"
+	  ~dep:"%.ml.m4"
+	  (fun env _ ->
+	     let ml_m4 = env "%.ml.m4" in
+	     Cmd (S [
+	         A "m4";
+	         A "-D"; A ("VERSION=" ^ project_version);
+                 A "-D"; A ("GIT_COMMIT=" ^ git_commit);
+	         P ml_m4;
+	         Sh ">";
+	         P (env "%.ml");
+	       ]) )
+        ;
 
-          rule "atd: .atd -> _t.ml, _t.mli"
-	    ~dep:"%.atd"
-	    ~prods:["%_t.ml"; "%_t.mli"]
-	    (fun env _ ->
-	       Cmd (S [A "atdgen"; A "-t"; A "-j-std"; P (env "%.atd")])
-	    )
-          ;
+        rule "atd: .atd -> _t.ml, _t.mli"
+	  ~dep:"%.atd"
+	  ~prods:["%_t.ml"; "%_t.mli"]
+	  (fun env _ ->
+	     Cmd (S [A "atdgen"; A "-t"; A "-j-std"; P (env "%.atd")])
+	  )
+        ;
 
-          rule "atd: .atd -> _j.ml, _j.mli"
-	    ~dep:"%.atd"
-	    ~prods:["%_j.ml"; "%_j.mli"]
-	    (fun env _ ->
-	       Cmd (S [A "atdgen"; A "-j"; A "-j-std"; P (env "%.atd")])
-	    )
-          ;
+        rule "atd: .atd -> _j.ml, _j.mli"
+	  ~dep:"%.atd"
+	  ~prods:["%_j.ml"; "%_j.mli"]
+	  (fun env _ ->
+	     Cmd (S [A "atdgen"; A "-j"; A "-j-std"; P (env "%.atd")])
+	  )
+        ;
 
-          List.iter all_libs ~f:(fun lib ->
-	      make_static_file
-	        (sprintf "lib/%s_%s.mlpack" project_name lib)
-	        (mlpack_file ("lib"/lib))
-            );
+        List.iter all_libs ~f:(fun lib ->
+	    make_static_file
+	      (sprintf "lib/%s_%s.mlpack" project_name lib)
+	      (mlpack_file ("lib"/lib))
+          );
 
-          make_static_file ".merlin" merlin_file;
-          make_static_file "META" meta_file;
-          make_static_file (sprintf "%s.install" project_name) install_file;
+        make_static_file ".merlin" merlin_file;
+        make_static_file "META" meta_file;
+        make_static_file (sprintf "%s.install" project_name) install_file;
 
-          rule "project files"
-	    ~stamp:"project_files.stamp"
-	    (fun _ build ->
-	       let project_files = [[
-	           ".merlin";
-	           sprintf "%s.install" project_name;
-	         ]]
-	       in
-	       List.map (build project_files) ~f:Outcome.good
-	       |> List.map ~f:(fun result ->
-	           Cmd (S [A "ln"; A "-sf";
-		           P ((Filename.basename !Options.build_dir)/result);
-		           P Pathname.pwd] )
-	         )
-	       |> fun l -> Seq l
-	    )
-        )
-      | _ -> ()
-    )
+        rule "project files"
+	  ~stamp:"project_files.stamp"
+	  (fun _ build ->
+	     let project_files = [[
+	         ".merlin";
+	         sprintf "%s.install" project_name;
+	       ]]
+	     in
+	     List.map (build project_files) ~f:Outcome.good
+	     |> List.map ~f:(fun result ->
+	         Cmd (S [A "ln"; A "-sf";
+		         P ((Filename.basename !Options.build_dir)/result);
+		         P Pathname.pwd] )
+	       )
+	     |> fun l -> Seq l
+	  )
+      )
+    | _ -> ()
+
+  let dispatch () = dispatch plugin
 
 end
