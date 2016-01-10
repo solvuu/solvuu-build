@@ -31,20 +31,18 @@ module Info = struct
   (** Check that given item's [libs] dependencies do not lead to a
       cycle. *)
   let assert_no_cycle t item : unit =
-    let visited = ref [] in
-    let rec loop item =
+    let rec loop visited item =
       match item.name with
       | `App _ -> ()
       | `Lib lib ->
-	if List.mem lib ~set:!visited then
+	if List.mem lib ~set:visited then
 	  failwithf "cycle involving %s detected in Info.t" lib ()
 	else (
-	  visited := lib::!visited;
 	  let libs = List.map item.libs ~f:(fun x -> get t (`Lib x)) in
-	  List.iter libs ~f:loop
+	  List.iter libs ~f:(loop (lib :: visited))
 	)
     in
-    loop item
+    loop [] item
 
   let of_list items =
     let libs = names (libs items) in
