@@ -215,6 +215,12 @@ end = struct
       |> List.sort_uniq compare
     )
 
+  let mllib_file dir lib : string list =
+    let path = dir / lib in
+    if not (Sys.file_exists path && Sys.is_directory path) then
+      failwithf "cannot create mllib file for dir %s" path ()
+    else [ dir / String.capitalize (project_name ^ "_" ^ lib) ]
+
   let merlin_file : string list =
     [
       "S ./lib/**";
@@ -332,6 +338,12 @@ end = struct
 	    make_static_file
 	      (sprintf "lib/%s_%s.mlpack" project_name lib)
 	      (mlpack_file ("lib"/lib))
+          );
+
+        List.iter all_libs ~f:(fun lib ->
+	    make_static_file
+	      (sprintf "lib/%s_%s.mllib" project_name lib)
+	      (mllib_file "lib" lib)
           );
 
         make_static_file ".merlin" merlin_file;
