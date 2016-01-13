@@ -401,11 +401,10 @@ end = struct
         rule "project files"
           ~stamp:"project_files.stamp"
           (fun _ build ->
-             let project_files = [[
-                 ".merlin";
-                 sprintf "%s.install" project_name;
-                 ".ocamlinit";
-               ]]
+             let project_files = [
+                 [".merlin"];
+                 [".ocamlinit"];
+               ]
              in
              List.map (build project_files) ~f:Outcome.good
              |> List.map ~f:(fun result ->
