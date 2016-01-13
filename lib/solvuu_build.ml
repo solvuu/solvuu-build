@@ -17,6 +17,7 @@ module Digraph = struct
   module G = Graph.Persistent.Digraph.Concrete(String)
   include G
 
+  module Dfs = Graph.Traverse.Dfs(G)
   module Topological = Graph.Topological.Make(G)
 end
 
@@ -41,21 +42,24 @@ module Info = struct
 
   let get t name = List.find t ~f:(fun x -> x.name = name)
 
-  (** Check that given item's [libs] dependencies do not lead to a
-      cycle. *)
-  let assert_no_cycle t item : unit =
-    let rec loop visited item =
-      match item.name with
-      | `App _ -> ()
-      | `Lib lib ->
-        if List.mem lib ~set:visited then
-          failwithf "cycle involving %s detected in Info.t" lib ()
-        else (
-          let libs = List.map item.libs ~f:(fun x -> get t (`Lib x)) in
-          List.iter libs ~f:(loop (lib :: visited))
-        )
-    in
-    loop [] item
+  let dependance_graph items =
+    List.fold_left items ~init:Digraph.empty ~f:(fun accu item ->
+        match item.name with
+        | `App _ -> accu
+        | `Lib lib ->
+          accu
+          |> fun g -> Digraph.add_vertex g lib
+          |> fun g -> List.fold_left item.libs ~init:g ~f:(fun accu dep ->
+                          Digraph.add_edge accu lib dep
+                        )
+      )
+
+  let lib_dependance_graph items =
+    List.filter items ~f:(function
+        | { name = `App _ } -> false
+        | { name = `Lib _ } -> true
+      )
+    |> dependance_graph
 
   let of_list items =
     let libs = names (libs items) in
@@ -64,10 +68,10 @@ module Info = struct
       failwith "lib names must be unique"
     else if not (is_uniq apps) then
       failwith "app names must be unique"
-    else (
-      List.iter items ~f:(assert_no_cycle items);
+    else if Digraph.Dfs.has_cycle (lib_dependance_graph items) then
+      failwith "Cycle detected in Info.t"
+    else
       items
-    )
 
   let libs_direct t name = (get t name).libs
 
@@ -90,7 +94,6 @@ module Info = struct
       |> List.flatten
     )
     |> List.sort_uniq compare
-
 
 end
 
@@ -147,21 +150,8 @@ end = struct
     assert (found=given);
     given
 
-  let lib_deps_graph =
-    (Project.info :> Info.item list)
-    |> List.fold_left ~init:Digraph.empty ~f:(fun accu item ->
-        match item.Info.name with
-        | `App _ -> accu
-        | `Lib lib ->
-          accu
-          |> fun g -> Digraph.add_vertex g lib
-          |> fun g -> List.fold_left item.Info.libs ~init:g ~f:(fun accu dep ->
-                          Digraph.add_edge accu lib dep
-                        )
-      )
-
   let topologically_sorted_libs =
-    Digraph.Topological.fold (fun h t -> h :: t) lib_deps_graph []
+    Digraph.Topological.fold (fun h t -> h :: t) (Info.lib_dependance_graph Project.info) []
 
   let all_apps : string list =
     let found =
