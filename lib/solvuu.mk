@@ -19,7 +19,7 @@ byte: $(patsubst %,lib/%.cma,$(LIBS)) \
 project_files.stamp META:
 	$(OCAMLBUILD) $@
 
-.merlin $(PROJECT).install:
+.merlin $(PROJECT).install .ocamlinit:
 	$(OCAMLBUILD) $@ && ln -s _build/$@ $@
 
 clean:
