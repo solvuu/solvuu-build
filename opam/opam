@@ -19,5 +19,6 @@ install: [
 depends: [
   "ocamlfind" {build}
   "ocamlbuild"
+  "ocamlgraph"
   "opam-lib"
 ]

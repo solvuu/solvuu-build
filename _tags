@@ -1,2 +1,2 @@
 "lib": include
-true: package(ocamlbuild), package(opam-lib)
+true: package(ocamlbuild), package(ocamlgraph), package(opam-lib)

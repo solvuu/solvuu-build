@@ -2,9 +2,22 @@
 open Printf
 let failwithf fmt = ksprintf (fun s () -> failwith s) fmt
 
+module String = struct
+  include String
+  let hash = Hashtbl.hash
+  let equal = ( = )
+end
+
 module List = struct
   include List
   include ListLabels
+end
+
+module Digraph = struct
+  module G = Graph.Persistent.Digraph.Concrete(String)
+  include G
+
+  module Topological = Graph.Topological.Make(G)
 end
 
 module Info = struct
@@ -83,6 +96,7 @@ end
 
 module type PROJECT = sig
   val info : Info.t
+  val ocamlinit_postfix : string list
 end
 
 module Make(Project:PROJECT) : sig
@@ -114,6 +128,11 @@ end = struct
     | false -> []
     | true -> (Sys.readdir dir |> Array.to_list)
 
+  let all_pkgs : string list =
+    List.map (Project.info :> Info.item list) ~f:(fun x -> x.Info.pkgs)
+    |> List.flatten
+    |> List.sort_uniq compare
+
   let all_libs : string list =
     let found =
       readdir "lib"
@@ -127,6 +146,22 @@ end = struct
     in
     assert (found=given);
     given
+
+  let lib_deps_graph =
+    (Project.info :> Info.item list)
+    |> List.fold_left ~init:Digraph.empty ~f:(fun accu item ->
+        match item.Info.name with
+        | `App _ -> accu
+        | `Lib lib ->
+          accu
+          |> fun g -> Digraph.add_vertex g lib
+          |> fun g -> List.fold_left item.Info.libs ~init:g ~f:(fun accu dep ->
+                          Digraph.add_edge accu lib dep
+                        )
+      )
+
+  let topologically_sorted_libs =
+    Digraph.Topological.fold (fun h t -> h :: t) lib_deps_graph []
 
   let all_apps : string list =
     let found =
@@ -231,10 +266,7 @@ end = struct
       "B +threads";
     ]
     @(
-      List.map (Project.info :> Info.item list) ~f:(fun x -> x.Info.pkgs)
-      |> List.flatten
-      |> List.sort_uniq compare
-      |> List.map ~f:(fun x -> sprintf "PKG %s" x)
+      List.map all_pkgs ~f:(fun x -> sprintf "PKG %s" x)
     )
 
   let meta_file : string list =
@@ -287,6 +319,31 @@ end = struct
       | [] -> []
       | l -> ["bin: ["]@l@["]"]
     )
+
+  let ocamlinit_file =
+    [
+      "let () =" ;
+      "  try Topdirs.dir_directory (Sys.getenv \"OCAML_TOPLEVEL_PATH\")" ;
+      "  with Not_found -> ()" ;
+      ";;" ;
+      "" ;
+      "#use \"topfind\";;" ;
+      "#thread;;" ;
+      sprintf "#require \"%s\";;" (String.concat " " all_pkgs) ;
+      "" ;
+      "(* Load each lib provided by this project. *)" ;
+      "#directory \"_build/lib\";;" ;
+    ]
+    @(List.map topologically_sorted_libs ~f:(fun lib ->
+        sprintf "#load \"%s_%s.cma\";;" project_name lib
+      )
+     )
+    @ [
+      "" ;
+      "open Core.Std;;" ;
+      "open Async.Std;;"
+    ]
+    @ Project.ocamlinit_postfix
 
   let make_static_file path contents =
     let contents = List.map contents ~f:(sprintf "%s\n") in
@@ -349,6 +406,7 @@ end = struct
         make_static_file ".merlin" merlin_file;
         make_static_file "META" meta_file;
         make_static_file (sprintf "%s.install" project_name) install_file;
+        make_static_file ".ocamlinit" ocamlinit_file;
 
         rule "project files"
           ~stamp:"project_files.stamp"
@@ -356,6 +414,7 @@ end = struct
              let project_files = [[
                  ".merlin";
                  sprintf "%s.install" project_name;
+                 ".ocamlinit";
                ]]
              in
              List.map (build project_files) ~f:Outcome.good

@@ -50,6 +50,7 @@ end
 
 module type PROJECT = sig
   val info : Info.t
+  val ocamlinit_postfix : string list
 end
 
 module Make(Project:PROJECT) : sig
