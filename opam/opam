@@ -4,7 +4,7 @@ version: "dev"
 maintainer: "Ashish Agarwal <ashish@solvuu.com>"
 authors: "Solvuu LLC"
 homepage: "http://solvuu.com"
-license: "PROPRIETARY"
+license: "ISC"
 tags: ["org:solvuu"]
 
 build: [
