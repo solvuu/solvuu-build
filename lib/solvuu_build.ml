@@ -213,31 +213,41 @@ end = struct
         )
     )
 
-  (** Chop known suffixes off filename or return None. *)
-  let chop_suffix filename : string option =
-    List.fold_left
-      [".ml"; ".mli"; ".ml.m4"; ".mll"; ".mly"]
-      ~init:None ~f:(fun accum suffix ->
-          match accum with
-          | Some _ as x -> x
-          | None ->
-            if Filename.check_suffix filename suffix then
-              Some (Filename.chop_suffix filename suffix)
+  let modules_of_file filename : string list =
+    List.fold_left [".ml"; ".mli"; ".ml.m4"; ".mll"; ".mly"; ".atd"]
+      ~init:[] ~f:(fun accum suffix ->
+        let new_items = match suffix with
+          | ".atd" -> (
+            if Filename.check_suffix filename suffix then (
+              Filename.chop_suffix filename suffix
+              |> fun x -> [x^"_j"; x^"_t"]
+            )
             else
-              None
-        )
+              []
+          )
+          | _ -> (
+            if Filename.check_suffix filename suffix then
+              [Filename.chop_suffix filename suffix]
+            else
+              []
+          )
+        in
+        new_items@accum
+      )
+
+  let modules_of_dir dir : string list =
+    readdir dir
+    |> List.map ~f:modules_of_file
+    |> List.concat
+    |> List.sort_uniq compare
+    |> List.map ~f:String.capitalize
 
   let mlpack_file dir : string list =
     if not (Sys.file_exists dir && Sys.is_directory dir) then
       failwithf "cannot create mlpack file for dir %s" dir ()
     else (
-      readdir dir
-      |> List.map ~f:chop_suffix
-      |> List.filter ~f:(function Some _ -> true | None -> false)
-      |> List.map ~f:(function
-          | Some x -> dir/(String.capitalize x) | None -> assert false
-        )
-      |> List.sort_uniq compare
+      modules_of_dir dir
+      |> List.map ~f:(fun x -> dir/x)
     )
 
   let mllib_file dir lib : string list =
