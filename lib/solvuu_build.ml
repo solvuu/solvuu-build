@@ -264,6 +264,7 @@ end = struct
       "B ./_build/lib/**";
       "B ./_build/app/**";
       "B +threads";
+      "PKG solvuu_build";
     ]
     @(
       List.map all_pkgs ~f:(fun x -> sprintf "PKG %s" x)
