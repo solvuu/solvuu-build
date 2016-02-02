@@ -139,6 +139,17 @@ end = struct
     |> List.flatten
     |> List.sort_uniq compare
 
+  let list_diff big small =
+    List.filter big ~f:(fun x -> not (List.mem x small))
+
+  let undeclared_item_check found given =
+    if found <> given then (
+      let unknowns = list_diff found given in
+      failwithf
+        "some items are mentionned but not defined: %s"
+        (String.concat " " unknowns) ()
+    )
+
   let all_libs : string list =
     let found =
       readdir "lib"
@@ -150,7 +161,7 @@ end = struct
       |> Info.names
       |> List.sort ~cmp:compare
     in
-    assert (found=given);
+    undeclared_item_check found given ;
     given
 
   let topologically_sorted_libs =
@@ -167,7 +178,7 @@ end = struct
       |> Info.names
       |> List.sort ~cmp:compare
     in
-    assert (found=given);
+    undeclared_item_check found given ;
     given
 
   let git_commit =
