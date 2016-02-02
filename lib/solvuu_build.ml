@@ -40,7 +40,9 @@ module Info = struct
   let libs t = List.filter ~f:is_lib t
   let apps t = List.filter ~f:is_app t
 
-  let get t name = List.find t ~f:(fun x -> x.name = name)
+  let get t name =
+    try List.find t ~f:(fun x -> x.name = name)
+    with Not_found -> failwith ("Unknown library " ^ (name_as_string name))
 
   let dependance_graph items =
     List.fold_left items ~init:Digraph.empty ~f:(fun accu item ->
