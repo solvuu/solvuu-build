@@ -107,6 +107,7 @@ end
 module Make(Project:PROJECT) : sig
   val project_name : string
   val project_version : string
+  val modules_of_dir : string -> string list
   val plugin : Ocamlbuild_plugin.hook -> unit
   val dispatch : unit -> unit
 end = struct
