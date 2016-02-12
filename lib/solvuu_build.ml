@@ -398,6 +398,45 @@ end = struct
     ]
     @ Project.ocamlinit_postfix
 
+  let makefile_rules_file : string list =
+    let map_name xs = List.map xs ~f:(sprintf "%s_%s" project_name) in
+    let native =
+      List.concat [
+        map_name all_libs_to_build |> List.map ~f:(sprintf "lib/%s.cmxa") ;
+        map_name all_libs_to_build |> List.map ~f:(sprintf "lib/%s.cmxs") ;
+        List.map all_apps_to_build ~f:(sprintf "app/%s.native") ;
+      ]
+      |> String.concat " "
+      |> sprintf "native: %s\n"
+    in
+    let byte =
+      List.concat [
+        map_name all_libs_to_build |> List.map ~f:(sprintf "lib/%s.cmxa") ;
+        List.map all_apps_to_build ~f:(sprintf "app/%s.byte") ;
+      ]
+      |> String.concat " "
+      |> sprintf "byte: %s\n"
+    in
+    let static = {|
+default: byte project_files.stamp
+
+%.cma %.cmxa %.cmxs %.native %.byte lib/%.mlpack:
+	$(OCAMLBUILD) $@
+
+project_files.stamp META:
+	$(OCAMLBUILD) $@
+
+.merlin $(PROJECT).install .ocamlinit:
+	$(OCAMLBUILD) $@ && ln -s _build/$@ $@
+
+clean:
+	$(OCAMLBUILD) -clean
+
+.PHONY: default native byte clean
+|}
+    in
+    [static ; native ; byte]
+
   let make_static_file path contents =
     let contents = List.map contents ~f:(sprintf "%s\n") in
     rule path ~prod:path (fun _ _ ->
@@ -460,6 +499,7 @@ end = struct
         make_static_file "META" meta_file;
         make_static_file (sprintf "%s.install" project_name) install_file;
         make_static_file ".ocamlinit" ocamlinit_file;
+        make_static_file "Makefile.rules" makefile_rules_file ;
 
         rule "project files"
           ~stamp:"project_files.stamp"
