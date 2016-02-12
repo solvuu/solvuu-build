@@ -1,0 +1,28 @@
+opam-version: "1.2"
+name: "this_is"
+version: "dev"
+maintainer: "philippe.veber@gmail.com"
+authors: ["Solvuu LLC"]
+license: "ISC"
+
+build: [
+  [make "byte"]
+  [make "native"]
+]
+
+install: [
+  [make "META"]
+  [make "%{name}%.install"]
+]
+
+depends: [
+  "ocamlfind" {build}
+  "ocamlbuild" {build}
+  "solvuu_build" {build & = "dev"}
+  "core"
+]
+
+depopts: [
+  "async"
+  "lwt"
+]
