@@ -2,6 +2,9 @@
 open Printf
 let failwithf fmt = ksprintf (fun s () -> failwith s) fmt
 
+(* This is necessary to query findlib *)
+let () = Findlib.init ()
+
 module String = struct
   include String
   let hash = Hashtbl.hash
@@ -23,7 +26,15 @@ end
 
 module Info = struct
   type name = [`Lib of string | `App of string]
-  type item = {name:name; libs:string list; pkgs:string list}
+  type condition = [
+    | `Pkgs_installed
+  ]
+  type item = {
+    name : name ;
+    libs : string list ;
+    pkgs : string list ;
+    build_if : condition list ;
+  }
   type t = item list
 
   let is_lib item = match item.name with `Lib _ -> true | `App _ -> false
@@ -43,6 +54,19 @@ module Info = struct
   let get t name =
     try List.find t ~f:(fun x -> x.name = name)
     with Not_found -> failwith ("Unknown library " ^ (name_as_string name))
+
+  let findlib_packages =
+    Fl_package_base.list_packages ()
+
+  let rec should_build items i =
+    List.for_all i.build_if ~f:(function
+        | `Pkgs_installed ->
+          List.for_all i.pkgs ~f:(List.mem ~set:findlib_packages)
+      )
+    &&
+    List.for_all i.libs ~f:(fun lib ->
+        should_build items (get items (`Lib lib))
+      )
 
   let dependance_graph items =
     List.fold_left items ~init:Digraph.empty ~f:(fun accu item ->
@@ -150,6 +174,10 @@ end = struct
         (String.concat " " unknowns) ()
     )
 
+  let should_build item =
+    Info.get Project.info item
+    |> Info.should_build Project.info
+
   let all_libs : string list =
     let found =
       readdir "lib"
@@ -163,6 +191,11 @@ end = struct
     in
     undeclared_item_check found given ;
     given
+
+  let all_libs_to_build =
+    List.filter all_libs ~f:(fun lib ->
+        should_build (`Lib lib)
+      )
 
   let topologically_sorted_libs =
     Digraph.Topological.fold (fun h t -> h :: t) (Info.lib_dependance_graph Project.info) []
@@ -181,6 +214,11 @@ end = struct
     undeclared_item_check found given ;
     given
 
+  let all_apps_to_build =
+    List.filter all_apps ~f:(fun app ->
+        should_build (`App app)
+      )
+
   let git_commit =
     if Sys.file_exists ".git" then
       sprintf "Some \"%s\""
@@ -198,7 +236,7 @@ end = struct
       "true: use_menhir";
       "\"lib\": include";
     ]
-    @(List.map all_libs ~f:(fun x ->
+    @(List.map all_libs_to_build ~f:(fun x ->
         sprintf
           "<lib/%s/*.cmx>: for-pack(%s_%s)"
           x (String.capitalize project_name) x )
@@ -285,7 +323,7 @@ end = struct
     )
 
   let meta_file : string list =
-    List.map all_libs ~f:(fun x ->
+    List.map all_libs_to_build ~f:(fun x ->
         let lib_name = sprintf "%s_%s" project_name x in
         let requires : string list =
           (Info.pkgs_all Project.info (`Lib x))
@@ -313,7 +351,7 @@ end = struct
       "cmxs";"dll";"o";"so"]
     in
     (
-      List.map all_libs ~f:(fun lib ->
+      List.map all_libs_to_build ~f:(fun lib ->
           List.map suffixes ~f:(fun suffix ->
               sprintf "  \"?_build/lib/%s_%s.%s\""
                 project_name lib suffix
@@ -324,7 +362,7 @@ end = struct
                   |> fun l -> ["lib: ["]@l@["]"]
     )
     @(
-      List.map all_apps ~f:(fun app ->
+      List.map all_apps_to_build ~f:(fun app ->
           List.map ["byte"; "native"] ~f:(fun suffix ->
               sprintf "  \"?_build/app/%s.%s\" {\"%s\"}" app suffix app
             )
@@ -406,13 +444,13 @@ end = struct
           )
         ;
 
-        List.iter all_libs ~f:(fun lib ->
+        List.iter all_libs_to_build ~f:(fun lib ->
             make_static_file
               (sprintf "lib/%s_%s.mlpack" project_name lib)
               (mlpack_file ("lib"/lib))
           );
 
-        List.iter all_libs ~f:(fun lib ->
+        List.iter all_libs_to_build ~f:(fun lib ->
             make_static_file
               (sprintf "lib/%s_%s.mllib" project_name lib)
               (mllib_file "lib" lib)

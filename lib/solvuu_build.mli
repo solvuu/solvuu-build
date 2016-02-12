@@ -7,17 +7,26 @@ module Info : sig
   (** Library or app name. *)
   type name =  [`Lib of string | `App of string]
 
-  type item = {
-    name : name;
+  (** Predicate on an item *)
+  type condition = [
+    | `Pkgs_installed (** all findlib packages dependencies are present *)
+  ]
 
-    libs : string list;
+  type item = {
+    name : name ;
+
+    libs : string list ;
     (** Internal libraries this library or app directly depends on. *)
 
-    pkgs : string list;
+    pkgs : string list ;
     (** Additional ocamlfind packages this library or app depends
 	on. By "additional", we mean it is not necessary to list
 	packages that are already listed for one of this item's
 	[libs]. *)
+
+    build_if : condition list ;
+    (** Conditions on which to build the item. Empty list means
+        unconditionally build the package. *)
   }
 
   type t = private item list

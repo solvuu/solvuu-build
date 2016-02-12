@@ -1,3 +1,4 @@
+PKG findlib
 PKG ocamlbuild
 PKG ocamlgraph
 PKG opam-lib

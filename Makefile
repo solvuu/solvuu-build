@@ -17,6 +17,6 @@ _build/META:
 	@echo "archive(byte) = \"$(PROJECT).cma\"" >> $@
 	@echo "archive(native) = \"$(PROJECT).cmxa\"" >> $@
 	@echo "exists_if = \"$(PROJECT).cma\"" >> $@
-	@echo "requires = \"ocamlbuild ocamlgraph opam-lib\"" >> $@
+	@echo "requires = \"findlib ocamlbuild ocamlgraph opam-lib\"" >> $@
 
 .PHONY: byte native clean
