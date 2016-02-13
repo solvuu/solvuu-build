@@ -411,7 +411,7 @@ end = struct
     in
     let byte =
       List.concat [
-        map_name all_libs_to_build |> List.map ~f:(sprintf "lib/%s.cmxa") ;
+        map_name all_libs_to_build |> List.map ~f:(sprintf "lib/%s.cma") ;
         List.map all_apps_to_build ~f:(sprintf "app/%s.byte") ;
       ]
       |> String.concat " "
