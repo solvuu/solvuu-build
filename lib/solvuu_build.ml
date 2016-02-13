@@ -407,7 +407,7 @@ end = struct
         List.map all_apps_to_build ~f:(sprintf "app/%s.native") ;
       ]
       |> String.concat " "
-      |> sprintf "native: %s\n"
+      |> sprintf "native: %s"
     in
     let byte =
       List.concat [
@@ -415,27 +415,27 @@ end = struct
         List.map all_apps_to_build ~f:(sprintf "app/%s.byte") ;
       ]
       |> String.concat " "
-      |> sprintf "byte: %s\n"
+      |> sprintf "byte: %s"
     in
-    let static = {|
-default: byte project_files.stamp
+    let static = [
+      "default: byte project_files.stamp";
 
-%.cma %.cmxa %.cmxs %.native %.byte lib/%.mlpack:
-	$(OCAMLBUILD) $@
+      "%.cma %.cmxa %.cmxs %.native %.byte lib/%.mlpack:";
+      "\t$(OCAMLBUILD) $@";
 
-project_files.stamp META:
-	$(OCAMLBUILD) $@
+      "project_files.stamp META:";
+      "\t$(OCAMLBUILD) $@";
 
-.merlin $(PROJECT).install .ocamlinit:
-	$(OCAMLBUILD) $@ && ln -s _build/$@ $@
+      sprintf ".merlin %s.install .ocamlinit:" project_name;
+      "\t$(OCAMLBUILD) $@ && ln -s _build/$@ $@";
 
-clean:
-	$(OCAMLBUILD) -clean
+      "clean:";
+      "\t$(OCAMLBUILD) -clean";
 
-.PHONY: default native byte clean
-|}
+      ".PHONY: default native byte clean";
+    ]
     in
-    [static ; native ; byte]
+    static@[native ; byte]
 
   let make_static_file path contents =
     let contents = List.map contents ~f:(sprintf "%s\n") in
