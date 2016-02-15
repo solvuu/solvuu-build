@@ -1,5 +1,5 @@
-PROJECT=$(shell grep "^name" opam/opam | cut -d\" -f2)
-VERSION=$(shell grep "^version" opam/opam | cut -d\" -f2)
+PROJECT=solvuu_build
+VERSION=dev
 OCAMLBUILD=ocamlbuild -use-ocamlfind
 
 native: $(PROJECT).cmxa $(PROJECT).cmxs
@@ -17,6 +17,6 @@ _build/META:
 	@echo "archive(byte) = \"$(PROJECT).cma\"" >> $@
 	@echo "archive(native) = \"$(PROJECT).cmxa\"" >> $@
 	@echo "exists_if = \"$(PROJECT).cma\"" >> $@
-	@echo "requires = \"findlib ocamlbuild ocamlgraph opam-lib\"" >> $@
+	@echo "requires = \"findlib ocamlbuild ocamlgraph\"" >> $@
 
 .PHONY: byte native clean

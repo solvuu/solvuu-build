@@ -58,13 +58,13 @@ module Info : sig
 end
 
 module type PROJECT = sig
+  val name : string
+  val version : string
   val info : Info.t
   val ocamlinit_postfix : string list
 end
 
 module Make(Project:PROJECT) : sig
-  val project_name : string
-  val project_version : string
   val modules_of_dir : string -> string list
   val plugin : Ocamlbuild_plugin.hook -> unit
   val dispatch : unit -> unit

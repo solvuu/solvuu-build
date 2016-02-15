@@ -124,28 +124,18 @@ module Info = struct
 end
 
 module type PROJECT = sig
+  val name : string
+  val version : string
   val info : Info.t
   val ocamlinit_postfix : string list
 end
 
 module Make(Project:PROJECT) : sig
-  val project_name : string
-  val project_version : string
   val modules_of_dir : string -> string list
   val plugin : Ocamlbuild_plugin.hook -> unit
   val dispatch : unit -> unit
 end = struct
   open Ocamlbuild_plugin
-
-  let opam : OpamFile.OPAM.t =
-    OpamFile.OPAM.read @@ OpamFilename.(
-        create (Dir.of_string "opam") (Base.of_string "opam") )
-
-  let project_name =
-    opam |> OpamFile.OPAM.name |> OpamPackage.Name.to_string
-
-  let project_version =
-    opam |> OpamFile.OPAM.version |> OpamPackage.Version.to_string
 
   (* override the one from Ocamlbuild_plugin *)
   module List = struct
@@ -239,7 +229,7 @@ end = struct
     @(List.map all_libs_to_build ~f:(fun x ->
         sprintf
           "<lib/%s/*.cmx>: for-pack(%s_%s)"
-          x (String.capitalize project_name) x )
+          x (String.capitalize Project.name) x )
      )
     @(
       let libs = (Info.libs Project.info :> Info.item list) in
@@ -306,7 +296,7 @@ end = struct
     let path = dir / lib in
     if not (Sys.file_exists path && Sys.is_directory path) then
       failwithf "cannot create mllib file for dir %s" path ()
-    else [ dir / String.capitalize (project_name ^ "_" ^ lib) ]
+    else [ dir / String.capitalize (Project.name ^ "_" ^ lib) ]
 
   let merlin_file : string list =
     [
@@ -324,17 +314,17 @@ end = struct
 
   let meta_file : string list =
     List.map all_libs_to_build ~f:(fun x ->
-        let lib_name = sprintf "%s_%s" project_name x in
+        let lib_name = sprintf "%s_%s" Project.name x in
         let requires : string list =
           (Info.pkgs_all Project.info (`Lib x))
           @(List.map
               (Info.libs_direct Project.info (`Lib x))
-              ~f:(sprintf "%s.%s" project_name)
+              ~f:(sprintf "%s.%s" Project.name)
            )
         in
         [
           sprintf "package \"%s\" (" x;
-          sprintf "  version = \"%s\"" project_version;
+          sprintf "  version = \"%s\"" Project.version;
           sprintf "  archive(byte) = \"%s.cma\"" lib_name;
           sprintf "  archive(native) = \"%s.cmxa\"" lib_name;
           sprintf "  requires = \"%s\"" (String.concat " " requires);
@@ -354,7 +344,7 @@ end = struct
       List.map all_libs_to_build ~f:(fun lib ->
           List.map suffixes ~f:(fun suffix ->
               sprintf "  \"?_build/lib/%s_%s.%s\""
-                project_name lib suffix
+                Project.name lib suffix
             )
         )
       |> List.flatten
@@ -388,7 +378,7 @@ end = struct
       "#directory \"_build/lib\";;" ;
     ]
     @(List.map topologically_sorted_libs ~f:(fun lib ->
-        sprintf "#load \"%s_%s.cma\";;" project_name lib
+        sprintf "#load \"%s_%s.cma\";;" Project.name lib
       )
      )
     @ [
@@ -399,7 +389,7 @@ end = struct
     @ Project.ocamlinit_postfix
 
   let makefile_rules_file : string list =
-    let map_name xs = List.map xs ~f:(sprintf "%s_%s" project_name) in
+    let map_name xs = List.map xs ~f:(sprintf "%s_%s" Project.name) in
     let native =
       List.concat [
         map_name all_libs_to_build |> List.map ~f:(sprintf "lib/%s.cmxa") ;
@@ -426,7 +416,7 @@ end = struct
       "project_files.stamp META:";
       "\t$(OCAMLBUILD) $@";
 
-      sprintf ".merlin %s.install .ocamlinit:" project_name;
+      sprintf ".merlin %s.install .ocamlinit:" Project.name;
       "\t$(OCAMLBUILD) $@ && ln -s _build/$@ $@";
 
       "clean:";
@@ -459,7 +449,7 @@ end = struct
              let ml_m4 = env "%.ml.m4" in
              Cmd (S [
                  A "m4";
-                 A "-D"; A ("VERSION=" ^ project_version);
+                 A "-D"; A ("VERSION=" ^ Project.version);
                  A "-D"; A ("GIT_COMMIT=" ^ git_commit);
                  P ml_m4;
                  Sh ">";
@@ -485,19 +475,19 @@ end = struct
 
         List.iter all_libs_to_build ~f:(fun lib ->
             make_static_file
-              (sprintf "lib/%s_%s.mlpack" project_name lib)
+              (sprintf "lib/%s_%s.mlpack" Project.name lib)
               (mlpack_file ("lib"/lib))
           );
 
         List.iter all_libs_to_build ~f:(fun lib ->
             make_static_file
-              (sprintf "lib/%s_%s.mllib" project_name lib)
+              (sprintf "lib/%s_%s.mllib" Project.name lib)
               (mllib_file "lib" lib)
           );
 
         make_static_file ".merlin" merlin_file;
         make_static_file "META" meta_file;
-        make_static_file (sprintf "%s.install" project_name) install_file;
+        make_static_file (sprintf "%s.install" Project.name) install_file;
         make_static_file ".ocamlinit" ocamlinit_file;
         make_static_file "Makefile.rules" makefile_rules_file ;
 
