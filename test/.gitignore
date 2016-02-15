@@ -1,0 +1,6 @@
+/_build
+/this_is.install
+/.merlin
+/.ocamlinit
+/*.byte
+/*.native
