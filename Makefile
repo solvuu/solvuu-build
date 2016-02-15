@@ -1,5 +1,5 @@
 PROJECT=solvuu_build
-VERSION=dev
+VERSION=0.0.1
 OCAMLBUILD=ocamlbuild -use-ocamlfind
 
 native: $(PROJECT).cmxa $(PROJECT).cmxs
