@@ -297,6 +297,13 @@ end = struct
     |> List.sort_uniq compare
     |> List.map ~f:String.capitalize
 
+  (* returns names of C files in a dir (without their .c
+     extension!) *)
+  let c_units_of_dir dir : string list =
+    readdir dir
+    |> List.filter ~f:(fun p -> Filename.check_suffix p ".c")
+    |> List.map ~f:Filename.chop_extension
+
   let mlpack_file dir : string list =
     if not (Sys.file_exists dir && Sys.is_directory dir) then
       failwithf "cannot create mlpack file for dir %s" dir ()
@@ -310,6 +317,12 @@ end = struct
     if not (Sys.file_exists path && Sys.is_directory path) then
       failwithf "cannot create mllib file for dir %s" path ()
     else [ dir / String.capitalize (Project.name ^ "_" ^ lib) ]
+
+  let clib_file dir =
+    match c_units_of_dir dir with
+    | [] -> None
+    | xs ->
+      Some (List.map xs ~f:(fun x -> x ^ ".o"))
 
   let merlin_file : string list =
     [
@@ -503,6 +516,15 @@ end = struct
             let tag_name = sprintf "use_%s_%s" Project.name lib in
             ocaml_lib ~tag_name ~dir:"lib" ("lib/" ^ lib_name)
           );
+
+        List.iter all_libs_to_build ~f:(fun lib ->
+            match clib_file ("lib" / lib) with
+            | None -> ()
+            | Some file ->
+              make_static_file
+                (sprintf "lib/%s/lib%s_stub.clib" lib lib)
+                file
+          ) ;
 
         make_static_file ".merlin" merlin_file;
         make_static_file "META" meta_file;
