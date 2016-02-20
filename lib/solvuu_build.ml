@@ -209,64 +209,6 @@ end = struct
         should_build (`App app)
       )
 
-  let git_commit =
-    if Sys.file_exists ".git" then
-      sprintf "Some \"%s\""
-        (
-          Ocamlbuild_pack.My_unix.run_and_read "git rev-parse HEAD"
-          |> fun x -> String.sub x 0 (String.length x - 1)
-        )
-    else
-      "None"
-
-  let tags_lines : string list =
-    [
-      "true: thread, bin_annot, annot, short_paths, safe_string, debug";
-      "true: warn(A-4-33-41-42-44-45-48)";
-      "true: use_menhir";
-      "\"lib\": include";
-    ]
-    @(List.map all_libs_to_build ~f:(fun x ->
-        sprintf
-          "<lib/%s/*.cmx>: for-pack(%s_%s)"
-          x (String.capitalize Project.name) x )
-     )
-    @(
-      let libs = (Info.libs Project.info :> Info.item list) in
-      List.map libs ~f:(fun lib ->
-          lib.Info.name, Info.pkgs_all Project.info lib.Info.name
-        )
-      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-      |> List.map ~f:(fun (name,pkgs) ->
-          sprintf "<lib/%s/*>: %s"
-            (Info.name_as_string name)
-            (String.concat ", " (List.map pkgs ~f:(sprintf "package(%s)")))
-        )
-    )
-    @(
-      let apps = (Info.apps Project.info :> Info.item list) in
-      List.map apps ~f:(fun app ->
-          app.Info.name, Info.pkgs_all Project.info app.Info.name )
-      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-      |> List.map ~f:(fun (name,pkgs) ->
-          sprintf "<app/%s.*>: %s"
-            (Info.name_as_string name)
-            (String.concat "," (List.map pkgs ~f:(sprintf "package(%s)")))
-        )
-    )
-    @(
-      let apps = (Info.apps Project.info :> Info.item list) in
-      List.map apps ~f:(fun app ->
-          app.Info.name, Info.libs_all Project.info app.Info.name )
-      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-      |> List.map ~f:(fun (name,libs) ->
-          sprintf "<app/%s.*>: %s"
-            (Info.name_as_string name)
-            (String.concat
-               ","
-               (List.map libs ~f:(sprintf "use_%s_%s" Project.name)))
-        )
-    )
 
   let modules_of_file filename : string list =
     List.fold_left [".ml"; ".mli"; ".ml.m4"; ".mll"; ".mly"; ".atd"]
@@ -303,6 +245,74 @@ end = struct
     readdir dir
     |> List.filter ~f:(fun p -> Filename.check_suffix p ".c")
     |> List.map ~f:Filename.chop_extension
+
+  let git_commit =
+    if Sys.file_exists ".git" then
+      sprintf "Some \"%s\""
+        (
+          Ocamlbuild_pack.My_unix.run_and_read "git rev-parse HEAD"
+          |> fun x -> String.sub x 0 (String.length x - 1)
+        )
+    else
+      "None"
+
+  let tags_lines : string list =
+    [
+      "true: thread, bin_annot, annot, short_paths, safe_string, debug";
+      "true: warn(A-4-33-41-42-44-45-48)";
+      "true: use_menhir";
+      "\"lib\": include";
+    ]
+    @(List.map all_libs_to_build ~f:(fun x ->
+        sprintf
+          "<lib/%s/*.cmx>: for-pack(%s_%s)"
+          x (String.capitalize Project.name) x )
+     )
+    @(
+      all_libs_to_build
+      |> List.filter ~f:(fun lib ->
+          c_units_of_dir ("lib"/lib) <> []
+        )
+      |> List.map ~f:(fun x ->
+          sprintf "<lib/%s.{cma,cmxa,cmxs}>: use_%s_stub" x x
+        )
+    )
+    @(
+      let libs = (Info.libs Project.info :> Info.item list) in
+      List.map libs ~f:(fun lib ->
+          lib.Info.name, Info.pkgs_all Project.info lib.Info.name
+        )
+      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
+      |> List.map ~f:(fun (name,pkgs) ->
+          sprintf "<lib/%s/*>: %s"
+            (Info.name_as_string name)
+            (String.concat ", " (List.map pkgs ~f:(sprintf "package(%s)")))
+        )
+    )
+    @(
+      let apps = (Info.apps Project.info :> Info.item list) in
+      List.map apps ~f:(fun app ->
+          app.Info.name, Info.pkgs_all Project.info app.Info.name )
+      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
+      |> List.map ~f:(fun (name,pkgs) ->
+          sprintf "<app/%s.*>: %s"
+            (Info.name_as_string name)
+            (String.concat "," (List.map pkgs ~f:(sprintf "package(%s)")))
+        )
+    )
+    @(
+      let apps = (Info.apps Project.info :> Info.item list) in
+      List.map apps ~f:(fun app ->
+          app.Info.name, Info.libs_all Project.info app.Info.name )
+      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
+      |> List.map ~f:(fun (name,libs) ->
+          sprintf "<app/%s.*>: %s"
+            (Info.name_as_string name)
+            (String.concat
+               ","
+               (List.map libs ~f:(sprintf "use_%s_%s" Project.name)))
+        )
+    )
 
   let mlpack_file dir : string list =
     if not (Sys.file_exists dir && Sys.is_directory dir) then
