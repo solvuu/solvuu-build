@@ -209,51 +209,6 @@ end = struct
         should_build (`App app)
       )
 
-  let git_commit =
-    if Sys.file_exists ".git" then
-      sprintf "Some \"%s\""
-        (
-          Ocamlbuild_pack.My_unix.run_and_read "git rev-parse HEAD"
-          |> fun x -> String.sub x 0 (String.length x - 1)
-        )
-    else
-      "None"
-
-  let tags_lines : string list =
-    [
-      "true: thread, bin_annot, annot, short_paths, safe_string, debug";
-      "true: warn(A-4-33-41-42-44-45-48)";
-      "true: use_menhir";
-      "\"lib\": include";
-    ]
-    @(List.map all_libs_to_build ~f:(fun x ->
-        sprintf
-          "<lib/%s/*.cmx>: for-pack(%s_%s)"
-          x (String.capitalize Project.name) x )
-     )
-    @(
-      let libs = (Info.libs Project.info :> Info.item list) in
-      List.map libs ~f:(fun lib ->
-          lib.Info.name, Info.pkgs_all Project.info lib.Info.name
-        )
-      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-      |> List.map ~f:(fun (name,pkgs) ->
-          sprintf "<lib/%s/*>: %s"
-            (Info.name_as_string name)
-            (String.concat ", " (List.map pkgs ~f:(sprintf "package(%s)")))
-        )
-    )
-    @(
-      let apps = (Info.apps Project.info :> Info.item list) in
-      List.map apps ~f:(fun app ->
-          app.Info.name, Info.pkgs_all Project.info app.Info.name )
-      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-      |> List.map ~f:(fun (name,pkgs) ->
-          sprintf "<app/%s.*>: %s"
-            (Info.name_as_string name)
-            (String.concat "," (List.map pkgs ~f:(sprintf "package(%s)")))
-        )
-    )
 
   let modules_of_file filename : string list =
     List.fold_left [".ml"; ".mli"; ".ml.m4"; ".mll"; ".mly"; ".atd"]
@@ -284,6 +239,86 @@ end = struct
     |> List.sort_uniq compare
     |> List.map ~f:String.capitalize
 
+  (* returns names of C files in a dir (without their .c
+     extension!) *)
+  let c_units_of_dir dir : string list =
+    readdir dir
+    |> List.filter ~f:(fun p -> Filename.check_suffix p ".c")
+    |> List.map ~f:Filename.chop_extension
+
+  let h_files_of_dir dir : string list =
+    readdir dir
+    |> List.filter ~f:(fun p -> Filename.check_suffix p ".h")
+
+  let git_commit =
+    if Sys.file_exists ".git" then
+      sprintf "Some \"%s\""
+        (
+          Ocamlbuild_pack.My_unix.run_and_read "git rev-parse HEAD"
+          |> fun x -> String.sub x 0 (String.length x - 1)
+        )
+    else
+      "None"
+
+  let tags_lines : string list =
+    [
+      "true: thread, bin_annot, annot, short_paths, safe_string, debug";
+      "true: warn(A-4-33-41-42-44-45-48)";
+      "true: use_menhir";
+      "\"lib\": include";
+    ]
+    @(List.map all_libs_to_build ~f:(fun x ->
+        sprintf
+          "<lib/%s/*.cmx>: for-pack(%s_%s)"
+          x (String.capitalize Project.name) x )
+     )
+    @(
+      all_libs_to_build
+      |> List.filter ~f:(fun lib ->
+          c_units_of_dir ("lib"/lib) <> []
+        )
+      |> List.map ~f:(fun x ->
+          sprintf "<lib/%s_%s.{cma,cmxa,cmxs}>: use_%s_%s_stub"
+            Project.name x Project.name x
+        )
+    )
+    @(
+      let libs = (Info.libs Project.info :> Info.item list) in
+      List.map libs ~f:(fun lib ->
+          lib.Info.name, Info.pkgs_all Project.info lib.Info.name
+        )
+      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
+      |> List.map ~f:(fun (name,pkgs) ->
+          sprintf "<lib/%s/*>: %s"
+            (Info.name_as_string name)
+            (String.concat ", " (List.map pkgs ~f:(sprintf "package(%s)")))
+        )
+    )
+    @(
+      let apps = (Info.apps Project.info :> Info.item list) in
+      List.map apps ~f:(fun app ->
+          app.Info.name, Info.pkgs_all Project.info app.Info.name )
+      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
+      |> List.map ~f:(fun (name,pkgs) ->
+          sprintf "<app/%s.*>: %s"
+            (Info.name_as_string name)
+            (String.concat "," (List.map pkgs ~f:(sprintf "package(%s)")))
+        )
+    )
+    @(
+      let apps = (Info.apps Project.info :> Info.item list) in
+      List.map apps ~f:(fun app ->
+          app.Info.name, Info.libs_all Project.info app.Info.name )
+      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
+      |> List.map ~f:(fun (name,libs) ->
+          sprintf "<app/%s.*>: %s"
+            (Info.name_as_string name)
+            (String.concat
+               ","
+               (List.map libs ~f:(sprintf "use_%s_%s" Project.name)))
+        )
+    )
+
   let mlpack_file dir : string list =
     if not (Sys.file_exists dir && Sys.is_directory dir) then
       failwithf "cannot create mlpack file for dir %s" dir ()
@@ -297,6 +332,13 @@ end = struct
     if not (Sys.file_exists path && Sys.is_directory path) then
       failwithf "cannot create mllib file for dir %s" path ()
     else [ dir / String.capitalize (Project.name ^ "_" ^ lib) ]
+
+  let clib_file dir lib =
+    let path = dir / lib in
+    match c_units_of_dir path with
+    | [] -> None
+    | xs ->
+      Some (List.map xs ~f:(fun x -> lib ^ "/" ^ x ^ ".o"))
 
   let merlin_file : string list =
     [
@@ -338,7 +380,7 @@ end = struct
   let install_file : string list =
     let suffixes = [
       "a";"annot";"cma";"cmi";"cmo";"cmt";"cmti";"cmx";"cmxa";
-      "cmxs";"dll";"o";"so"]
+      "cmxs";"dll";"o"]
     in
     (
       List.map all_libs_to_build ~f:(fun lib ->
@@ -350,6 +392,14 @@ end = struct
       |> List.flatten
       |> fun l -> "  \"_build/META\""::l
                   |> fun l -> ["lib: ["]@l@["]"]
+    )
+    @(
+      let lines =
+        List.map all_libs_to_build ~f:(fun lib ->
+            sprintf "  \"?_build/lib/dll%s_%s_stub.so\"" Project.name lib
+          )
+      in
+      "stublibs: [" :: lines @ ["]"]
     )
     @(
       List.map all_apps_to_build ~f:(fun app ->
@@ -484,6 +534,41 @@ end = struct
               (sprintf "lib/%s_%s.mllib" Project.name lib)
               (mllib_file "lib" lib)
           );
+
+        List.iter all_libs_to_build ~f:(fun lib ->
+            let lib_name = sprintf "%s_%s" Project.name lib in
+            let tag_name = sprintf "use_%s_%s" Project.name lib in
+            ocaml_lib ~tag_name ~dir:"lib" ("lib/" ^ lib_name)
+          );
+
+        List.iter all_libs_to_build ~f:(fun lib ->
+            match clib_file "lib" lib with
+            | None -> ()
+            | Some file ->
+              let lib_tag = sprintf "use_%s_%s" Project.name lib in
+              let cstub = sprintf "%s_%s_stub" Project.name lib in
+              let stub_tag = "use_"^cstub in
+              let headers =
+                h_files_of_dir ("lib"/lib)
+                |> List.map ~f:(fun x -> "lib"/lib/x)
+              in
+              dep ["c" ; "compile"] headers ;
+              dep ["link";"ocaml";stub_tag] [
+                sprintf "lib/lib%s.a" cstub ;
+              ] ;
+              flag
+                ["link";"ocaml";"byte";stub_tag]
+                (S[A"-dllib";A("-l"^cstub);A"-cclib";A("-l"^cstub)]) ;
+              flag
+                ["link";"ocaml";"native";stub_tag]
+                (S[A"-cclib";A("-l"^cstub)]) ;
+              flag
+                ["link";"ocaml";lib_tag]
+                (S[A"-I"; P "lib"]);
+              make_static_file
+                (sprintf "lib/lib%s.clib" cstub)
+                file
+          ) ;
 
         make_static_file ".merlin" merlin_file;
         make_static_file "META" meta_file;

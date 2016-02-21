@@ -28,7 +28,7 @@ include Make(struct
 
     {
       Info.name = `App "app";
-      libs = ["lwt"];
+      libs = ["unix" ; "lwt"];
       pkgs = [];
       build_if = [];
     };
