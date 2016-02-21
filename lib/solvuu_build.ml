@@ -246,6 +246,10 @@ end = struct
     |> List.filter ~f:(fun p -> Filename.check_suffix p ".c")
     |> List.map ~f:Filename.chop_extension
 
+  let h_files_of_dir dir : string list =
+    readdir dir
+    |> List.filter ~f:(fun p -> Filename.check_suffix p ".h")
+
   let git_commit =
     if Sys.file_exists ".git" then
       sprintf "Some \"%s\""
@@ -535,6 +539,11 @@ end = struct
             | Some file ->
               let cstub = sprintf "%s_%s_stub" Project.name lib in
               let tag = "use_"^cstub in
+              let headers =
+                h_files_of_dir ("lib"/lib)
+                |> List.map ~f:(fun x -> "lib"/lib/x)
+              in
+              dep ["c" ; "compile"] headers ;
               dep ["link";"ocaml";tag] [
                 sprintf "lib/lib%s.a" cstub ;
               ] ;

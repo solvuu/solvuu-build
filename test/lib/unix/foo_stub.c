@@ -3,8 +3,9 @@
 #include <caml/alloc.h>
 #include <caml/custom.h>
 #include <stdio.h>
+#include "foo_stub.h"
 
 value foo_stub(value unit) {
-  printf("foo!\n");
+  printf("foo! %d\n", K);
   return 0;
 }
