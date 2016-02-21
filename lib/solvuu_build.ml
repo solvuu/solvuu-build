@@ -537,19 +537,26 @@ end = struct
             match clib_file "lib" lib with
             | None -> ()
             | Some file ->
+              let lib_tag = sprintf "use_%s_%s" Project.name lib in
               let cstub = sprintf "%s_%s_stub" Project.name lib in
-              let tag = "use_"^cstub in
+              let stub_tag = "use_"^cstub in
               let headers =
                 h_files_of_dir ("lib"/lib)
                 |> List.map ~f:(fun x -> "lib"/lib/x)
               in
               dep ["c" ; "compile"] headers ;
-              dep ["link";"ocaml";tag] [
+              dep ["link";"ocaml";stub_tag] [
                 sprintf "lib/lib%s.a" cstub ;
               ] ;
               flag
-                ["link";"ocaml";tag]
+                ["link";"ocaml";"byte";stub_tag]
                 (S[A"-dllib";A("-l"^cstub);A"-cclib";A("-l"^cstub)]) ;
+              flag
+                ["link";"ocaml";"native";stub_tag]
+                (S[A"-cclib";A("-l"^cstub)]) ;
+              flag
+                ["link";"ocaml";lib_tag]
+                (S[A"-I"; P "lib"]);
               make_static_file
                 (sprintf "lib/lib%s.clib" cstub)
                 file
