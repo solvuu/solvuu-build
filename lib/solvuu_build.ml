@@ -254,6 +254,19 @@ end = struct
             (String.concat "," (List.map pkgs ~f:(sprintf "package(%s)")))
         )
     )
+    @(
+      let apps = (Info.apps Project.info :> Info.item list) in
+      List.map apps ~f:(fun app ->
+          app.Info.name, Info.libs_all Project.info app.Info.name )
+      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
+      |> List.map ~f:(fun (name,libs) ->
+          sprintf "<app/%s.*>: %s"
+            (Info.name_as_string name)
+            (String.concat
+               ","
+               (List.map libs ~f:(sprintf "use_%s_%s" Project.name)))
+        )
+    )
 
   let modules_of_file filename : string list =
     List.fold_left [".ml"; ".mli"; ".ml.m4"; ".mll"; ".mly"; ".atd"]
@@ -483,6 +496,12 @@ end = struct
             make_static_file
               (sprintf "lib/%s_%s.mllib" Project.name lib)
               (mllib_file "lib" lib)
+          );
+
+        List.iter all_libs_to_build ~f:(fun lib ->
+            let lib_name = sprintf "%s_%s" Project.name lib in
+            let tag_name = sprintf "use_%s_%s" Project.name lib in
+            ocaml_lib ~tag_name ~dir:"lib" ("lib/" ^ lib_name)
           );
 
         make_static_file ".merlin" merlin_file;
