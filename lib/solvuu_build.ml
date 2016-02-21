@@ -274,7 +274,8 @@ end = struct
           c_units_of_dir ("lib"/lib) <> []
         )
       |> List.map ~f:(fun x ->
-          sprintf "<lib/%s.{cma,cmxa,cmxs}>: use_%s_stub" x x
+          sprintf "<lib/%s_%s.{cma,cmxa,cmxs}>: use_%s_%s_stub"
+            Project.name x Project.name x
         )
     )
     @(
@@ -328,11 +329,12 @@ end = struct
       failwithf "cannot create mllib file for dir %s" path ()
     else [ dir / String.capitalize (Project.name ^ "_" ^ lib) ]
 
-  let clib_file dir =
-    match c_units_of_dir dir with
+  let clib_file dir lib =
+    let path = dir / lib in
+    match c_units_of_dir path with
     | [] -> None
     | xs ->
-      Some (List.map xs ~f:(fun x -> x ^ ".o"))
+      Some (List.map xs ~f:(fun x -> lib ^ "/" ^ x ^ ".o"))
 
   let merlin_file : string list =
     [
@@ -528,11 +530,19 @@ end = struct
           );
 
         List.iter all_libs_to_build ~f:(fun lib ->
-            match clib_file ("lib" / lib) with
+            match clib_file "lib" lib with
             | None -> ()
             | Some file ->
+              let cstub = sprintf "%s_%s_stub" Project.name lib in
+              let tag = "use_"^cstub in
+              dep ["link";"ocaml";tag] [
+                sprintf "lib/lib%s.a" cstub ;
+              ] ;
+              flag
+                ["link";"ocaml";tag]
+                (S[A"-dllib";A("-l"^cstub);A"-cclib";A("-l"^cstub)]) ;
               make_static_file
-                (sprintf "lib/%s/lib%s_stub.clib" lib lib)
+                (sprintf "lib/lib%s.clib" cstub)
                 file
           ) ;
 
