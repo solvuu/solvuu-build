@@ -380,7 +380,7 @@ end = struct
   let install_file : string list =
     let suffixes = [
       "a";"annot";"cma";"cmi";"cmo";"cmt";"cmti";"cmx";"cmxa";
-      "cmxs";"dll";"o";"so"]
+      "cmxs";"dll";"o"]
     in
     (
       List.map all_libs_to_build ~f:(fun lib ->
@@ -392,6 +392,14 @@ end = struct
       |> List.flatten
       |> fun l -> "  \"_build/META\""::l
                   |> fun l -> ["lib: ["]@l@["]"]
+    )
+    @(
+      let lines =
+        List.map all_libs_to_build ~f:(fun lib ->
+            sprintf "  \"?_build/lib/dll%s_%s_stub.so\"" Project.name lib
+          )
+      in
+      "stublibs: [" :: lines @ ["]"]
     )
     @(
       List.map all_apps_to_build ~f:(fun app ->
