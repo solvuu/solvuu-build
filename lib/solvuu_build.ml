@@ -366,6 +366,7 @@ end = struct
         in
         [
           sprintf "package \"%s\" (" x;
+          sprintf "  directory = \"%s\"" x;
           sprintf "  version = \"%s\"" Project.version;
           sprintf "  archive(byte) = \"%s.cma\"" lib_name;
           sprintf "  archive(native) = \"%s.cmxa\"" lib_name;
@@ -385,8 +386,9 @@ end = struct
     (
       List.map all_libs_to_build ~f:(fun lib ->
           List.map suffixes ~f:(fun suffix ->
-              sprintf "  \"?_build/lib/%s_%s.%s\""
+              sprintf "  \"?_build/lib/%s_%s.%s\" { \"%s/%s_%s.%s\" }"
                 Project.name lib suffix
+                lib Project.name lib suffix
             )
         )
       |> List.flatten
