@@ -1,5 +1,5 @@
 opam-version: "1.2"
-version: "dev"
+version: "0.0.2"
 maintainer: "Ashish Agarwal <ashish@solvuu.com>"
 authors: "Solvuu LLC"
 homepage: "http://solvuu.com"
