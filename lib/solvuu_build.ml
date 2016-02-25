@@ -267,11 +267,27 @@ end = struct
       "true: use_menhir";
       "\"lib\": include";
     ]
-    @(List.map all_libs_to_build ~f:(fun x ->
-        sprintf
-          "<lib/%s/*.cmx>: for-pack(%s_%s)"
-          x (String.capitalize Project.name) x )
-     )
+    (* === for-pack tags *)
+    @(
+      List.map all_libs_to_build ~f:(fun x ->
+          sprintf
+            "<lib/%s/*.cmx>: for-pack(%s_%s)"
+            x (String.capitalize Project.name) x )
+    )
+    (* === use_foo for libs *)
+    @(
+      let libs = (Info.libs Project.info :> Info.item list) in
+      List.map libs ~f:(fun lib ->
+          lib.Info.name, Info.libs_direct Project.info lib.Info.name
+        )
+      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
+      |> List.map ~f:(fun (name,libs) ->
+          sprintf "<lib/%s/*>: %s"
+            (Info.name_as_string name)
+            (String.concat ", " (List.map libs ~f:(sprintf "use_%s_%s" Project.name)))
+        )
+    )
+    (* === use_foo_stub tags for cm{a,xa,xs} *)
     @(
       all_libs_to_build
       |> List.filter ~f:(fun lib ->
@@ -282,6 +298,7 @@ end = struct
             Project.name x Project.name x
         )
     )
+    (* === package tags for libs *)
     @(
       let libs = (Info.libs Project.info :> Info.item list) in
       List.map libs ~f:(fun lib ->
@@ -294,6 +311,19 @@ end = struct
             (String.concat ", " (List.map pkgs ~f:(sprintf "package(%s)")))
         )
     )
+    (* === use_foo for apps *)
+    @(
+      let apps = (Info.apps Project.info :> Info.item list) in
+      List.map apps ~f:(fun app ->
+          app.Info.name, Info.libs_direct Project.info app.Info.name )
+      |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
+      |> List.map ~f:(fun (name,libs) ->
+          sprintf "<app/%s.*>: %s"
+            (Info.name_as_string name)
+            (String.concat ", " (List.map libs ~f:(sprintf "use_%s_%s" Project.name)))
+        )
+    )
+    (* === package tags for apps *)
     @(
       let apps = (Info.apps Project.info :> Info.item list) in
       List.map apps ~f:(fun app ->
@@ -305,6 +335,7 @@ end = struct
             (String.concat "," (List.map pkgs ~f:(sprintf "package(%s)")))
         )
     )
+    (* === use_foo_stub for apps *)
     @(
       let apps = (Info.apps Project.info :> Info.item list) in
       List.map apps ~f:(fun app ->
@@ -539,15 +570,17 @@ end = struct
 
         List.iter all_libs_to_build ~f:(fun lib ->
             let lib_name = sprintf "%s_%s" Project.name lib in
-            let tag_name = sprintf "use_%s_%s" Project.name lib in
-            ocaml_lib ~tag_name ~dir:"lib" ("lib/" ^ lib_name)
+            let lib_tag = sprintf "use_%s_%s" Project.name lib in
+            flag ["link";"ocaml";lib_tag] (S[A"-I"; P "lib"]);
+            ocaml_lib ~tag_name:lib_tag ~dir:"lib" ("lib/" ^ lib_name) ;
+            dep ["ocaml";"byte";lib_tag] [sprintf "lib/%s.cma" lib_name] ;
+            dep ["ocaml";"native";lib_tag] [sprintf "lib/%s.cmxa" lib_name]
           );
 
         List.iter all_libs_to_build ~f:(fun lib ->
             match clib_file "lib" lib with
             | None -> ()
             | Some file ->
-              let lib_tag = sprintf "use_%s_%s" Project.name lib in
               let cstub = sprintf "%s_%s_stub" Project.name lib in
               let stub_tag = "use_"^cstub in
               let headers =
@@ -564,9 +597,6 @@ end = struct
               flag
                 ["link";"ocaml";"native";stub_tag]
                 (S[A"-cclib";A("-l"^cstub)]) ;
-              flag
-                ["link";"ocaml";lib_tag]
-                (S[A"-I"; P "lib"]);
               make_static_file
                 (sprintf "lib/lib%s.clib" cstub)
                 file
