@@ -1,3 +1,5 @@
+SRC ./lib/**
+B ./_build/lib/**
 PKG findlib
 PKG ocamlbuild
 PKG ocamlgraph
