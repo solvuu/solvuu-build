@@ -128,15 +128,15 @@ module Item = struct
 
   type app = {
     name : name;
-    libs : t list;
-    pkgs : Findlib.pkg list;
+    internal_deps : t list;
+    findlib_deps : Findlib.pkg list;
     build_if : condition list;
   }
 
   and lib = {
     name : name;
-    libs : t list;
-    pkgs : Findlib.pkg list;
+    internal_deps : t list;
+    findlib_deps : Findlib.pkg list;
     build_if : condition list;
   }
 
@@ -146,8 +146,13 @@ module Item = struct
 
   let typ = function Lib _ -> `Lib | App _ -> `App
   let name = function Lib x -> x.name | App x -> x.name
-  let libs = function Lib x -> x.libs | App x -> x.libs
-  let pkgs = function Lib x -> x.pkgs | App x -> x.pkgs
+
+  let internal_deps = function
+    | Lib x -> x.internal_deps | App x -> x.internal_deps
+
+  let findlib_deps = function
+    | Lib x -> x.findlib_deps | App x -> x.findlib_deps
+
   let build_if = function Lib x -> x.build_if | App x -> x.build_if
 
   let hash t = Hashtbl.hash (typ t, name t)
@@ -183,10 +188,10 @@ module Items = struct
       failwith "multiple libraries or apps have an identical name"
     else
       let g = List.fold_left items ~init:Graph.empty ~f:(fun g x ->
-        match Item.libs x with
+        match Item.internal_deps x with
         | [] -> Graph.add_vertex g x
         | _ ->
-          List.fold_left (Item.libs x) ~init:g ~f:(fun g y ->
+          List.fold_left (Item.internal_deps x) ~init:g ~f:(fun g y ->
             Graph.add_edge g x y
           )
       )
@@ -223,46 +228,46 @@ module Items = struct
     with Not_found ->
       failwithf "unknown app %s" name ()
 
-  let lib_deps t typ name =
-    Item.libs (find t typ name)
+  let internal_deps t typ name =
+    Item.internal_deps (find t typ name)
 
-  let rec lib_deps_all t typ name =
+  let rec internal_deps_all t typ name =
     let item = find t typ name in
-    (Item.libs item)
+    (Item.internal_deps item)
     @(
-      List.map (Item.libs item) ~f:(fun x ->
-        lib_deps_all t (Item.typ x) (Item.name x)
+      List.map (Item.internal_deps item) ~f:(fun x ->
+        internal_deps_all t (Item.typ x) (Item.name x)
       )
       |> List.flatten
     )
     |> List.sort_uniq Item.compare
 
-  let pkgs_deps t typ name =
-    Item.pkgs (find t typ name)
+  let findlib_deps t typ name =
+    Item.findlib_deps (find t typ name)
 
-  let rec pkgs_deps_all t typ name =
+  let rec findlib_deps_all t typ name =
     let item = find t typ name in
-    (Item.pkgs item)
+    (Item.findlib_deps item)
     @(
-      List.map (Item.libs item) ~f:(fun x ->
-        pkgs_deps_all t (Item.typ x) (Item.name x)
+      List.map (Item.internal_deps item) ~f:(fun x ->
+        findlib_deps_all t (Item.typ x) (Item.name x)
       )
       |> List.flatten
     )
     |> List.sort_uniq String.compare
 
   let all_findlib_pkgs t =
-    List.map t ~f:Item.pkgs
+    List.map t ~f:Item.findlib_deps
     |> List.flatten
     |> List.sort_uniq String.compare
 
   let rec should_build items (i:Item.t) =
     List.for_all (Item.build_if i) ~f:(function
       | `Pkgs_installed ->
-        List.for_all (Item.pkgs i) ~f:Findlib.installed
+        List.for_all (Item.findlib_deps i) ~f:Findlib.installed
     )
     &&
-    List.for_all (Item.libs i) ~f:(fun x ->
+    List.for_all (Item.internal_deps i) ~f:(fun x ->
       should_build items (find items (Item.typ x) (Item.name x))
     )
 
@@ -306,10 +311,10 @@ module Make(Project:PROJECT) = struct
     let apps_names = List.map apps ~f:(fun (x:Item.app) -> x.Item.name)
 
     let find = Items.find Project.items
-    let lib_deps = Items.lib_deps Project.items
-    let lib_deps_all = Items.lib_deps_all Project.items
-    let pkgs_deps = Items.pkgs_deps Project.items
-    let pkgs_deps_all = Items.pkgs_deps_all Project.items
+    let internal_deps = Items.internal_deps Project.items
+    let internal_deps_all = Items.internal_deps_all Project.items
+    let findlib_deps = Items.findlib_deps Project.items
+    let findlib_deps_all = Items.findlib_deps_all Project.items
     let all_findlib_pkgs = Items.all_findlib_pkgs Project.items
     let should_build = Items.should_build Project.items
     let topologically_sorted = Items.topologically_sorted Project.items
@@ -343,7 +348,7 @@ module Make(Project:PROJECT) = struct
     @(
       List.map Items.libs ~f:(fun (lib:Item.lib) ->
         lib.Item.name,
-        Items.lib_deps `Lib lib.Item.name |>
+        Items.internal_deps `Lib lib.Item.name |>
         List.filter ~f:Item.is_lib |>
         List.map ~f:Item.name
       )
@@ -369,7 +374,7 @@ module Make(Project:PROJECT) = struct
     (* === package tags for libs *)
     @(
       List.map Items.libs ~f:(fun (lib:Item.lib) ->
-        lib.Item.name, Items.pkgs_deps_all `Lib lib.Item.name
+        lib.Item.name, Items.findlib_deps_all `Lib lib.Item.name
       )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
       |> List.map ~f:(fun (name,pkgs) ->
@@ -382,7 +387,7 @@ module Make(Project:PROJECT) = struct
     @(
       List.map Items.apps ~f:(fun (app:Item.app) ->
         app.Item.name,
-        Items.lib_deps_all `App app.Item.name |>
+        Items.internal_deps_all `App app.Item.name |>
         Items.filter_libs |>
         List.map ~f:(fun (x:Item.lib) -> x.Item.name)
       )
@@ -396,7 +401,7 @@ module Make(Project:PROJECT) = struct
     (* === package tags for apps *)
     @(
       List.map Items.apps ~f:(fun (app:Item.app) ->
-        app.Item.name, Items.pkgs_deps_all `App app.Item.name )
+        app.Item.name, Items.findlib_deps_all `App app.Item.name )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
       |> List.map ~f:(fun (name,pkgs) ->
         sprintf "<app/%s.*>: %s"
@@ -408,7 +413,7 @@ module Make(Project:PROJECT) = struct
     @(
       List.map Items.apps ~f:(fun (app:Item.app) ->
         app.Item.name,
-        Items.lib_deps_all `App app.Item.name |>
+        Items.internal_deps_all `App app.Item.name |>
         Items.filter_libs |>
         List.map ~f:(fun (x:Item.lib) -> x.Item.name)
       )
@@ -446,9 +451,9 @@ module Make(Project:PROJECT) = struct
     List.map Items.libs_names ~f:(fun x ->
         let lib_name = sprintf "%s_%s" Project.name x in
         let requires : string list =
-          (Items.pkgs_deps_all `Lib x)
+          (Items.findlib_deps_all `Lib x)
           @(List.map
-              (Items.lib_deps `Lib x |> List.map ~f:Item.name)
+              (Items.internal_deps `Lib x |> List.map ~f:Item.name)
               ~f:(sprintf "%s.%s" Project.name)
            )
         in

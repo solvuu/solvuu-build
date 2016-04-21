@@ -47,15 +47,15 @@ module Item : sig
 
   type app = {
     name : name;
-    libs : t list;
-    pkgs : Findlib.pkg list;
+    internal_deps : t list;
+    findlib_deps : Findlib.pkg list;
     build_if : condition list;
   }
 
   and lib = {
     name : name;
-    libs : t list;
-    pkgs : Findlib.pkg list;
+    internal_deps : t list;
+    findlib_deps : Findlib.pkg list;
     build_if : condition list;
   }
 
@@ -69,8 +69,8 @@ module Item : sig
 
   val typ : t -> typ
   val name : t -> name
-  val libs : t -> t list
-  val pkgs : t -> Findlib.pkg list
+  val internal_deps : t -> t list
+  val findlib_deps : t -> Findlib.pkg list
   val build_if : t -> condition list
 
   val is_lib : t -> bool
@@ -98,19 +98,19 @@ module Items : sig
 
   (** Return direct internal dependencies of item with given [typ] and
       [name]. *)
-  val lib_deps : t -> Item.typ -> Item.name -> Item.t list
+  val internal_deps : t -> Item.typ -> Item.name -> Item.t list
 
   (** Return all internal dependencies of item with given [typ] and
       [name]. *)
-  val lib_deps_all : t -> Item.typ -> Item.name -> Item.t list
+  val internal_deps_all : t -> Item.typ -> Item.name -> Item.t list
 
   (** Return findlib packages that item with given [typ] and [name]
       directly depends on. *)
-  val pkgs_deps : t -> Item.typ -> Item.name -> Findlib.pkg list
+  val findlib_deps : t -> Item.typ -> Item.name -> Findlib.pkg list
 
   (** Return all findlib packages item with given [typ] and [name]
       depends on. *)
-  val pkgs_deps_all : t -> Item.typ -> Item.name -> Findlib.pkg list
+  val findlib_deps_all : t -> Item.typ -> Item.name -> Findlib.pkg list
 
   (** Return all findlib packages mentioned in all items. *)
   val all_findlib_pkgs : t -> Findlib.pkg list
