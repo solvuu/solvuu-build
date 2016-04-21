@@ -38,8 +38,6 @@ end
 
 *)
 module Item : sig
-  type typ = [`Lib | `App]
-
   type name = string
 
   (** Predicate on an item *)
@@ -47,19 +45,33 @@ module Item : sig
     | `Pkgs_installed (** all finlid pkgs are present *)
   ]
 
-  type t = {
-    typ : typ;
+  type app = {
     name : name;
     libs : t list;
     pkgs : Findlib.pkg list;
     build_if : condition list;
   }
 
+  and lib = {
+    name : name;
+    libs : t list;
+    pkgs : Findlib.pkg list;
+    build_if : condition list;
+  }
+
+  and t = Lib of lib | App of app
+
+  type typ = [`Lib | `App]
+
   val compare : t -> t -> int
   val equal : t -> t -> bool
   val hash : t -> int
 
+  val typ : t -> typ
   val name : t -> name
+  val libs : t -> t list
+  val pkgs : t -> Findlib.pkg list
+  val build_if : t -> condition list
 
   val is_lib : t -> bool
   val is_app : t -> bool
@@ -74,9 +86,15 @@ module Items : sig
 
   val of_list : Item.t list -> t
 
+  val filter_libs : Item.t list -> Item.lib list
+  val filter_apps : Item.t list -> Item.app list
+
   (** [get t typ name] returns the item with given [typ] and
       [name]. Raise exception if no such item in [t]. *)
   val get : t -> Item.typ -> Item.name -> Item.t
+
+  val find_lib : t -> Item.name -> Item.lib
+  val find_app : t -> Item.name -> Item.app
 
   (** Return direct internal dependencies of item with given [typ] and
       [name]. *)
