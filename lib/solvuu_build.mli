@@ -89,9 +89,9 @@ module Items : sig
   val filter_libs : Item.t list -> Item.lib list
   val filter_apps : Item.t list -> Item.app list
 
-  (** [get t typ name] returns the item with given [typ] and
+  (** [find t typ name] returns the item with given [typ] and
       [name]. Raise exception if no such item in [t]. *)
-  val get : t -> Item.typ -> Item.name -> Item.t
+  val find : t -> Item.typ -> Item.name -> Item.t
 
   val find_lib : t -> Item.name -> Item.lib
   val find_app : t -> Item.name -> Item.app

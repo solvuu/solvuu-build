@@ -206,7 +206,7 @@ module Items = struct
   let filter_apps t =
     List.filter_map t ~f:(function Item.App x -> Some x | Item.Lib _ -> None)
 
-  let get t typ name =
+  let find t typ name =
     try List.find t ~f:(fun x -> Item.typ x = typ && Item.name x = name)
     with Not_found ->
       failwithf "unknown %s %s" (Item.typ_to_string typ) name ()
@@ -224,10 +224,10 @@ module Items = struct
       failwithf "unknown app %s" name ()
 
   let lib_deps t typ name =
-    Item.libs (get t typ name)
+    Item.libs (find t typ name)
 
   let rec lib_deps_all t typ name =
-    let item = get t typ name in
+    let item = find t typ name in
     (Item.libs item)
     @(
       List.map (Item.libs item) ~f:(fun x ->
@@ -238,10 +238,10 @@ module Items = struct
     |> List.sort_uniq Item.compare
 
   let pkgs_deps t typ name =
-    Item.pkgs (get t typ name)
+    Item.pkgs (find t typ name)
 
   let rec pkgs_deps_all t typ name =
-    let item = get t typ name in
+    let item = find t typ name in
     (Item.pkgs item)
     @(
       List.map (Item.libs item) ~f:(fun x ->
@@ -263,7 +263,7 @@ module Items = struct
     )
     &&
     List.for_all (Item.libs i) ~f:(fun x ->
-      should_build items (get items (Item.typ x) (Item.name x))
+      should_build items (find items (Item.typ x) (Item.name x))
     )
 
   let topologically_sorted t =
@@ -305,7 +305,7 @@ module Make(Project:PROJECT) = struct
     let libs_names = List.map libs ~f:(fun (x:Item.lib) -> x.Item.name)
     let apps_names = List.map apps ~f:(fun (x:Item.app) -> x.Item.name)
 
-    let get = Items.get Project.items
+    let find = Items.find Project.items
     let lib_deps = Items.lib_deps Project.items
     let lib_deps_all = Items.lib_deps_all Project.items
     let pkgs_deps = Items.pkgs_deps Project.items
