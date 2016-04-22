@@ -12,7 +12,7 @@ module Make(Project:PROJECT) : sig
 
   (** [mllib_file dir lib] returns lines of the .mllib file for
       library with short name [lib]. *)
-  val mllib_file : string -> string -> string list
+  val mllib_file : Item.lib -> string list
 
   val tags_file : string list
   val merlin_file : string list

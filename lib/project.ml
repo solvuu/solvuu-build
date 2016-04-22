@@ -14,8 +14,9 @@ end
 module Make(Project:PROJECT) = struct
   open Ocamlbuild_plugin
 
-  (* override the one from Ocamlbuild_plugin *)
+  (* override some modules from Ocamlbuild_plugin *)
   module List = Util.List
+  module Findlib = Solvuu_build_findlib
 
   (* Override values of [Items] module that take a [Items.t]. Here we
      set [Items.t = Project.items]. *)
@@ -63,137 +64,155 @@ module Make(Project:PROJECT) = struct
       "true: use_menhir";
       "\"lib\": include";
     ]
+
     (* === for-pack tags *)
     @(
-      List.map Items.libs_names ~f:(fun x ->
+      List.map Items.libs ~f:(fun x ->
           sprintf
-            "<lib/%s/*.cmx>: for-pack(%s_%s)"
-            x (String.capitalize Project.name) x )
+            "<%s/*.cmx>: for-pack(%s)"
+            x.Item.dir (String.capitalize x.Item.pack_name) )
     )
+
     (* === use_foo for libs *)
     @(
-      List.map Items.libs ~f:(fun (lib:Item.lib) ->
-        lib.Item.name,
-        Items.internal_deps `Lib lib.Item.name |>
-        List.filter ~f:Item.is_lib |>
-        List.map ~f:Item.name
+      List.map Items.libs ~f:(fun lib ->
+        lib, Items.filter_libs lib.Item.internal_deps
       )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-      |> List.map ~f:(fun (name,libs) ->
-          sprintf "<lib/%s/*>: %s"
-            name
-            (String.concat ", " (List.map libs ~f:(sprintf "use_%s_%s" Project.name)))
-        )
+      |> List.map ~f:(fun (lib,libs) ->
+        sprintf "<%s/*>: %s"
+          lib.Item.dir
+          (
+            List.map libs ~f:(fun x -> Findlib.to_use_tag x.Item.pkg)
+            |> String.concat ", "
+          )
+      )
     )
+
     (* === use_foo_stub tags for cm{a,xa,xs} *)
     @(
       Items.libs
-      |> List.map ~f:(fun (x:Item.lib) -> x.Item.name)
-      |> List.filter ~f:(fun x ->
-          Util.c_units_of_dir ("lib"/x) <> []
-        )
+      |> List.filter ~f:(fun x -> Util.c_units_of_dir x.Item.dir <> [])
       |> List.map ~f:(fun x ->
-          sprintf "<lib/%s_%s.{cma,cmxa,cmxs}>: use_%s_%s_stub"
-            Project.name x Project.name x
-        )
+          sprintf "<%s.{cma,cmxa,cmxs}>: %s_stub"
+            x.Item.dir (Findlib.to_use_tag x.Item.pkg)
+      )
     )
+
     (* === package tags for libs *)
     @(
-      List.map Items.libs ~f:(fun (lib:Item.lib) ->
-        lib.Item.name, Items.findlib_deps_all `Lib lib.Item.name
+      List.map Items.libs ~f:(fun lib ->
+        lib, Item.findlib_deps_all (Item.Lib lib)
       )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-      |> List.map ~f:(fun (name,pkgs) ->
-        sprintf "<lib/%s/*>: %s"
-          name
-          (String.concat ", " (List.map pkgs ~f:(sprintf "package(%s)")))
+      |> List.map ~f:(fun (lib,pkgs) ->
+        sprintf "<%s/*>: %s"
+          lib.Item.dir
+          (List.map pkgs ~f:(sprintf "package(%s)") |> String.concat ", ")
       )
     )
+
     (* === use_foo for apps *)
     @(
       List.map Items.apps ~f:(fun (app:Item.app) ->
-        app.Item.name,
-        Items.internal_deps_all `App app.Item.name |>
-        Items.filter_libs |>
-        List.map ~f:(fun (x:Item.lib) -> x.Item.name)
+        app, Item.internal_deps_all (Item.App app) |> Items.filter_libs
       )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-      |> List.map ~f:(fun (name,libs) ->
-          sprintf "<app/%s.*>: %s"
-            name
-            (String.concat ", " (List.map libs ~f:(sprintf "use_%s_%s" Project.name)))
-        )
+      |> List.map ~f:(fun (app,libs) ->
+          sprintf "<%s.*>: %s"
+            (Filename.chop_extension app.Item.file)
+            (
+              List.map libs ~f:(fun x -> sprintf "use_%s" x.Item.name)
+              |> String.concat ", "
+            )
+      )
     )
+
     (* === package tags for apps *)
     @(
       List.map Items.apps ~f:(fun (app:Item.app) ->
-        app.Item.name, Items.findlib_deps_all `App app.Item.name )
+        app, Item.findlib_deps_all (Item.App app)
+      )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-      |> List.map ~f:(fun (name,pkgs) ->
-        sprintf "<app/%s.*>: %s"
-          name
-          (String.concat "," (List.map pkgs ~f:(sprintf "package(%s)")))
+      |> List.map ~f:(fun (app,pkgs) ->
+        sprintf "<%s.*>: %s"
+          (Filename.chop_extension app.Item.file)
+          (
+            List.map pkgs ~f:(sprintf "package(%s)")
+            |> String.concat ","
+          )
       )
     )
+
     (* === use_foo_stub for apps *)
     @(
       List.map Items.apps ~f:(fun (app:Item.app) ->
-        app.Item.name,
-        Items.internal_deps_all `App app.Item.name |>
-        Items.filter_libs |>
-        List.map ~f:(fun (x:Item.lib) -> x.Item.name)
+        app, Item.internal_deps_all (Item.App app) |> Items.filter_libs
       )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-      |> List.map ~f:(fun (name,libs) ->
-        sprintf "<app/%s.*>: %s"
-          name
-          (String.concat
-             ","
-             (List.map libs ~f:(sprintf "use_%s_%s" Project.name)))
+      |> List.map ~f:(fun (app,libs) ->
+        sprintf "<%s.*>: %s"
+          (Filename.chop_extension app.Item.file)
+          (
+            String.concat "," @@
+            List.map libs ~f:(fun x -> sprintf "use_%s" x.Item.name)
+          )
       )
     )
 
-  let mllib_file dir lib : string list =
-    let path = dir / lib in
-    if not (Sys.file_exists path && Sys.is_directory path) then
-      failwithf "cannot create mllib file for dir %s" path ()
-    else [ dir / String.capitalize (Project.name ^ "_" ^ lib) ]
+  let mllib_file (x:Item.lib) : string list =
+    if not (Sys.file_exists x.Item.dir && Sys.is_directory x.Item.dir) then
+      failwithf "cannot create mllib file for dir %s" x.Item.dir ()
+    else [ Filename.dirname x.Item.dir / String.capitalize x.Item.name ]
 
   let merlin_file : string list =
     [
-      "S ./lib/**";
-      "S ./app/**";
-      "B ./_build/lib";
-      "B ./_build/lib/**";
-      "B ./_build/app/**";
-      "B +threads";
-      "PKG solvuu_build";
+      ["B +threads"; "PKG solvuu_build"];
+
+      (* libs *)
+      List.map Items.libs ~f:(fun x ->
+        [
+          sprintf "S %s" x.Item.dir;
+          sprintf "B _build/%s" x.Item.dir;
+          sprintf "B _build/%s" (Filename.dirname x.Item.dir);
+        ]
+      ) |> List.concat;
+
+      (* apps *)
+      List.map Items.apps ~f:(fun x ->
+        [
+          sprintf "S %s" (Filename.dirname x.Item.file);
+          sprintf "B _build/%s" (Filename.dirname x.Item.file);
+        ]
+      ) |> List.concat;
+
+      (* findlib packages *)
+      List.map Items.all_findlib_pkgs ~f:(sprintf "PKG %s");
     ]
-    @(
-      List.map Items.all_findlib_pkgs ~f:(fun x -> sprintf "PKG %s" x)
-    )
+    |> List.concat
+    |> List.sort_uniq String.compare
 
   let meta_file : string list =
-    List.map Items.libs_names ~f:(fun x ->
-        let lib_name = sprintf "%s_%s" Project.name x in
-        let requires : string list =
-          (Items.findlib_deps_all `Lib x)
-          @(List.map
-              (Items.internal_deps `Lib x |> List.map ~f:Item.name)
-              ~f:(sprintf "%s.%s" Project.name)
-           )
-        in
-        [
-          sprintf "package \"%s\" (" x;
-          sprintf "  directory = \"%s\"" x;
-          sprintf "  version = \"%s\"" Project.version;
-          sprintf "  archive(byte) = \"%s.cma\"" lib_name;
-          sprintf "  archive(native) = \"%s.cmxa\"" lib_name;
-          sprintf "  requires = \"%s\"" (String.concat " " requires);
-          sprintf "  exists_if = \"%s.cma\"" lib_name;
-          sprintf ")";
-        ]
-      )
+    List.map Items.libs ~f:(fun x ->
+      let requires : string list =
+        (Item.findlib_deps_all (Item.Lib x))
+        @(
+          Item.internal_deps (Item.Lib x)
+          |> Items.filter_libs
+          |> List.map ~f:(fun x -> x.Item.pkg)
+        )
+      in
+      [
+        sprintf "package \"%s\" (" x.Item.name;
+        sprintf "  directory = \"%s\"" x.Item.dir;
+        sprintf "  version = \"%s\"" Project.version;
+        sprintf "  archive(byte) = \"%s.cma\"" x.Item.name;
+        sprintf "  archive(native) = \"%s.cmxa\"" x.Item.name;
+        sprintf "  requires = \"%s\"" (String.concat " " requires);
+        sprintf "  exists_if = \"%s.cma\"" x.Item.name;
+        sprintf ")";
+      ]
+    )
     |> List.flatten
     |> List.filter ~f:((<>) "")
 
@@ -203,31 +222,36 @@ module Make(Project:PROJECT) = struct
       "cmxs";"dll";"o"]
     in
     (
-      List.map Items.libs_names ~f:(fun lib ->
+      List.map Items.libs ~f:(fun lib ->
           List.map suffixes ~f:(fun suffix ->
-              sprintf "  \"?_build/lib/%s_%s.%s\" { \"%s/%s_%s.%s\" }"
-                Project.name lib suffix
-                lib Project.name lib suffix
-            )
+              sprintf "  \"?_build/%s/%s.%s\" { \"%s/%s.%s\" }"
+                (Filename.dirname lib.Item.dir) lib.Item.name suffix
+                (Findlib.to_path lib.Item.pkg |> List.tl |> String.concat "/")
+                lib.Item.name suffix
         )
+      )
       |> List.flatten
       |> fun l -> "  \"_build/META\""::l
                   |> fun l -> ["lib: ["]@l@["]"]
     )
     @(
       let lines =
-        List.map Items.libs_names ~f:(fun lib ->
-            sprintf "  \"?_build/lib/dll%s_%s_stub.so\"" Project.name lib
-          )
+        List.map Items.libs ~f:(fun lib ->
+          sprintf "  \"?_build/%s/dll%s_stub.so\""
+            (Filename.dirname lib.Item.dir) lib.Item.name
+        )
       in
       "stublibs: [" :: lines @ ["]"]
     )
     @(
-      List.map Items.apps_names ~f:(fun app ->
-          List.map ["byte"; "native"] ~f:(fun suffix ->
-              sprintf "  \"?_build/app/%s.%s\" {\"%s\"}" app suffix app
-            )
+      List.map Items.apps ~f:(fun app ->
+        List.map ["byte"; "native"] ~f:(fun suffix ->
+          sprintf "  \"?_build/%s.%s\" {\"%s\"}"
+            (Filename.chop_extension app.Item.file)
+            suffix
+            app.Item.name
         )
+      )
       |> List.flatten
       |> function
       | [] -> []
@@ -236,41 +260,64 @@ module Make(Project:PROJECT) = struct
 
   let ocamlinit_file =
     [
-      "let () =" ;
-      "  try Topdirs.dir_directory (Sys.getenv \"OCAML_TOPLEVEL_PATH\")" ;
-      "  with Not_found -> ()" ;
-      ";;" ;
-      "" ;
-      "#use \"topfind\";;" ;
-      "#thread;;" ;
-      sprintf "#require \"%s\";;" (String.concat " " Items.all_findlib_pkgs);
-      "" ;
-      "(* Load each lib provided by this project. *)" ;
-      "#directory \"_build/lib\";;" ;
+      [
+        "let () =";
+        "  try Topdirs.dir_directory (Sys.getenv \"OCAML_TOPLEVEL_PATH\")";
+        "  with Not_found -> ()";
+        ";;" ;
+        "";
+      ];
+      [
+        "#use \"topfind\";;";
+        "#thread;;";
+        "";
+      ];
+      [
+        sprintf "#require \"%s\";;" (String.concat " " Items.all_findlib_pkgs);
+        "";
+      ];
+      [
+        "(* Load each lib provided by this project. *)";
+      ];
+      (
+        Items.topologically_sorted |>
+        Items.filter_libs |>
+        List.map ~f:(fun x ->
+          sprintf "#directory \"_build/%s\";;" (Filename.dirname x.Item.dir)
+        )
+        |> List.sort_uniq String.compare
+      );
+      (
+        Items.topologically_sorted |>
+        Items.filter_libs |>
+        List.map ~f:(fun (x:Item.lib) ->
+          sprintf "#load \"%s.cma\";;" x.Item.name
+        )
+      );
+      [""];
+      Project.ocamlinit_postfix;
     ]
-    @(
-      Items.topologically_sorted |>
-      Items.filter_libs |>
-      List.map ~f:(fun (x:Item.lib) ->
-        sprintf "#load \"%s_%s.cma\";;" Project.name x.Item.name )
-    )
-    @ Project.ocamlinit_postfix
+    |> List.concat
 
   let makefile_rules_file : string list =
-    let map_name xs = List.map xs ~f:(sprintf "%s_%s" Project.name) in
     let native =
       List.concat [
-        map_name Items.libs_names |> List.map ~f:(sprintf "lib/%s.cmxa") ;
-        map_name Items.libs_names |> List.map ~f:(sprintf "lib/%s.cmxs") ;
-        List.map Items.apps_names ~f:(sprintf "app/%s.native") ;
+        List.map Items.libs ~f:(fun x ->
+          sprintf "%s/%s.cmxa" (Filename.dirname x.Item.dir) x.Item.name);
+        List.map Items.libs ~f:(fun x ->
+          sprintf "%s/%s.cmxs" (Filename.dirname x.Item.dir) x.Item.name);
+        List.map Items.apps ~f:(fun (x:Item.app) ->
+          sprintf "%s.native" (Filename.chop_extension x.Item.file));
       ]
       |> String.concat " "
       |> sprintf "native: %s"
     in
     let byte =
       List.concat [
-        map_name Items.libs_names |> List.map ~f:(sprintf "lib/%s.cma") ;
-        List.map Items.apps_names ~f:(sprintf "app/%s.byte") ;
+        List.map Items.libs ~f:(fun x ->
+          sprintf "%s/%s.cma" (Filename.dirname x.Item.dir) x.Item.name);
+        List.map Items.apps ~f:(fun x ->
+          sprintf "%s.byte" (Filename.chop_extension x.Item.file));
       ]
       |> String.concat " "
       |> sprintf "byte: %s"
@@ -278,7 +325,7 @@ module Make(Project:PROJECT) = struct
     let static = [
       "default: byte project_files.stamp";
 
-      "%.cma %.cmxa %.cmxs %.native %.byte lib/%.mlpack:";
+      "%.cma %.cmxa %.cmxs %.native %.byte %.mlpack:";
       "\t$(OCAMLBUILD) $@";
 
       "project_files.stamp META:";
@@ -341,40 +388,44 @@ module Make(Project:PROJECT) = struct
           )
         ;
 
-        List.iter Items.libs_names ~f:(fun lib ->
-            make_static_file
-              (sprintf "lib/%s_%s.mlpack" Project.name lib)
-              (Util.mlpack_file ("lib"/lib))
-          );
+        List.iter Items.libs ~f:(fun lib ->
+          make_static_file
+            (sprintf "%s/%s.mlpack"
+               (Filename.dirname lib.Item.dir) lib.Item.name
+            )
+            (Util.mlpack_file lib.Item.dir)
+        );
 
-        List.iter Items.libs_names ~f:(fun lib ->
-            make_static_file
-              (sprintf "lib/%s_%s.mllib" Project.name lib)
-              (mllib_file "lib" lib)
-          );
+        List.iter Items.libs ~f:(fun lib ->
+          make_static_file
+            (sprintf "%s/%s.mllib"
+               (Filename.dirname lib.Item.dir) lib.Item.name)
+            (mllib_file lib)
+        );
 
-        List.iter Items.libs_names ~f:(fun lib ->
-            let lib_name = sprintf "%s_%s" Project.name lib in
-            let lib_tag = sprintf "use_%s_%s" Project.name lib in
-            flag ["link";"ocaml";lib_tag] (S[A"-I"; P "lib"]);
-            ocaml_lib ~tag_name:lib_tag ~dir:"lib" ("lib/" ^ lib_name) ;
-            dep ["ocaml";"byte";lib_tag] [sprintf "lib/%s.cma" lib_name] ;
-            dep ["ocaml";"native";lib_tag] [sprintf "lib/%s.cmxa" lib_name]
-          );
+        List.iter Items.libs ~f:(fun lib ->
+            let lib_name = lib.Item.name in
+            let lib_tag = Findlib.to_use_tag lib.Item.pkg in
+            let dir = Filename.dirname lib.Item.dir in
+            flag ["link";"ocaml";lib_tag] (S[A"-I"; P dir]);
+            ocaml_lib ~tag_name:lib_tag ~dir (dir ^ "/" ^ lib_name) ;
+            dep ["ocaml";"byte";lib_tag] [sprintf "%s/%s.cma" dir lib_name] ;
+            dep ["ocaml";"native";lib_tag] [sprintf "%s/%s.cmxa" dir lib_name]
+        );
 
-        List.iter Items.libs_names ~f:(fun lib ->
-            match Util.clib_file "lib" lib with
+        List.iter Items.libs ~f:(fun lib ->
+            match Util.clib_file lib.Item.dir lib.Item.name with
             | None -> ()
             | Some file ->
-              let cstub = sprintf "%s_%s_stub" Project.name lib in
+              let cstub = sprintf "%s_stub" lib.Item.name in
               let stub_tag = "use_"^cstub in
               let headers =
-                Util.h_files_of_dir ("lib"/lib)
-                |> List.map ~f:(fun x -> "lib"/lib/x)
+                Util.h_files_of_dir lib.Item.dir
+                |> List.map ~f:(fun x -> lib.Item.dir/x)
               in
               dep ["c" ; "compile"] headers ;
               dep ["link";"ocaml";stub_tag] [
-                sprintf "lib/lib%s.a" cstub ;
+                sprintf "%s/lib%s.a" (Filename.dirname lib.Item.dir) cstub ;
               ] ;
               flag
                 ["link";"ocaml";"byte";stub_tag]
@@ -383,9 +434,9 @@ module Make(Project:PROJECT) = struct
                 ["link";"ocaml";"native";stub_tag]
                 (S[A"-cclib";A("-l"^cstub)]) ;
               make_static_file
-                (sprintf "lib/lib%s.clib" cstub)
+                (sprintf "%s/lib%s.clib" (Filename.dirname lib.Item.dir) cstub)
                 file
-          ) ;
+        ) ;
 
         make_static_file ".merlin" merlin_file;
         make_static_file "META" meta_file;

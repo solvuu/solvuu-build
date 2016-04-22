@@ -26,6 +26,29 @@
       sometimes you want to consider an item to be optional. An item
       is built only if the conjunction of all conditions specified are
       satisfied.
+
+
+    Libs additionally have the fields:
+
+    - [pack_name]: Make the library consist of a single module with
+      given name, constructed as a pack of all the modules that would
+      be directly accessible.
+
+    - [dir]: The [dir] in which the library's modules are implemented,
+      relative to the repo root. It is assumed that all files in this
+      [dir] and no other files comprise the library.
+
+    - [pkg]: The findlib package name for this library. If your
+      project installs a single package, you likely want this equal to
+      the project name. If it installs several packages, you likely
+      want this equal to "project_name.lib_name". In the latter case,
+      the dot is interpreted leading to findlib sub-packages.
+
+
+    Apps additionally have the fields:
+
+    - [file]: Path to the file implementing the app, relative to the
+      repo root.
 *)
 
 type name = string
@@ -46,6 +69,7 @@ type app = {
   internal_deps : t list;
   findlib_deps : pkg list;
   build_if : condition list;
+  file : string;
 }
 
 and lib = {
@@ -53,6 +77,9 @@ and lib = {
   internal_deps : t list;
   findlib_deps : pkg list;
   build_if : condition list;
+  pack_name : string;
+  dir : string;
+  pkg : Solvuu_build_findlib.pkg;
 }
 
 and t = Lib of lib | App of app
@@ -63,6 +90,9 @@ val lib
   :  ?internal_deps:t list
   -> ?findlib_deps:pkg list
   -> ?build_if:condition list
+  -> pkg : Solvuu_build_findlib.pkg
+  -> pack_name:string
+  -> dir:string
   -> name
   -> t
 
@@ -70,6 +100,7 @@ val app
   :  ?internal_deps:t list
   -> ?findlib_deps:pkg list
   -> ?build_if:condition list
+  -> file:string
   -> name
   -> t
 

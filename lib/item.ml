@@ -13,6 +13,7 @@ type app = {
   internal_deps : t list;
   findlib_deps : pkg list;
   build_if : condition list;
+  file : string;
 }
 
 and lib = {
@@ -20,17 +21,24 @@ and lib = {
   internal_deps : t list;
   findlib_deps : pkg list;
   build_if : condition list;
+  pack_name : string;
+  dir : string;
+  pkg : Solvuu_build_findlib.pkg;
 }
 
 and t = Lib of lib | App of app
 
 type typ = [`Lib | `App]
 
-let lib ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[]) name =
-  Lib {name;internal_deps;findlib_deps;build_if}
+let lib ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[])
+    ~pkg ~pack_name ~dir name
+  =
+  Lib {name;internal_deps;findlib_deps;build_if;pack_name;dir;pkg}
 
-let app ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[]) name =
-  App {name;internal_deps;findlib_deps;build_if}
+let app ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[])
+    ~file name
+  =
+  App {name;internal_deps;findlib_deps;build_if;file}
 
 let typ = function Lib _ -> `Lib | App _ -> `App
 let name = function Lib x -> x.name | App x -> x.name
