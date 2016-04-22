@@ -8,20 +8,7 @@ type name = string
 type version = string
 (** Project's version. *)
 
-type t = private {
-  libs : Item.lib list;
-  apps : Item.app list;
-
-  tags_file : string list;
-  merlin_file : string list;
-  meta_file : string list;
-  install_file : string list;
-  ocamlinit_file : string list;
-  makefile_rules_file : string list;
-
-  plugin : Ocamlbuild_plugin.hook -> unit;
-  dispatch : unit -> unit;
-}
+type t
 
 val make
   :  ?ocamlinit_postfix:string list
@@ -29,6 +16,9 @@ val make
   -> version:version
   -> Item.t list
   -> t
+
+val plugin : t -> (Ocamlbuild_plugin.hook -> unit)
+val dispatch : t -> unit
 
 (******************************************************************************)
 (** {2 Static Files} *)

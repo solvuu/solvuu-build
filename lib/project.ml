@@ -10,18 +10,17 @@ type name = string
 type version = string
 
 type t = {
+  name : name;
+  version : version;
+  git_commit : string option;
   libs : Item.lib list;
   apps : Item.app list;
-
   tags_file : string list;
   merlin_file : string list;
   meta_file : string list;
   install_file : string list;
   ocamlinit_file : string list;
   makefile_rules_file : string list;
-
-  plugin : Ocamlbuild_plugin.hook -> unit;
-  dispatch : unit -> unit;
 }
 
 
@@ -458,61 +457,51 @@ end
 (** {2 Main Functions} *)
 (******************************************************************************)
 let make ?(ocamlinit_postfix=[]) ~name ~version items =
-  let open Ocamlbuild_plugin in
-
-  (* override some modules from Ocamlbuild_plugin *)
-  let module List = Util.List in
-
   (* Compute graph to check for cycles and other errors. *)
   ignore (Item.Graph.of_list items);
 
   (* Filter for items that should be built. *)
   let items = List.filter items ~f:Item.should_build in
-  let all_libs = Item.filter_libs items in
-  let all_apps = Item.filter_apps items in
-
-  let tags_file = tags_file items in
-  let merlin_file = merlin_file items in
-  let meta_file = meta_file all_libs version in
-  let install_file = install_file items in
-  let ocamlinit_file = ocamlinit_file items ~postfix:ocamlinit_postfix in
-  let makefile_rules_file = makefile_rules_file items name in
-
-  let plugin = function
-    | Before_options -> (
-        Options.use_ocamlfind := true;
-        Rule.tags_file tags_file;
-      )
-    | After_rules -> (
-        Rule.ml_m4_to_ml ~git_commit:(git_commit()) ~version;
-        Rule.atd_to_t();
-        Rule.atd_to_j();
-
-        List.iter all_libs ~f:Rule.mlpack;
-        List.iter all_libs ~f:Rule.mllib;
-        List.iter all_libs ~f:Rule.libs_byte_native;
-        List.iter all_libs ~f:Rule.clib;
-
-        Rule.static_file ".merlin" merlin_file;
-        Rule.static_file "META" meta_file;
-        Rule.static_file (sprintf "%s.install" name) install_file;
-        Rule.static_file ".ocamlinit" ocamlinit_file;
-        Rule.static_file "Makefile.rules" makefile_rules_file ;
-
-        Rule.project_files();
-      )
-    | _ -> ()
-  in
-
+  let libs = Item.filter_libs items in
+  let apps = Item.filter_apps items in
   {
-    libs = all_libs;
-    apps = all_apps;
-    tags_file;
-    merlin_file;
-    meta_file;
-    install_file;
-    ocamlinit_file;
-    makefile_rules_file;
-    plugin;
-    dispatch = fun () -> dispatch plugin;
+    name;
+    version;
+    git_commit = git_commit();
+    libs = libs;
+    apps = apps;
+    tags_file = tags_file items;
+    merlin_file = merlin_file items;
+    meta_file = meta_file libs version;
+    install_file = install_file items;
+    ocamlinit_file = ocamlinit_file items ~postfix:ocamlinit_postfix;
+    makefile_rules_file = makefile_rules_file items name;
   }
+
+let plugin t = function
+  | Ocamlbuild_plugin.Before_options -> (
+      Ocamlbuild_plugin.Options.use_ocamlfind := true;
+      Rule.tags_file t.tags_file;
+    )
+  | Ocamlbuild_plugin.After_rules -> (
+      Rule.ml_m4_to_ml ~git_commit:t.git_commit ~version:t.version;
+      Rule.atd_to_t();
+      Rule.atd_to_j();
+
+      List.iter t.libs ~f:Rule.mlpack;
+      List.iter t.libs ~f:Rule.mllib;
+      List.iter t.libs ~f:Rule.libs_byte_native;
+      List.iter t.libs ~f:Rule.clib;
+
+      Rule.static_file ".merlin" t.merlin_file;
+      Rule.static_file "META" t.meta_file;
+      Rule.static_file (sprintf "%s.install" t.name) t.install_file;
+      Rule.static_file ".ocamlinit" t.ocamlinit_file;
+      Rule.static_file "Makefile.rules" t.makefile_rules_file;
+
+      Rule.project_files();
+    )
+  | _ -> ()
+
+let dispatch t =
+  Ocamlbuild_plugin.dispatch (plugin t)
