@@ -38,6 +38,7 @@ module String : sig
   include module type of String
   val hash : string -> int
   val equal : string -> string -> bool
+  val split : string -> on:char -> string list
 end
 
 module List : sig

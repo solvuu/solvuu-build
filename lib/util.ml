@@ -3,12 +3,6 @@ let (/) = Ocamlbuild_plugin.(/)
 
 let failwithf fmt = ksprintf (fun s () -> failwith s) fmt
 
-module String = struct
-  include String
-  let hash = Hashtbl.hash
-  let equal = ( = )
-end
-
 (* Code in this module copied from the Core suite
    [https://github.com/janestreet/]. See there for license
    information. *)
@@ -27,6 +21,43 @@ module Core = struct
 
     let filter_map l ~f = List.rev (rev_filter_map l ~f)
   end
+
+  module String = struct
+    module String = BytesLabels
+
+    let rec char_list_mem l (c:char) =
+      match l with
+      | [] -> false
+      | hd::tl -> hd = c || char_list_mem tl c
+
+    let split_gen str ~on =
+      let is_delim =
+        match on with
+        | `char c' -> (fun c -> c = c')
+        | `char_list l -> (fun c -> char_list_mem l c)
+      in
+      let len = String.length str in
+      let rec loop acc last_pos pos =
+        if pos = -1 then
+          String.sub str ~pos:0 ~len:last_pos :: acc
+        else
+        if is_delim str.[pos] then
+          let pos1 = pos + 1 in
+          let sub_str = String.sub str ~pos:pos1 ~len:(last_pos - pos1) in
+          loop (sub_str :: acc) pos (pos - 1)
+        else loop acc last_pos (pos - 1)
+      in
+      loop [] len (len - 1)
+
+    let split str ~on = split_gen str ~on:(`char on) ;;
+  end
+end
+
+module String = struct
+  include String
+  let hash = Hashtbl.hash
+  let equal = ( = )
+  let split = Core.String.split
 end
 
 module List = struct
