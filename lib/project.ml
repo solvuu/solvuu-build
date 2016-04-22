@@ -8,7 +8,6 @@ let (/) = Ocamlbuild_plugin.(/)
 
 type name = string
 type version = string
-type content = string list
 
 type t = {
   libs : Item.lib list;
@@ -27,8 +26,10 @@ type t = {
 
 
 (******************************************************************************)
-(** {2 Low Level Functions} *)
+(** {2 Static Files} *)
 (******************************************************************************)
+type content = string list
+
 let git_commit () =
   if Sys.file_exists ".git" then
     Some (
@@ -334,15 +335,124 @@ let makefile_rules_file items project_name : string list =
   in
   static@[native ; byte]
 
-let make_static_file path content =
-  let open Ocamlbuild_plugin in
-  let content = List.map (sprintf "%s\n") content in
-  rule path ~prod:path (fun _ _ ->
-    Seq [
-      Cmd (Sh (sprintf "mkdir -p %s" (Filename.dirname path)));
-      Echo (content,path);
-    ]
-  )
+
+(******************************************************************************)
+(** {2 Rules} *)
+(******************************************************************************)
+module Rule = struct
+  open Ocamlbuild_plugin
+
+  (* override some modules from Ocamlbuild_plugin *)
+  module List = Util.List
+  module Findlib = Solvuu_build_findlib
+
+  let static_file path content =
+    let content = List.map content ~f:(sprintf "%s\n") in
+    rule path ~prod:path (fun _ _ ->
+      Seq [
+        Cmd (Sh (sprintf "mkdir -p %s" (Filename.dirname path)));
+        Echo (content,path);
+      ]
+    )
+
+  let tags_file content =
+    List.iter content ~f:Ocamlbuild_pack.Configuration.parse_string
+
+  let ml_m4_to_ml ~git_commit ~version =
+    let git_commit = match git_commit with
+      | None -> "None"
+      | Some x -> sprintf "Some \"%s\"" x
+    in
+    rule "m4: ml.m4 -> ml"
+      ~prod:"%.ml"
+      ~dep:"%.ml.m4"
+      (fun env _ ->
+         let ml_m4 = env "%.ml.m4" in
+         Cmd (S [
+           A "m4";
+           A "-D"; A ("VERSION=" ^ version);
+           A "-D"; A ("GIT_COMMIT=" ^ git_commit);
+           P ml_m4;
+           Sh ">";
+           P (env "%.ml");
+         ]) )
+
+  let atd_to_t () =
+    rule "atd: .atd -> _t.ml, _t.mli"
+      ~dep:"%.atd"
+      ~prods:["%_t.ml"; "%_t.mli"]
+      (fun env _ ->
+         Cmd (S [A "atdgen"; A "-t"; A "-j-std"; P (env "%.atd")]) )
+
+  let atd_to_j () =
+    rule "atd: .atd -> _j.ml, _j.mli"
+      ~dep:"%.atd"
+      ~prods:["%_j.ml"; "%_j.mli"]
+      (fun env _ ->
+         Cmd (S [A "atdgen"; A "-j"; A "-j-std"; P (env "%.atd")]) )
+
+  let mlpack lib =
+    static_file
+      (sprintf "%s/%s.mlpack" (Filename.dirname lib.Item.dir) lib.Item.name)
+      (Util.mlpack_file lib.Item.dir)
+
+  let mllib lib =
+    static_file
+      (sprintf "%s/%s.mllib" (Filename.dirname lib.Item.dir) lib.Item.name)
+      (mllib_file lib)
+
+  let libs_byte_native lib =
+    let lib_name = lib.Item.name in
+    let lib_tag = Findlib.to_use_tag lib.Item.pkg in
+    let dir = Filename.dirname lib.Item.dir in
+    flag ["link";"ocaml";lib_tag] (S[A"-I"; P dir]);
+    ocaml_lib ~tag_name:lib_tag ~dir (dir ^ "/" ^ lib_name) ;
+    dep ["ocaml";"byte";lib_tag] [sprintf "%s/%s.cma" dir lib_name] ;
+    dep ["ocaml";"native";lib_tag] [sprintf "%s/%s.cmxa" dir lib_name]
+
+  let clib lib =
+    match Util.clib_file lib.Item.dir lib.Item.name with
+    | None -> ()
+    | Some file ->
+      let cstub = sprintf "%s_stub" lib.Item.name in
+      let stub_tag = "use_"^cstub in
+      let headers =
+        Util.h_files_of_dir lib.Item.dir
+        |> List.map ~f:(fun x -> lib.Item.dir/x)
+      in
+      dep ["c" ; "compile"] headers ;
+      dep ["link";"ocaml";stub_tag] [
+        sprintf "%s/lib%s.a" (Filename.dirname lib.Item.dir) cstub ;
+      ] ;
+      flag
+        ["link";"ocaml";"byte";stub_tag]
+        (S[A"-dllib";A("-l"^cstub);A"-cclib";A("-l"^cstub)]) ;
+      flag
+        ["link";"ocaml";"native";stub_tag]
+        (S[A"-cclib";A("-l"^cstub)]) ;
+      static_file
+        (sprintf "%s/lib%s.clib" (Filename.dirname lib.Item.dir) cstub)
+        file
+
+  let project_files () =
+    rule "project files"
+      ~stamp:"project_files.stamp"
+      (fun _ build ->
+         let project_files = [
+           [".merlin"];
+           [".ocamlinit"];
+         ]
+         in
+         List.map (build project_files) ~f:Outcome.good
+         |> List.map ~f:(fun result ->
+           Cmd (S [A "ln"; A "-sf";
+                   P ((Filename.basename !Options.build_dir)/result);
+                   P Pathname.pwd] )
+         )
+         |> fun l -> Seq l
+      )
+
+end
 
 (******************************************************************************)
 (** {2 Main Functions} *)
@@ -352,7 +462,6 @@ let make ?(ocamlinit_postfix=[]) ~name ~version items =
 
   (* override some modules from Ocamlbuild_plugin *)
   let module List = Util.List in
-  let module Findlib = Solvuu_build_findlib in
 
   (* Compute graph to check for cycles and other errors. *)
   ignore (Item.Graph.of_list items);
@@ -361,11 +470,6 @@ let make ?(ocamlinit_postfix=[]) ~name ~version items =
   let items = List.filter items ~f:Item.should_build in
   let all_libs = Item.filter_libs items in
   let all_apps = Item.filter_apps items in
-
-  let git_commit =
-    git_commit()
-    |> function None -> "None" | Some x -> sprintf "Some \"%s\"" x
-  in
 
   let tags_file = tags_file items in
   let merlin_file = merlin_file items in
@@ -377,112 +481,25 @@ let make ?(ocamlinit_postfix=[]) ~name ~version items =
   let plugin = function
     | Before_options -> (
         Options.use_ocamlfind := true;
-        List.iter tags_file ~f:Ocamlbuild_pack.Configuration.parse_string
+        Rule.tags_file tags_file;
       )
     | After_rules -> (
-        rule "m4: ml.m4 -> ml"
-          ~prod:"%.ml"
-          ~dep:"%.ml.m4"
-          (fun env _ ->
-             let ml_m4 = env "%.ml.m4" in
-             Cmd (S [
-                 A "m4";
-                 A "-D"; A ("VERSION=" ^ version);
-                 A "-D"; A ("GIT_COMMIT=" ^ git_commit);
-                 P ml_m4;
-                 Sh ">";
-                 P (env "%.ml");
-               ]) )
-        ;
+        Rule.ml_m4_to_ml ~git_commit:(git_commit()) ~version;
+        Rule.atd_to_t();
+        Rule.atd_to_j();
 
-        rule "atd: .atd -> _t.ml, _t.mli"
-          ~dep:"%.atd"
-          ~prods:["%_t.ml"; "%_t.mli"]
-          (fun env _ ->
-             Cmd (S [A "atdgen"; A "-t"; A "-j-std"; P (env "%.atd")])
-          )
-        ;
+        List.iter all_libs ~f:Rule.mlpack;
+        List.iter all_libs ~f:Rule.mllib;
+        List.iter all_libs ~f:Rule.libs_byte_native;
+        List.iter all_libs ~f:Rule.clib;
 
-        rule "atd: .atd -> _j.ml, _j.mli"
-          ~dep:"%.atd"
-          ~prods:["%_j.ml"; "%_j.mli"]
-          (fun env _ ->
-             Cmd (S [A "atdgen"; A "-j"; A "-j-std"; P (env "%.atd")])
-          )
-        ;
+        Rule.static_file ".merlin" merlin_file;
+        Rule.static_file "META" meta_file;
+        Rule.static_file (sprintf "%s.install" name) install_file;
+        Rule.static_file ".ocamlinit" ocamlinit_file;
+        Rule.static_file "Makefile.rules" makefile_rules_file ;
 
-        List.iter all_libs ~f:(fun lib ->
-          make_static_file
-            (sprintf "%s/%s.mlpack"
-               (Filename.dirname lib.Item.dir) lib.Item.name
-            )
-            (Util.mlpack_file lib.Item.dir)
-        );
-
-        List.iter all_libs ~f:(fun lib ->
-          make_static_file
-            (sprintf "%s/%s.mllib"
-               (Filename.dirname lib.Item.dir) lib.Item.name)
-            (mllib_file lib)
-        );
-
-        List.iter all_libs ~f:(fun lib ->
-            let lib_name = lib.Item.name in
-            let lib_tag = Findlib.to_use_tag lib.Item.pkg in
-            let dir = Filename.dirname lib.Item.dir in
-            flag ["link";"ocaml";lib_tag] (S[A"-I"; P dir]);
-            ocaml_lib ~tag_name:lib_tag ~dir (dir ^ "/" ^ lib_name) ;
-            dep ["ocaml";"byte";lib_tag] [sprintf "%s/%s.cma" dir lib_name] ;
-            dep ["ocaml";"native";lib_tag] [sprintf "%s/%s.cmxa" dir lib_name]
-        );
-
-        List.iter all_libs ~f:(fun lib ->
-            match Util.clib_file lib.Item.dir lib.Item.name with
-            | None -> ()
-            | Some file ->
-              let cstub = sprintf "%s_stub" lib.Item.name in
-              let stub_tag = "use_"^cstub in
-              let headers =
-                Util.h_files_of_dir lib.Item.dir
-                |> List.map ~f:(fun x -> lib.Item.dir/x)
-              in
-              dep ["c" ; "compile"] headers ;
-              dep ["link";"ocaml";stub_tag] [
-                sprintf "%s/lib%s.a" (Filename.dirname lib.Item.dir) cstub ;
-              ] ;
-              flag
-                ["link";"ocaml";"byte";stub_tag]
-                (S[A"-dllib";A("-l"^cstub);A"-cclib";A("-l"^cstub)]) ;
-              flag
-                ["link";"ocaml";"native";stub_tag]
-                (S[A"-cclib";A("-l"^cstub)]) ;
-              make_static_file
-                (sprintf "%s/lib%s.clib" (Filename.dirname lib.Item.dir) cstub)
-                file
-        ) ;
-
-        make_static_file ".merlin" merlin_file;
-        make_static_file "META" meta_file;
-        make_static_file (sprintf "%s.install" name) install_file;
-        make_static_file ".ocamlinit" ocamlinit_file;
-        make_static_file "Makefile.rules" makefile_rules_file ;
-
-        rule "project files"
-          ~stamp:"project_files.stamp"
-          (fun _ build ->
-             let project_files = [
-                 [".merlin"];
-                 [".ocamlinit"];
-               ]
-             in
-             List.map (build project_files) ~f:Outcome.good
-             |> List.map ~f:(fun result ->
-                 Cmd (S [A "ln"; A "-sf";
-                         P ((Filename.basename !Options.build_dir)/result);
-                         P Pathname.pwd] )
-               )
-             |> fun l -> Seq l
-          )
+        Rule.project_files();
       )
     | _ -> ()
   in
