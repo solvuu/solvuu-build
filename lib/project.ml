@@ -261,7 +261,7 @@ module Make(Project:PROJECT) = struct
     let native =
       List.concat [
         map_name Items.libs_names |> List.map ~f:(sprintf "lib/%s.cmxa") ;
-        map_name Items.apps_names |> List.map ~f:(sprintf "lib/%s.cmxs") ;
+        map_name Items.libs_names |> List.map ~f:(sprintf "lib/%s.cmxs") ;
         List.map Items.apps_names ~f:(sprintf "app/%s.native") ;
       ]
       |> String.concat " "
