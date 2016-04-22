@@ -30,9 +30,12 @@
 
 type name = string
 
-(** Predicate on an item *)
+(** Predicate on an item.
+
+    - [`Pkgs_installed]: all findlib pkgs are present.
+*)
 type condition = [
-  | `Pkgs_installed (** all findlib pkgs are present *)
+  | `Pkgs_installed
 ]
 
 (** Findlib package name. *)

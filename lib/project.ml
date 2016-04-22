@@ -3,7 +3,6 @@ open Printf
 module List = Util.List
 module String = Util.String
 let failwithf = Util.failwithf
-let (/) = Ocamlbuild_plugin.(/)
 
 module type PROJECT = sig
   val name : string
@@ -38,13 +37,12 @@ module Make(Project:PROJECT) = struct
     let libs_names = List.map libs ~f:(fun (x:Item.lib) -> x.Item.name)
     let apps_names = List.map apps ~f:(fun (x:Item.app) -> x.Item.name)
 
-    let find = Items.find Project.items
+    (* let find = Items.find Project.items *)
     let internal_deps = Items.internal_deps Project.items
     let internal_deps_all = Items.internal_deps_all Project.items
-    let findlib_deps = Items.findlib_deps Project.items
+    (* let findlib_deps = Items.findlib_deps Project.items *)
     let findlib_deps_all = Items.findlib_deps_all Project.items
     let all_findlib_pkgs = Items.all_findlib_pkgs Project.items
-    let should_build = Items.should_build Project.items
     let topologically_sorted = Items.topologically_sorted Project.items
   end
 

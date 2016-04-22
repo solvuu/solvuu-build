@@ -36,7 +36,7 @@ module List = struct
   let filter_map = Core.List.filter_map
 
   let diff a b =
-    filter a ~f:(fun x -> not (mem x b))
+    filter a ~f:(fun x -> not (mem x ~set:b))
 
   let is_uniq ~cmp (l : 'a list) : bool =
     let m = length l in
