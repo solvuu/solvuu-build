@@ -4,7 +4,7 @@
 module type PROJECT = sig
   val name : string
   val version : string
-  val items : Items.t
+  val items : Item.ts
   val ocamlinit_postfix : string list
 end
 

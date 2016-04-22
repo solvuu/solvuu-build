@@ -7,7 +7,7 @@ let failwithf = Util.failwithf
 module type PROJECT = sig
   val name : string
   val version : string
-  val items : Items.t
+  val items : Item.ts
   val ocamlinit_postfix : string list
 end
 
@@ -21,30 +21,18 @@ module Make(Project:PROJECT) = struct
   (* Override values of [Items] module that take a [Items.t]. Here we
      set [Items.t = Project.items]. *)
   module Items = struct
-    include Items
-
     (** All libs to build. *)
     let libs : Item.lib list =
-      (Project.items : Items.t :> Item.t list)
-      |> List.filter ~f:(Items.should_build Project.items)
-      |> Items.filter_libs
+      (Project.items : Item.ts :> Item.t list)
+      |> List.filter ~f:(Item.should_build Project.items)
+      |> Item.filter_libs
 
     (** All apps that should be built. *)
     let apps : Item.app list =
-      (Project.items : Items.t :> Item.t list)
-      |> List.filter ~f:(Items.should_build Project.items)
-      |> Items.filter_apps
+      (Project.items : Item.ts :> Item.t list)
+      |> List.filter ~f:(Item.should_build Project.items)
+      |> Item.filter_apps
 
-    let libs_names = List.map libs ~f:(fun (x:Item.lib) -> x.Item.name)
-    let apps_names = List.map apps ~f:(fun (x:Item.app) -> x.Item.name)
-
-    (* let find = Items.find Project.items *)
-    let internal_deps = Items.internal_deps Project.items
-    let internal_deps_all = Items.internal_deps_all Project.items
-    (* let findlib_deps = Items.findlib_deps Project.items *)
-    let findlib_deps_all = Items.findlib_deps_all Project.items
-    let all_findlib_pkgs = Items.all_findlib_pkgs Project.items
-    let topologically_sorted = Items.topologically_sorted Project.items
   end
 
   let git_commit =
@@ -76,7 +64,7 @@ module Make(Project:PROJECT) = struct
     (* === use_foo for libs *)
     @(
       List.map Items.libs ~f:(fun lib ->
-        lib, Items.filter_libs lib.Item.internal_deps
+        lib, Item.filter_libs lib.Item.internal_deps
       )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
       |> List.map ~f:(fun (lib,libs) ->
@@ -115,7 +103,7 @@ module Make(Project:PROJECT) = struct
     (* === use_foo for apps *)
     @(
       List.map Items.apps ~f:(fun (app:Item.app) ->
-        app, Item.internal_deps_all (Item.App app) |> Items.filter_libs
+        app, Item.internal_deps_all (Item.App app) |> Item.filter_libs
       )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
       |> List.map ~f:(fun (app,libs) ->
@@ -147,7 +135,7 @@ module Make(Project:PROJECT) = struct
     (* === use_foo_stub for apps *)
     @(
       List.map Items.apps ~f:(fun (app:Item.app) ->
-        app, Item.internal_deps_all (Item.App app) |> Items.filter_libs
+        app, Item.internal_deps_all (Item.App app) |> Item.filter_libs
       )
       |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
       |> List.map ~f:(fun (app,libs) ->
@@ -187,7 +175,10 @@ module Make(Project:PROJECT) = struct
       ) |> List.concat;
 
       (* findlib packages *)
-      List.map Items.all_findlib_pkgs ~f:(sprintf "PKG %s");
+      (
+        Item.all_findlib_pkgs Project.items
+        |> List.map ~f:(sprintf "PKG %s")
+      );
     ]
     |> List.concat
     |> List.sort_uniq String.compare
@@ -198,7 +189,7 @@ module Make(Project:PROJECT) = struct
         (Item.findlib_deps_all (Item.Lib x))
         @(
           Item.internal_deps (Item.Lib x)
-          |> Items.filter_libs
+          |> Item.filter_libs
           |> List.map ~f:(fun x -> x.Item.pkg)
         )
       in
@@ -273,23 +264,24 @@ module Make(Project:PROJECT) = struct
         "";
       ];
       [
-        sprintf "#require \"%s\";;" (String.concat " " Items.all_findlib_pkgs);
+        sprintf "#require \"%s\";;"
+          (String.concat " " @@ Item.all_findlib_pkgs Project.items);
         "";
       ];
       [
         "(* Load each lib provided by this project. *)";
       ];
       (
-        Items.topologically_sorted |>
-        Items.filter_libs |>
+        Item.topologically_sorted Project.items |>
+        Item.filter_libs |>
         List.map ~f:(fun x ->
           sprintf "#directory \"_build/%s\";;" (Filename.dirname x.Item.dir)
         )
         |> List.sort_uniq String.compare
       );
       (
-        Items.topologically_sorted |>
-        Items.filter_libs |>
+        Item.topologically_sorted Project.items |>
+        Item.filter_libs |>
         List.map ~f:(fun (x:Item.lib) ->
           sprintf "#load \"%s.cma\";;" x.Item.name
         )

@@ -1,4 +1,5 @@
 module List = Util.List
+module Findlib = Solvuu_build_findlib
 
 type name = string
 
@@ -99,6 +100,7 @@ let is_app = function App _ -> true | Lib _ -> false
 
 let typ_to_string = function `Lib -> "lib" | `App -> "app"
 
+
 (******************************************************************************)
 (** {2 Graph Operations} *)
 (******************************************************************************)
@@ -139,3 +141,36 @@ module Graph = struct
         g
 
 end
+
+(******************************************************************************)
+(** {2 List Operations} *)
+(******************************************************************************)
+type ts = t list
+
+let of_list items =
+  ignore (Graph.of_list items);
+  items
+
+let filter_libs t =
+  List.filter_map t ~f:(function Lib x -> Some x | App _ -> None)
+
+let filter_apps t =
+  List.filter_map t ~f:(function App x -> Some x | Lib _ -> None)
+
+let all_findlib_pkgs t =
+  List.map t ~f:findlib_deps
+  |> List.flatten
+  |> List.sort_uniq String.compare
+
+let rec should_build items (i:t) =
+  List.for_all (build_if i) ~f:(function
+    | `Pkgs_installed ->
+      List.for_all (findlib_deps i) ~f:Findlib.installed
+  )
+  &&
+  List.for_all (internal_deps i) ~f:(fun x ->
+    should_build items x
+  )
+
+let topologically_sorted t =
+  Graph.Topological.fold (fun x t -> x::t) (Graph.of_list t) []
