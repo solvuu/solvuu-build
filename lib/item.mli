@@ -59,6 +59,20 @@ and t = Lib of lib | App of app
 
 type typ = [`Lib | `App]
 
+val lib
+  :  ?internal_deps:t list
+  -> ?findlib_deps:pkg list
+  -> ?build_if:condition list
+  -> name
+  -> t
+
+val app
+  :  ?internal_deps:t list
+  -> ?findlib_deps:pkg list
+  -> ?build_if:condition list
+  -> name
+  -> t
+
 val compare : t -> t -> int
 val equal : t -> t -> bool
 val hash : t -> int

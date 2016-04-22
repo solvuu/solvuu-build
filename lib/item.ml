@@ -26,6 +26,12 @@ and t = Lib of lib | App of app
 
 type typ = [`Lib | `App]
 
+let lib ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[]) name =
+  Lib {name;internal_deps;findlib_deps;build_if}
+
+let app ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[]) name =
+  App {name;internal_deps;findlib_deps;build_if}
+
 let typ = function Lib _ -> `Lib | App _ -> `App
 let name = function Lib x -> x.name | App x -> x.name
 
