@@ -1,283 +1,9 @@
 (** Build system. *)
 open Printf
-let failwithf fmt = ksprintf (fun s () -> failwith s) fmt
+module List = Util.List
+module String = Util.String
+let failwithf = Util.failwithf
 let (/) = Ocamlbuild_plugin.(/)
-
-module String = struct
-  include String
-  let hash = Hashtbl.hash
-  let equal = ( = )
-end
-
-module Core = struct
-  (* Code in this module copied from the Core suite
-     [https://github.com/janestreet/]. See there for license
-     information. *)
-
-  let rev_filter_map l ~f =
-    let rec loop l accum =
-      match l with
-      | [] -> accum
-      | hd :: tl ->
-        match f hd with
-        | Some x -> loop tl (x :: accum)
-        | None   -> loop tl accum
-    in
-    loop l []
-
-  let filter_map l ~f = List.rev (rev_filter_map l ~f)
-
-end
-
-module List0 = struct
-  include List
-  include ListLabels
-
-  let filter_map = Core.filter_map
-
-  let diff a b =
-    filter a ~f:(fun x -> not (mem x b))
-
-  let is_uniq ~cmp (l : 'a list) : bool =
-    let m = length l in
-    let n = length (sort_uniq cmp l) in
-    m = n
-end
-module List = List0
-
-module Util = struct
-
-  let readdir dir : string list =
-    match Sys.file_exists dir && Sys.is_directory dir with
-    | false -> []
-    | true -> (Sys.readdir dir |> Array.to_list)
-
-  let modules_of_file filename : string list =
-    List.fold_left [".ml"; ".mli"; ".ml.m4"; ".mll"; ".mly"; ".atd"]
-      ~init:[] ~f:(fun accum suffix ->
-        let new_items = match suffix with
-          | ".atd" -> (
-            if Filename.check_suffix filename suffix then (
-              Filename.chop_suffix filename suffix
-              |> fun x -> [x^"_j"; x^"_t"]
-            )
-            else
-              []
-            )
-          | _ -> (
-            if Filename.check_suffix filename suffix then
-              [Filename.chop_suffix filename suffix]
-            else
-              []
-            )
-        in
-        new_items@accum
-      )
-    |> List.map ~f:String.capitalize
-
-  let modules_of_dir dir : string list =
-    readdir dir
-    |> List.map ~f:modules_of_file
-    |> List.concat
-    |> List.sort_uniq compare
-
-  let c_units_of_dir dir : string list =
-    readdir dir
-    |> List.filter ~f:(fun p -> Filename.check_suffix p ".c")
-    |> List.map ~f:Filename.chop_extension
-
-  let h_files_of_dir dir : string list =
-    readdir dir
-    |> List.filter ~f:(fun p -> Filename.check_suffix p ".h")
-
-  let mlpack_file dir : string list =
-    if not (Sys.file_exists dir && Sys.is_directory dir) then
-      failwithf "cannot create mlpack file for dir %s" dir ()
-    else (
-      modules_of_dir dir
-      |> List.map ~f:(fun x -> dir/x)
-    )
-
-  let clib_file dir lib =
-    let path = dir / lib in
-    match c_units_of_dir path with
-    | [] -> None
-    | xs ->
-      Some (List.map xs ~f:(fun x -> lib ^ "/" ^ x ^ ".o"))
-
-end
-
-module Findlib = struct
-  type pkg = string
-
-  (* This is necessary to query findlib *)
-  let () = Findlib.init ()
-
-  let all_packages =
-    Fl_package_base.list_packages ()
-
-  let installed x = List.mem x ~set:all_packages
-end
-
-module Item = struct
-  type name = string
-
-  type condition = [
-    | `Pkgs_installed
-  ]
-
-  type app = {
-    name : name;
-    internal_deps : t list;
-    findlib_deps : Findlib.pkg list;
-    build_if : condition list;
-  }
-
-  and lib = {
-    name : name;
-    internal_deps : t list;
-    findlib_deps : Findlib.pkg list;
-    build_if : condition list;
-  }
-
-  and t = Lib of lib | App of app
-
-  type typ = [`Lib | `App]
-
-  let typ = function Lib _ -> `Lib | App _ -> `App
-  let name = function Lib x -> x.name | App x -> x.name
-
-  let internal_deps = function
-    | Lib x -> x.internal_deps | App x -> x.internal_deps
-
-  let findlib_deps = function
-    | Lib x -> x.findlib_deps | App x -> x.findlib_deps
-
-  let build_if = function Lib x -> x.build_if | App x -> x.build_if
-
-  let hash t = Hashtbl.hash (typ t, name t)
-
-  let compare t u =
-    match compare (typ t) (typ u) with
-    | -1 -> -1
-    | 1 -> 1
-    | 0 -> String.compare (name t) (name u)
-    | _ -> assert false
-
-  let equal t u = compare t u = 0
-
-  let is_lib = function Lib _ -> true | App _ -> false
-  let is_app = function App _ -> true | Lib _ -> false
-
-  let typ_to_string = function `Lib -> "lib" | `App -> "app"
-end
-
-module Graph = struct
-  module G = Graph.Persistent.Digraph.Concrete(Item)
-  include G
-
-  module Dfs = Graph.Traverse.Dfs(G)
-  module Topological = Graph.Topological.Make(G)
-end
-
-module Items = struct
-  type t = Item.t list
-
-  let graph_of_list items =
-    if not (List.is_uniq ~cmp:Item.compare items) then
-      failwith "multiple libraries or apps have an identical name"
-    else
-      let g = List.fold_left items ~init:Graph.empty ~f:(fun g x ->
-        match Item.internal_deps x with
-        | [] -> Graph.add_vertex g x
-        | _ ->
-          List.fold_left (Item.internal_deps x) ~init:g ~f:(fun g y ->
-            Graph.add_edge g x y
-          )
-      )
-      in
-      if Graph.Dfs.has_cycle g then
-        failwith "internal dependencies form a cycle"
-      else
-        g
-
-  let of_list items =
-    ignore (graph_of_list items);
-    items
-
-  let filter_libs t =
-    List.filter_map t ~f:(function Item.Lib x -> Some x | Item.App _ -> None)
-
-  let filter_apps t =
-    List.filter_map t ~f:(function Item.App x -> Some x | Item.Lib _ -> None)
-
-  let find t typ name =
-    try List.find t ~f:(fun x -> Item.typ x = typ && Item.name x = name)
-    with Not_found ->
-      failwithf "unknown %s %s" (Item.typ_to_string typ) name ()
-
-  let find_lib t name =
-    filter_libs t |> fun l ->
-    try List.find l ~f:(fun (x:Item.lib) -> x.Item.name = name)
-    with Not_found ->
-      failwithf "unknown lib %s" name ()
-
-  let find_app t name =
-    filter_apps t |> fun l ->
-    try List.find l ~f:(fun (x:Item.app) -> x.Item.name = name)
-    with Not_found ->
-      failwithf "unknown app %s" name ()
-
-  let internal_deps t typ name =
-    Item.internal_deps (find t typ name)
-
-  let rec internal_deps_all t typ name =
-    let item = find t typ name in
-    (Item.internal_deps item)
-    @(
-      List.map (Item.internal_deps item) ~f:(fun x ->
-        internal_deps_all t (Item.typ x) (Item.name x)
-      )
-      |> List.flatten
-    )
-    |> List.sort_uniq Item.compare
-
-  let findlib_deps t typ name =
-    Item.findlib_deps (find t typ name)
-
-  let rec findlib_deps_all t typ name =
-    let item = find t typ name in
-    (Item.findlib_deps item)
-    @(
-      List.map (Item.internal_deps item) ~f:(fun x ->
-        findlib_deps_all t (Item.typ x) (Item.name x)
-      )
-      |> List.flatten
-    )
-    |> List.sort_uniq String.compare
-
-  let all_findlib_pkgs t =
-    List.map t ~f:Item.findlib_deps
-    |> List.flatten
-    |> List.sort_uniq String.compare
-
-  let rec should_build items (i:Item.t) =
-    List.for_all (Item.build_if i) ~f:(function
-      | `Pkgs_installed ->
-        List.for_all (Item.findlib_deps i) ~f:Findlib.installed
-    )
-    &&
-    List.for_all (Item.internal_deps i) ~f:(fun x ->
-      should_build items (find items (Item.typ x) (Item.name x))
-    )
-
-  let topologically_sorted t =
-    Graph.Topological.fold
-      (fun x t -> x::t)
-      (graph_of_list t)
-      []
-
-end
 
 module type PROJECT = sig
   val name : string
@@ -290,7 +16,7 @@ module Make(Project:PROJECT) = struct
   open Ocamlbuild_plugin
 
   (* override the one from Ocamlbuild_plugin *)
-  module List = List0
+  module List = Util.List
 
   (* Override values of [Items] module that take a [Items.t]. Here we
      set [Items.t = Project.items]. *)
@@ -299,12 +25,14 @@ module Make(Project:PROJECT) = struct
 
     (** All libs to build. *)
     let libs : Item.lib list =
-      List.filter Project.items ~f:(Items.should_build Project.items)
+      (Project.items : Items.t :> Item.t list)
+      |> List.filter ~f:(Items.should_build Project.items)
       |> Items.filter_libs
 
     (** All apps that should be built. *)
     let apps : Item.app list =
-      List.filter Project.items ~f:(Items.should_build Project.items)
+      (Project.items : Items.t :> Item.t list)
+      |> List.filter ~f:(Items.should_build Project.items)
       |> Items.filter_apps
 
     let libs_names = List.map libs ~f:(fun (x:Item.lib) -> x.Item.name)

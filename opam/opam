@@ -15,6 +15,7 @@ build: [
 
 install: [
   [make "_build/META"]
+  [make "solvuu_build.install"]
 ]
 
 remove: []

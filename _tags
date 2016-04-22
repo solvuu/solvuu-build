@@ -1,2 +1,3 @@
 "lib": include
 true: package(findlib), package(ocamlbuild), package(ocamlgraph)
+<lib/*.cmx> and not "lib/solvuu_build.cmx": for-pack(Solvuu_build)
