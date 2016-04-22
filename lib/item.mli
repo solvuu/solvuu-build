@@ -83,6 +83,9 @@ val internal_deps : t -> t list
 val findlib_deps : t -> pkg list
 val build_if : t -> condition list
 
+val internal_deps_all : t -> t list
+val findlib_deps_all : t -> pkg list
+
 val is_lib : t -> bool
 val is_app : t -> bool
 

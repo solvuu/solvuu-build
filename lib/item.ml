@@ -54,6 +54,38 @@ let findlib_deps = function
 
 let build_if = function Lib x -> x.build_if | App x -> x.build_if
 
+let internal_deps_all t =
+  let count = ref 0 in
+  let rec loop t =
+    incr count;
+    if !count > 10000 then
+      failwith "max recursion count exceeded, likely cycle in internal_deps"
+    else
+      let direct = internal_deps t in
+      let further =
+        List.map direct ~f:loop
+        |> List.flatten
+      in
+      List.sort_uniq compare (direct@further)
+  in
+  loop t
+
+let findlib_deps_all t =
+  let count = ref 0 in
+  let rec loop t =
+    incr count;
+    if !count > 10000 then
+      failwith "max recursion count exceeded, likely cycle in internal_deps"
+    else
+      let direct = findlib_deps t in
+      let further =
+        List.map (internal_deps t) ~f:loop
+        |> List.flatten
+      in
+      List.sort_uniq String.compare (direct@further)
+  in
+  loop t
+
 let is_lib = function Lib _ -> true | App _ -> false
 let is_app = function App _ -> true | Lib _ -> false
 
