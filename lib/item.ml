@@ -100,6 +100,15 @@ let is_app = function App _ -> true | Lib _ -> false
 
 let typ_to_string = function `Lib -> "lib" | `App -> "app"
 
+let rec should_build (i:t) =
+  List.for_all (build_if i) ~f:(function
+    | `Pkgs_installed ->
+      List.for_all (findlib_deps i) ~f:Findlib.installed
+  )
+  &&
+  List.for_all (internal_deps i) ~f:(fun x ->
+    should_build x
+  )
 
 (******************************************************************************)
 (** {2 Graph Operations} *)
@@ -161,16 +170,6 @@ let all_findlib_pkgs t =
   List.map t ~f:findlib_deps
   |> List.flatten
   |> List.sort_uniq String.compare
-
-let rec should_build items (i:t) =
-  List.for_all (build_if i) ~f:(function
-    | `Pkgs_installed ->
-      List.for_all (findlib_deps i) ~f:Findlib.installed
-  )
-  &&
-  List.for_all (internal_deps i) ~f:(fun x ->
-    should_build items x
-  )
 
 let topologically_sorted t =
   Graph.Topological.fold (fun x t -> x::t) (Graph.of_list t) []

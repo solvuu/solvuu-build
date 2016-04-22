@@ -122,6 +122,11 @@ val is_app : t -> bool
 
 val typ_to_string : typ -> string
 
+(** Return [true] if given item should be built according to its
+    [build_if] conditions. *)
+val should_build : t -> bool
+
+
 (******************************************************************************)
 (** {2 List Operations} *)
 (******************************************************************************)
@@ -136,12 +141,6 @@ val of_list : t list -> ts
 val all_findlib_pkgs : ts -> pkg list
 
 val topologically_sorted : ts -> t list
-
-(** Return [true] if given item should be built according to its
-    [build_if] conditions. The set of items [ts] is needed because
-    dependencies matter; an item should be built only if all of its
-    dependencies should. *)
-val should_build : ts -> t -> bool
 
 val filter_libs : t list -> lib list
 val filter_apps : t list -> app list

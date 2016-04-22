@@ -24,13 +24,13 @@ module Make(Project:PROJECT) = struct
     (** All libs to build. *)
     let libs : Item.lib list =
       (Project.items : Item.ts :> Item.t list)
-      |> List.filter ~f:(Item.should_build Project.items)
+      |> List.filter ~f:Item.should_build
       |> Item.filter_libs
 
     (** All apps that should be built. *)
     let apps : Item.app list =
       (Project.items : Item.ts :> Item.t list)
-      |> List.filter ~f:(Item.should_build Project.items)
+      |> List.filter ~f:Item.should_build
       |> Item.filter_apps
 
   end
