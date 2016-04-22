@@ -130,17 +130,8 @@ val should_build : t -> bool
 (******************************************************************************)
 (** {2 List Operations} *)
 (******************************************************************************)
-type ts = private t list
-(** Collection of items comprising a project. Several invariants hold,
-    e.g. the items' [internal_deps] do not lead to a cycle, and no lib or app
-    has the same name. *)
-
-val of_list : t list -> ts
-
-(** Return all findlib packages mentioned in all items. *)
-val all_findlib_pkgs : ts -> pkg list
-
-val topologically_sorted : ts -> t list
+(** Return all findlib packages mentioned in all given items. *)
+val all_findlib_pkgs : t list -> pkg list
 
 val filter_libs : t list -> lib list
 val filter_apps : t list -> app list
@@ -165,9 +156,14 @@ module Graph : sig
     Graph.Persistent.Digraph.Concrete(T)
   )
 
-  module Topological : module type of Graph.Topological.Make(
-    Graph.Persistent.Digraph.Concrete(T)
-  )
+  module Topological : sig
+    include module type of Graph.Topological.Make(
+      Graph.Persistent.Digraph.Concrete(T)
+    )
+
+    (** Return a topologically sorted vertex list of given graph. *)
+    val sort : t -> V.t list
+  end
 
   (** Construct a graph from a list of items. Raise exception if there
       are cycles or any other errors. *)

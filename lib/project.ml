@@ -21,7 +21,10 @@ type t = {
   dispatch : unit -> unit;
 }
 
-let make ?(ocamlinit_postfix=[]) ~name ~version ~items =
+let make ?(ocamlinit_postfix=[]) ~name ~version items =
+  (* Compute graph to check for cycles and other errors. *)
+  let graph = Item.Graph.of_list items in
+
   let open Ocamlbuild_plugin in
 
   (* override some modules from Ocamlbuild_plugin *)
@@ -30,14 +33,14 @@ let make ?(ocamlinit_postfix=[]) ~name ~version ~items =
 
   (** All libs to build. *)
   let all_libs : Item.lib list =
-    (items : Item.ts :> Item.t list)
+    items
     |> List.filter ~f:Item.should_build
     |> Item.filter_libs
   in
 
   (** All apps that should be built. *)
   let all_apps : Item.app list =
-    (items : Item.ts :> Item.t list)
+    items
     |> List.filter ~f:Item.should_build
     |> Item.filter_apps
   in
@@ -285,7 +288,7 @@ let make ?(ocamlinit_postfix=[]) ~name ~version ~items =
         "(* Load each lib provided by this project. *)";
       ];
       (
-        Item.topologically_sorted items |>
+        Item.Graph.Topological.sort graph |>
         Item.filter_libs |>
         List.map ~f:(fun x ->
           sprintf "#directory \"_build/%s\";;" (Filename.dirname x.Item.dir)
@@ -293,7 +296,7 @@ let make ?(ocamlinit_postfix=[]) ~name ~version ~items =
         |> List.sort_uniq String.compare
       );
       (
-        Item.topologically_sorted items |>
+        Item.Graph.Topological.sort graph |>
         Item.filter_libs |>
         List.map ~f:(fun (x:Item.lib) ->
           sprintf "#load \"%s.cma\";;" x.Item.name

@@ -127,13 +127,17 @@ module Graph = struct
     Graph.Persistent.Digraph.Concrete(T)
   )
 
-  module Topological = Graph.Topological.Make(
-    Graph.Persistent.Digraph.Concrete(T)
-  )
+  module Topological = struct
+    include Graph.Topological.Make(
+        Graph.Persistent.Digraph.Concrete(T)
+      )
+
+    let sort g = fold (fun x l -> x::l) g []
+  end
 
   let of_list items =
     if not (List.is_uniq ~cmp:compare items) then
-      failwith "multiple libraries or apps have an identical name"
+      failwith "multiple libs or apps have an identical name"
     else
       let g = List.fold_left items ~init:empty ~f:(fun g x ->
         match internal_deps x with
@@ -154,12 +158,6 @@ end
 (******************************************************************************)
 (** {2 List Operations} *)
 (******************************************************************************)
-type ts = t list
-
-let of_list items =
-  ignore (Graph.of_list items);
-  items
-
 let filter_libs t =
   List.filter_map t ~f:(function Lib x -> Some x | App _ -> None)
 
@@ -170,6 +168,3 @@ let all_findlib_pkgs t =
   List.map t ~f:findlib_deps
   |> List.flatten
   |> List.sort_uniq String.compare
-
-let topologically_sorted t =
-  Graph.Topological.fold (fun x t -> x::t) (Graph.of_list t) []

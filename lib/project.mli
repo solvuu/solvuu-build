@@ -25,5 +25,5 @@ val make
   :  ?ocamlinit_postfix:string list
   -> name:string
   -> version:string
-  -> items:Item.ts
+  -> Item.t list
   -> t
