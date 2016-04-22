@@ -14,6 +14,7 @@ module Make(Project:PROJECT) : sig
       library with short name [lib]. *)
   val mllib_file : string -> string -> string list
 
+  val tags_file : string list
   val merlin_file : string list
   val meta_file : string list
   val install_file : string list

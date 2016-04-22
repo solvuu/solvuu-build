@@ -56,7 +56,7 @@ module Make(Project:PROJECT) = struct
     else
       "None"
 
-  let tags_lines : string list =
+  let tags_file : string list =
     [
       "true: thread, bin_annot, annot, short_paths, safe_string, debug";
       "true: warn(A-4-33-41-42-44-45-48)";
@@ -307,7 +307,7 @@ module Make(Project:PROJECT) = struct
   let plugin = function
     | Before_options -> (
         Options.use_ocamlfind := true;
-        List.iter tags_lines ~f:Ocamlbuild_pack.Configuration.parse_string
+        List.iter tags_file ~f:Ocamlbuild_pack.Configuration.parse_string
       )
     | After_rules -> (
         rule "m4: ml.m4 -> ml"
