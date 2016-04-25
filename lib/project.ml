@@ -343,9 +343,15 @@ module Rule = struct
 
   (* override some modules from Ocamlbuild_plugin *)
   module List = Util.List
+  module String = Util.String
   module Findlib = Solvuu_build_findlib
 
   let static_file path content =
+    (* Workar ocamlbuild bug: https://github.com/ocaml/ocamlbuild/issues/76. *)
+    let path = match String.split ~on:'/' path with
+      | "."::l -> String.concat "/" l
+      | _ -> path
+    in
     let content = List.map content ~f:(sprintf "%s\n") in
     rule path ~prod:path (fun _ _ ->
       Seq [
