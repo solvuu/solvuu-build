@@ -11,6 +11,7 @@ let lib = Item.lib project_name
 
 let app = Item.app "my_app"
   ~file:"app/my_app.ml"
+  ~internal_deps:[lib]
 
 let project = Project.make ~name:project_name ~version [lib;app]
 
