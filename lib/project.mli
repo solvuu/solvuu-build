@@ -8,7 +8,19 @@ type name = string
 type version = string
 (** Project's version. *)
 
-type t
+type t = private {
+  name : name;
+  version : version;
+  git_commit : string option;
+  libs : Item.lib list;
+  apps : Item.app list;
+  tags_file : string list;
+  merlin_file : string list;
+  meta_file : string list;
+  install_file : string list;
+  ocamlinit_file : string list;
+  makefile_rules_file : string list;
+}
 
 val make
   :  ?ocamlinit_postfix:string list
