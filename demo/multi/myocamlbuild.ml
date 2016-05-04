@@ -15,7 +15,7 @@ let async = make_lib "async"
   ~findlib_deps:["async"]
 
 let lwt = make_lib "lwt"
-  ~internal_deps:[async] ~findlib_deps:["lwt"] ~build_if:[`Pkgs_installed]
+  ~findlib_deps:["lwt"] ~build_if:[`Pkgs_installed]
 
 let app = Item.app "my_app"
   ~file:"app/my_app.ml"
