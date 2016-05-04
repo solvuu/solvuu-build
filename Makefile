@@ -1,6 +1,7 @@
 PROJECT=solvuu_build
 VERSION=dev
 OCAMLBUILD=ocamlbuild -use-ocamlfind
+DEMOS=$(sort $(dir $(wildcard demo/*/)))
 
 native: $(PROJECT).cmxa $(PROJECT).cmxs
 byte: $(PROJECT).cma
@@ -10,6 +11,7 @@ byte: $(PROJECT).cma
 
 clean:
 	$(OCAMLBUILD) -clean
+	$(foreach demo,$(DEMOS),make -C $(demo) clean;)
 
 _build/META:
 	rm -f $@
@@ -22,4 +24,7 @@ _build/META:
 solvuu_build.install:
 	ocaml bin/make_install_file.ml > $@
 
-.PHONY: byte native clean
+test:
+	$(foreach demo,$(DEMOS),make -C $(demo);)
+
+.PHONY: byte native clean test
