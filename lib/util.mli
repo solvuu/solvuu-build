@@ -39,6 +39,13 @@ module String : sig
   val hash : string -> int
   val equal : string -> string -> bool
   val split : string -> on:char -> string list
+
+  module Map : sig
+    include module type of Map.Make(String)
+    val to_list : 'a t -> (string * 'a) list
+  end
+
+  module Set : module type of Set.Make(String)
 end
 
 module List : sig

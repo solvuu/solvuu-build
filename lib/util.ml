@@ -58,6 +58,16 @@ module String = struct
   let hash = Hashtbl.hash
   let equal = ( = )
   let split = Core.String.split
+
+  module Map = struct
+    include Map.Make(String)
+
+    let to_list t =
+      fold (fun key a accum -> (key,a)::accum) t [] |>
+      List.rev
+  end
+
+  module Set = Set.Make(String)
 end
 
 module List = struct
