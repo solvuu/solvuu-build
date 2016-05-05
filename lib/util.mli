@@ -34,6 +34,10 @@ val mlpack_file : string -> string list
     to any .c files in [dir], if any. *)
 val clib_file : string -> string -> string list option
 
+module Fn : sig
+  val id : 'a -> 'a
+end
+
 module String : sig
   include module type of String
   val hash : string -> int

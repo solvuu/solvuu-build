@@ -53,6 +53,10 @@ module Core = struct
   end
 end
 
+module Fn = struct
+  let id x = x
+end
+
 module String = struct
   include String
   let hash = Hashtbl.hash
