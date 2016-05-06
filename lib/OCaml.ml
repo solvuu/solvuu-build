@@ -222,7 +222,7 @@ let ocamlopt
 let ocamldep ?modules ?(_I=[]) files =
   let cmd =
     [
-      ["ocamldep"];
+      ["ocamldep"; "-one-line"];
       List.map _I ~f:(sprintf "-I %s");
       (match modules with None -> [] | Some () -> ["-modules"]);
     ] |>
