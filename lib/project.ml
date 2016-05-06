@@ -3,8 +3,6 @@ open Printf
 module Findlib = Solvuu_build_findlib
 module List = Util.List
 module String = Util.String
-let failwithf = Util.failwithf
-let (/) = Ocamlbuild_plugin.(/)
 
 type name = string
 type version = string
@@ -15,7 +13,6 @@ type t = {
   git_commit : string option;
   libs : Item.lib list;
   apps : Item.app list;
-  tags_file : string list;
   merlin_file : string list;
   meta_file : string list;
   install_file : string list;
@@ -37,115 +34,6 @@ let git_commit () =
     )
   else
     None
-
-let tags_file items : string list =
-  let all_libs = Item.filter_libs items in
-  let all_apps = Item.filter_apps items in
-  [
-    "true: thread, bin_annot, annot, short_paths, safe_string, debug";
-    "true: warn(A-4-33-41-42-44-45-48)";
-    "true: use_menhir";
-  ]
-
-  (* === for-pack tags *)
-  @(
-    List.map all_libs ~f:(fun x ->
-      sprintf
-        "<%s/*.cmx>: for-pack(%s)"
-        x.Item.dir (String.capitalize x.Item.pack_name) )
-  )
-
-  (* === use_foo for libs *)
-  @(
-    List.map all_libs ~f:(fun lib ->
-      lib, Item.filter_libs lib.Item.internal_deps
-    )
-    |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-    |> List.map ~f:(fun (lib,libs) ->
-      sprintf "<%s/*>: %s"
-        lib.Item.dir
-        (
-          List.map libs ~f:(fun x -> Findlib.to_use_tag x.Item.pkg)
-          |> String.concat ", "
-        )
-    )
-  )
-
-  (* === use_foo_stub tags for cm{a,xa,xs} *)
-  @(
-    all_libs
-    |> List.filter ~f:(fun x -> Util.c_units_of_dir x.Item.dir <> [])
-    |> List.map ~f:(fun x ->
-      sprintf "<%s.{cma,cmxa,cmxs}>: %s_stub"
-        x.Item.dir (Findlib.to_use_tag x.Item.pkg)
-    )
-  )
-
-  (* === package tags for libs *)
-  @(
-    List.map all_libs ~f:(fun lib ->
-      lib, Item.findlib_deps_all (Item.Lib lib)
-    )
-    |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-    |> List.map ~f:(fun (lib,pkgs) ->
-      sprintf "<%s/*>: %s"
-        lib.Item.dir
-        (List.map pkgs ~f:(sprintf "package(%s)") |> String.concat ", ")
-    )
-  )
-
-  (* === use_foo for apps *)
-  @(
-    List.map all_apps ~f:(fun (app:Item.app) ->
-      app, Item.internal_deps_all (Item.App app) |> Item.filter_libs
-    )
-    |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-    |> List.map ~f:(fun (app,libs) ->
-      sprintf "<%s.*>: %s"
-        (Filename.chop_extension app.Item.file)
-        (
-          List.map libs ~f:(fun x -> sprintf "use_%s" x.Item.name)
-          |> String.concat ", "
-        )
-    )
-  )
-
-  (* === package tags for apps *)
-  @(
-    List.map all_apps ~f:(fun (app:Item.app) ->
-      app, Item.findlib_deps_all (Item.App app)
-    )
-    |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-    |> List.map ~f:(fun (app,pkgs) ->
-      sprintf "<%s.*>: %s"
-        (Filename.chop_extension app.Item.file)
-        (
-          List.map pkgs ~f:(sprintf "package(%s)")
-          |> String.concat ","
-        )
-    )
-  )
-
-  (* === use_foo_stub for apps *)
-  @(
-    List.map all_apps ~f:(fun (app:Item.app) ->
-      app, Item.internal_deps_all (Item.App app) |> Item.filter_libs
-    )
-    |> List.filter ~f:(function (_,[]) -> false | (_,_) -> true)
-    |> List.map ~f:(fun (app,libs) ->
-      sprintf "<%s.*>: %s"
-        (Filename.chop_extension app.Item.file)
-        (
-          String.concat "," @@
-          List.map libs ~f:(fun x -> sprintf "use_%s" x.Item.name)
-        )
-    )
-  )
-
-let mllib_file (x:Item.lib) : string list =
-  if not (Sys.file_exists x.Item.dir && Sys.is_directory x.Item.dir) then
-    failwithf "cannot create mllib file for dir %s" x.Item.dir ()
-  else [ Filename.dirname x.Item.dir / String.capitalize x.Item.name ]
 
 let merlin_file items : string list =
   [
@@ -359,9 +247,6 @@ module Rule = struct
       ]
     )
 
-  let tags_file content =
-    List.iter content ~f:Ocamlbuild_pack.Configuration.parse_string
-
   let ml_m4_to_ml ~git_commit ~version =
     let git_commit = match git_commit with
       | None -> "None"
@@ -395,48 +280,29 @@ module Rule = struct
       (fun env _ ->
          Cmd (S [A "atdgen"; A "-j"; A "-j-std"; P (env "%.atd")]) )
 
-  let mlpack lib =
-    static_file
-      (sprintf "%s/%s.mlpack" (Filename.dirname lib.Item.dir) lib.Item.name)
-      (Util.mlpack_file lib.Item.dir)
-
-  let mllib lib =
-    static_file
-      (sprintf "%s/%s.mllib" (Filename.dirname lib.Item.dir) lib.Item.name)
-      (mllib_file lib)
-
-  let libs_byte_native lib =
-    let lib_name = lib.Item.name in
-    let lib_tag = Findlib.to_use_tag lib.Item.pkg in
-    let dir = Filename.dirname lib.Item.dir in
-    flag ["link";"ocaml";lib_tag] (S[A"-I"; P dir]);
-    ocaml_lib ~tag_name:lib_tag ~dir (dir ^ "/" ^ lib_name) ;
-    dep ["ocaml";"byte";lib_tag] [sprintf "%s/%s.cma" dir lib_name] ;
-    dep ["ocaml";"native";lib_tag] [sprintf "%s/%s.cmxa" dir lib_name]
-
-  let clib lib =
-    match Util.clib_file lib.Item.dir lib.Item.name with
-    | None -> ()
-    | Some file ->
-      let cstub = sprintf "%s_stub" lib.Item.name in
-      let stub_tag = "use_"^cstub in
-      let headers =
-        Util.h_files_of_dir lib.Item.dir
-        |> List.map ~f:(fun x -> lib.Item.dir/x)
-      in
-      dep ["c" ; "compile"] headers ;
-      dep ["link";"ocaml";stub_tag] [
-        sprintf "%s/lib%s.a" (Filename.dirname lib.Item.dir) cstub ;
-      ] ;
-      flag
-        ["link";"ocaml";"byte";stub_tag]
-        (S[A"-dllib";A("-l"^cstub);A"-cclib";A("-l"^cstub)]) ;
-      flag
-        ["link";"ocaml";"native";stub_tag]
-        (S[A"-cclib";A("-l"^cstub)]) ;
-      static_file
-        (sprintf "%s/lib%s.clib" (Filename.dirname lib.Item.dir) cstub)
-        file
+  (* let clib lib = *)
+  (*   match Util.clib_file lib.Item.dir lib.Item.name with *)
+  (*   | None -> () *)
+  (*   | Some file -> *)
+  (*     let cstub = sprintf "%s_stub" lib.Item.name in *)
+  (*     let stub_tag = "use_"^cstub in *)
+  (*     let headers = *)
+  (*       Util.h_files_of_dir lib.Item.dir *)
+  (*       |> List.map ~f:(fun x -> lib.Item.dir/x) *)
+  (*     in *)
+  (*     dep ["c" ; "compile"] headers ; *)
+  (*     dep ["link";"ocaml";stub_tag] [ *)
+  (*       sprintf "%s/lib%s.a" (Filename.dirname lib.Item.dir) cstub ; *)
+  (*     ] ; *)
+  (*     flag *)
+  (*       ["link";"ocaml";"byte";stub_tag] *)
+  (*       (S[A"-dllib";A("-l"^cstub);A"-cclib";A("-l"^cstub)]) ; *)
+  (*     flag *)
+  (*       ["link";"ocaml";"native";stub_tag] *)
+  (*       (S[A"-cclib";A("-l"^cstub)]) ; *)
+  (*     static_file *)
+  (*       (sprintf "%s/lib%s.clib" (Filename.dirname lib.Item.dir) cstub) *)
+  (*       file *)
 
   let project_files () =
     rule "project files"
@@ -475,7 +341,6 @@ let make ?(ocamlinit_postfix=[]) ~name ~version items =
     git_commit = git_commit();
     libs = libs;
     apps = apps;
-    tags_file = tags_file items;
     merlin_file = merlin_file items;
     meta_file = meta_file libs version;
     install_file = install_file items;
@@ -485,18 +350,18 @@ let make ?(ocamlinit_postfix=[]) ~name ~version items =
 
 let plugin t = function
   | Ocamlbuild_plugin.Before_options -> (
-      Ocamlbuild_plugin.Options.use_ocamlfind := true;
-      Rule.tags_file t.tags_file;
+      Ocamlbuild_plugin.Options.use_ocamlfind := true
     )
   | Ocamlbuild_plugin.After_rules -> (
+      Ocamlbuild_plugin.clear_rules();
+
       Rule.ml_m4_to_ml ~git_commit:t.git_commit ~version:t.version;
       Rule.atd_to_t();
       Rule.atd_to_j();
 
-      List.iter t.libs ~f:Rule.mlpack;
-      List.iter t.libs ~f:Rule.mllib;
-      List.iter t.libs ~f:Rule.libs_byte_native;
-      List.iter t.libs ~f:Rule.clib;
+      List.iter t.libs ~f:Item.build_lib;
+      List.iter t.apps ~f:Item.build_app;
+      (* List.iter t.libs ~f:Rule.clib; *)
 
       Rule.static_file ".merlin" t.merlin_file;
       Rule.static_file "META" t.meta_file;

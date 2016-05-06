@@ -126,14 +126,23 @@ let path_of_lib ~suffix (x:lib) : string =
 let path_of_app ~suffix (x:app) : string =
   sprintf "%s/%s%s" (Filename.dirname x.file) x.name suffix
 
+let w = "A-4-33-41-42-44-45-48"
+
+let ocamlc = OCaml.ocamlc
+    ~thread:() ~bin_annot:() ~annot:()
+    ~short_paths:() ~safe_string:() ~g:() ~w
+
+let ocamlopt = OCaml.ocamlopt
+    ~thread:() ~bin_annot:() ~annot:()
+    ~short_paths:() ~safe_string:() ~g:() ~w
+
 let build_lib (x:lib) =
-  let open OCaml in
   let files =
     Sys.readdir x.dir |> Array.to_list |>
     List.map ~f:(fun file -> Filename.concat x.dir file)
   in
   let _I = [x.dir] in
-  let deps = ocamldep ~_I files in
+  let deps = OCaml.ocamldep ~_I files in
   let deps_of file =
     try List.assoc file deps
     with Not_found -> []
@@ -209,7 +218,6 @@ let build_lib (x:lib) =
   )
 
 let build_app (x:app) =
-  let open OCaml in
   let _I = List.filter_map x.internal_deps ~f:(function
     | Lib x -> Some (Filename.dirname x.dir)
     | App _ -> None )
