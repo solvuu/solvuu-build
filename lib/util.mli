@@ -66,3 +66,16 @@ module List : sig
   val is_uniq : cmp:('a -> 'a -> int) -> 'a list -> bool
 
 end
+
+module Filename : sig
+  include module type of Filename
+
+  (** [replace_suffix old new s] replaces suffix [old] in [s] with
+      [new]. Returns [None] if [s] doesn't end with suffix [old]. *)
+  val replace_suffix : old:string -> new_:string -> string -> string option
+
+  (** Like [replace_suffix] but raise exception if [s] doesn't end
+      with [old]. *)
+  val replace_suffix_exn : old:string -> new_:string -> string -> string
+
+end

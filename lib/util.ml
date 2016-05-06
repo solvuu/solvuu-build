@@ -89,6 +89,21 @@ module List = struct
     m = n
 end
 
+module Filename = struct
+  include Filename
+
+  let replace_suffix ~old ~new_ s =
+    match check_suffix s old with
+    | false -> None
+    | true -> Some (sprintf "%s%s" (chop_suffix s old) new_)
+
+  let replace_suffix_exn ~old ~new_ s =
+    match replace_suffix ~old ~new_ s with
+    | Some x -> x
+    | None -> failwithf "%s doesn't end with %s" s old ()
+
+end
+
 let readdir dir : string list =
   match Sys.file_exists dir && Sys.is_directory dir with
   | false -> []
