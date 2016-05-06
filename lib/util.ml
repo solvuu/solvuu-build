@@ -116,35 +116,6 @@ let readdir dir : string list =
   | false -> []
   | true -> (Sys.readdir dir |> Array.to_list)
 
-let modules_of_file filename : string list =
-  List.fold_left [".ml"; ".mli"; ".ml.m4"; ".mll"; ".mly"; ".atd"]
-    ~init:[] ~f:(fun accum suffix ->
-      let new_items = match suffix with
-        | ".atd" -> (
-            if Filename.check_suffix filename suffix then (
-              Filename.chop_suffix filename suffix
-              |> fun x -> [x^"_j"; x^"_t"]
-            )
-            else
-              []
-          )
-        | _ -> (
-            if Filename.check_suffix filename suffix then
-              [Filename.chop_suffix filename suffix]
-            else
-              []
-          )
-      in
-      new_items@accum
-    )
-  |> List.map ~f:String.capitalize
-
-let modules_of_dir dir : string list =
-  readdir dir
-  |> List.map ~f:modules_of_file
-  |> List.concat
-  |> List.sort_uniq compare
-
 let c_units_of_dir dir : string list =
   readdir dir
   |> List.filter ~f:(fun p -> Filename.check_suffix p ".c")
@@ -153,14 +124,6 @@ let c_units_of_dir dir : string list =
 let h_files_of_dir dir : string list =
   readdir dir
   |> List.filter ~f:(fun p -> Filename.check_suffix p ".h")
-
-let mlpack_file dir : string list =
-  if not (Sys.file_exists dir && Sys.is_directory dir) then
-    failwithf "cannot create mlpack file for dir %s" dir ()
-  else (
-    modules_of_dir dir
-    |> List.map ~f:(fun x -> dir/x)
-  )
 
 let clib_file dir lib =
   let path = dir / lib in

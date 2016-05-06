@@ -139,11 +139,50 @@ let ocamlopt = OCaml.ocamlopt
     ~short_paths:() ~safe_string:() ~g:() ~w
 
 let build_lib ?git_commit ~project_version (x:lib) =
+  let open Filename in
+
+  let _I = [x.dir] in
+
   let files =
     Sys.readdir x.dir |> Array.to_list |>
-    List.map ~f:(fun file -> Filename.concat x.dir file)
+    List.map ~f:(fun file -> concat x.dir file)
   in
-  let _I = [x.dir] in
+
+  let ml_files =
+    List.filter_map files ~f:(fun x ->
+      if check_suffix x ".ml" then
+        Some [x]
+      else if check_suffix x ".atd" then
+        let base = basename x in
+        Some [sprintf "%s_j.ml" base; sprintf "%s_t.ml" base]
+      else if check_suffix x ".ml.m4" then
+        Some [chop_suffix x ".m4"]
+      else
+        None
+    ) |> List.flatten
+  in
+
+  let mli_files =
+    List.filter_map files ~f:(fun x ->
+      if check_suffix x ".mli" then
+        Some [x]
+      else if check_suffix x ".atd" then
+        let base = basename x in
+        Some [sprintf "%s_j.mli" base; sprintf "%s_t.mli" base]
+      else
+        None
+    ) |>
+    List.flatten
+  in
+
+  let ml_m4_files =
+    List.filter files ~f:(fun x -> check_suffix x ".ml.m4")
+  in
+
+  let atd_files =
+    List.filter files ~f:(fun x -> check_suffix x ".atd")
+  in
+
   let deps = OCaml.ocamldep ~_I files in
   let deps_of file =
     try List.assoc file deps
@@ -151,102 +190,100 @@ let build_lib ?git_commit ~project_version (x:lib) =
   in
 
   ( (* .cmo* -> packed .cmo *)
-    let deps = List.filter_map files
-        ~f:(Filename.replace_suffix ~old:".ml" ~new_:".cmo")
+    let deps = List.map ml_files
+        ~f:(replace_suffix_exn ~old:".ml" ~new_: ".cmo")
     in
     let prod = path_of_lib ~suffix:".cmo" x in
     rule ~deps ~prods:[prod] (ocamlc ~pack:() ~o:prod deps)
   );
 
   ( (* .cmx* -> packed .cmx *)
-    let deps = List.filter_map files
-        ~f:(Filename.replace_suffix ~old:".ml" ~new_:".cmx")
+    let deps = List.map ml_files
+        ~f:(replace_suffix_exn ~old:".ml" ~new_:".cmx")
     in
     let prod = path_of_lib ~suffix:".cmx" x in
     rule ~deps ~prods:[prod] (ocamlopt ~pack:() ~o:prod deps)
   );
 
   ( (* packed .cmo -> .cma *)
-    let dep = sprintf "%s/%s.cmo" (Filename.dirname x.dir) x.pack_name in
-    let prod = sprintf "%s/%s.cma" (Filename.dirname x.dir) x.pack_name in
+    let dep = sprintf "%s/%s.cmo" (dirname x.dir) x.pack_name in
+    let prod = sprintf "%s/%s.cma" (dirname x.dir) x.pack_name in
     rule ~deps:[dep] ~prods:[prod] (ocamlc ~a:() ~o:prod [dep])
   );
 
   ( (* packed .cmx -> .cmxa *)
-    let dep = sprintf "%s/%s.cmx" (Filename.dirname x.dir) x.pack_name in
-    let prod = sprintf "%s/%s.cmxa" (Filename.dirname x.dir) x.pack_name in
+    let dep = sprintf "%s/%s.cmx" (dirname x.dir) x.pack_name in
+    let prod = sprintf "%s/%s.cmxa" (dirname x.dir) x.pack_name in
     rule ~deps:[dep] ~prods:[prod] (ocamlopt ~a:() ~o:prod [dep])
   );
 
-  List.iter files ~f:(fun file ->
+  (* .mli -> .cmi *)
+  List.iter mli_files ~f:(fun file ->
+    let base = chop_suffix file ".mli" in
+    let cmi = sprintf "%s.cmi" base in
+    let deps = file::(deps_of cmi) in
+    rule ~deps ~prods:[cmi] (ocamlc ~c:() ~_I ~o:cmi [file])
+  );
 
-    (* .mli -> .cmi *)
-    if Filename.check_suffix file ".mli" then (
-      let base = Filename.chop_suffix file ".mli" in
-      let cmi = sprintf "%s.cmi" base in
-      let deps = file::(deps_of cmi) in
-      rule ~deps ~prods:[cmi] (ocamlc ~c:() ~_I ~o:cmi [file])
-    )
+  (* .ml -> ... *)
+  List.iter ml_files ~f:(fun file ->
+    let base = chop_suffix file ".ml" in
+    let mli = sprintf "%s.mli" base in
+    let cmi = sprintf "%s.cmi" base in
+    let mli_exists = Sys.file_exists mli in
 
-    else if Filename.check_suffix file ".ml" then (
-      let base = Filename.chop_suffix file ".ml" in
-      let mli = sprintf "%s.mli" base in
-      let cmi = sprintf "%s.cmi" base in
-      let mli_exists = Sys.file_exists mli in
+    let c = () in
+    let for_pack = String.capitalize x.pack_name in
 
-      let c = () in
-      let for_pack = String.capitalize x.pack_name in
+    (* .ml -> .cmo and .cmi if no corresponding .mli *)
+    let cmo = sprintf "%s.cmo" base in
+    let deps,prods =
+      if mli_exists
+      then file::(deps_of cmo), [cmo]
+      else file::(deps_of cmo)@(deps_of cmi), [cmo;cmi]
+    in
+    rule ~deps ~prods (ocamlc ~c ~_I ~for_pack ~o:cmo [file]);
 
-      (* .ml -> .cmo and .cmi if no corresponding .mli *)
-      let cmo = sprintf "%s.cmo" base in
-      let deps,prods =
-        if mli_exists
-        then file::(deps_of cmo), [cmo]
-        else file::(deps_of cmo)@(deps_of cmi), [cmo;cmi]
-      in
-      rule ~deps ~prods (ocamlc ~c ~_I ~for_pack ~o:cmo [file]);
+    (* .ml -> .cmx and .cmi if no corresponding .mli *)
+    let cmx = sprintf "%s.cmx" base in
+    let deps,prods =
+      if mli_exists
+      then file::(deps_of cmx), [cmx]
+      else file::(deps_of cmx)@(deps_of cmi), [cmx;cmi]
+    in
+    rule ~deps ~prods (ocamlopt ~c ~_I ~for_pack ~o:cmx [file]);
+  );
 
-      (* .ml -> .cmx and .cmi if no corresponding .mli *)
-      let cmx = sprintf "%s.cmx" base in
-      let deps,prods =
-        if mli_exists
-        then file::(deps_of cmx), [cmx]
-        else file::(deps_of cmx)@(deps_of cmi), [cmx;cmi]
-      in
-      rule ~deps ~prods (ocamlopt ~c ~_I ~for_pack ~o:cmx [file]);
-    )
+  (* .ml.m4 -> .ml *)
+  List.iter ml_m4_files ~f:(fun file ->
+    let base = chop_suffix file ".ml.m4" in
+    let ml = sprintf "%s.ml" base in
+    let git_commit = match git_commit with
+      | None -> "None"
+      | Some x -> sprintf "Some \"%s\"" x
+    in
+    let _D = [
+      "GIT_COMMIT", Some git_commit;
+      "VERSION", Some project_version;
+    ]
+    in
+    rule ~deps:[file] ~prods:[ml] (M4.m4 ~_D ~infile:file ~outfile:ml)
+  );
 
-    (* .ml.m4 -> .ml *)
-    else if Filename.check_suffix file ".ml.m4" then (
-      let base = Filename.chop_suffix file ".ml.m4" in
-      let ml = sprintf "%s.ml" base in
-      let git_commit = match git_commit with
-        | None -> "None"
-        | Some x -> sprintf "Some \"%s\"" x
-      in
-      let _D = [
-        "GIT_COMMIT", Some git_commit;
-        "VERSION", Some project_version;
-      ]
-      in
-      rule ~deps:[file] ~prods:[ml] (M4.m4 ~_D ~infile:file ~outfile:ml)
-    )
+  (* .atd -> ... *)
+  List.iter atd_files ~f:(fun file ->
+    let base = chop_suffix file ".atd" in
 
-    else if Filename.check_suffix file ".atd" then (
-      let base = Filename.chop_suffix file ".atd" in
+    (* .atd -> _t.ml, _t.mli *)
+    let prods = [sprintf "%s_t.ml" base; sprintf "%s_t.mli" base] in
+    rule ~deps:[file] ~prods (Atdgen.atdgen ~t:() ~j_std:() file);
 
-      (* .atd -> _t.ml, _t.mli *)
-      let prods = [sprintf "%s_t.ml" base; sprintf "%s_t.mli" base] in
-      rule ~deps:[file] ~prods (Atdgen.atdgen ~t:() ~j_std:() file);
-
-      (* .atd -> _j.ml, _j.mli *)
-      let prods = [sprintf "%s_j.ml" base; sprintf "%s_j.mli" base] in
-      rule ~deps:[file] ~prods (Atdgen.atdgen ~j:() ~j_std:() file)
-    )
-
-    else
-      ()
+    (* .atd -> _j.ml, _j.mli *)
+    let prods = [sprintf "%s_j.ml" base; sprintf "%s_j.mli" base] in
+    rule ~deps:[file] ~prods (Atdgen.atdgen ~j:() ~j_std:() file)
   )
+;;
+
 
 let build_app (x:app) =
   let _I = List.filter_map x.internal_deps ~f:(function
