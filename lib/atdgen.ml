@@ -8,6 +8,7 @@ let unit (flag:string) (value:unit option) = match value with
 
 let atdgen ?j ?j_std ?t file =
   [
+    Some (A "atdgen");
     unit "-j" j;
     unit "-j-std" j_std;
     unit "-t" t;

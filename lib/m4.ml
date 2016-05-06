@@ -4,6 +4,7 @@ open Util
 
 let m4 ?(_D=[]) ~infile ~outfile =
   [
+    [A "m4"];
     (
       List.map _D ~f:(fun (x,y) ->
         let value = match y with
