@@ -115,6 +115,8 @@ let rec should_build (i:t) =
 (** {2 Rules} *)
 (******************************************************************************)
 let rule ~deps ~prods cmd =
+  let deps = List.map deps ~f:Filename.normalize in
+  let prods = List.map prods ~f:Filename.normalize in
   let name = sprintf "%s -> %s"
       (String.concat "," deps) (String.concat "," prods)
   in

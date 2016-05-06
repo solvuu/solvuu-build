@@ -78,4 +78,9 @@ module Filename : sig
       with [old]. *)
   val replace_suffix_exn : old:string -> new_:string -> string -> string
 
+  (** Make some effort to normalize paths, so that semantically
+      equivalent paths will be syntactically equivalent. In particular,
+      this helps to workaround an
+      {{:https://github.com/ocaml/ocamlbuild/issues/76}ocamlbuild bug}. *)
+  val normalize : string -> string
 end

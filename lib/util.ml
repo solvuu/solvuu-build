@@ -102,6 +102,13 @@ module Filename = struct
     | Some x -> x
     | None -> failwithf "%s doesn't end with %s" s old ()
 
+  let normalize x =
+    String.split ~on:'/' x |>
+    List.filter_map ~f:(function "." | "" -> None | x -> Some x) |>
+    String.concat "/" |> function
+    | "" -> "."
+    | x -> x
+
 end
 
 let readdir dir : string list =
