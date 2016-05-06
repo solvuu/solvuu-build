@@ -238,20 +238,6 @@ module Rule = struct
       ]
     )
 
-  let atd_to_t () =
-    rule "atd: .atd -> _t.ml, _t.mli"
-      ~dep:"%.atd"
-      ~prods:["%_t.ml"; "%_t.mli"]
-      (fun env _ ->
-         Cmd (S [A "atdgen"; A "-t"; A "-j-std"; P (env "%.atd")]) )
-
-  let atd_to_j () =
-    rule "atd: .atd -> _j.ml, _j.mli"
-      ~dep:"%.atd"
-      ~prods:["%_j.ml"; "%_j.mli"]
-      (fun env _ ->
-         Cmd (S [A "atdgen"; A "-j"; A "-j-std"; P (env "%.atd")]) )
-
   (* let clib lib = *)
   (*   match Util.clib_file lib.Item.dir lib.Item.name with *)
   (*   | None -> () *)
@@ -329,9 +315,6 @@ let plugin t =
     )
   | Ocamlbuild_plugin.After_rules -> (
       Ocamlbuild_plugin.clear_rules();
-
-      Rule.atd_to_t();
-      Rule.atd_to_j();
 
       List.iter t.libs ~f:(Item.build_lib ?git_commit ~project_version);
       List.iter t.apps ~f:Item.build_app;

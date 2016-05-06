@@ -52,8 +52,6 @@ module Rule : sig
       [path] with given [content]. *)
   val static_file : string -> content -> unit
 
-  val atd_to_t : unit -> unit
-  val atd_to_j : unit -> unit
   (* val clib : Item.lib -> unit *)
   val project_files : unit -> unit
 end

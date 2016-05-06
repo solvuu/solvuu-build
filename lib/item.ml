@@ -229,6 +229,19 @@ let build_lib ?git_commit ~project_version (x:lib) =
       in
       rule ~deps:[file] ~prods:[ml] (M4.m4 ~_D ~infile:file ~outfile:ml)
     )
+
+    else if Filename.check_suffix file ".atd" then (
+      let base = Filename.chop_suffix file ".atd" in
+
+      (* .atd -> _t.ml, _t.mli *)
+      let prods = [sprintf "%s_t.ml" base; sprintf "%s_t.mli" base] in
+      rule ~deps:[file] ~prods (Atdgen.atdgen ~t:() ~j_std:() file);
+
+      (* .atd -> _j.ml, _j.mli *)
+      let prods = [sprintf "%s_j.ml" base; sprintf "%s_j.mli" base] in
+      rule ~deps:[file] ~prods (Atdgen.atdgen ~j:() ~j_std:() file)
+    )
+
     else
       ()
   )

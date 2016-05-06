@@ -1,3 +1,4 @@
+module Atdgen = Atdgen
 module Item = Item
 module Project = Project
 module Findlib = Solvuu_build_findlib
