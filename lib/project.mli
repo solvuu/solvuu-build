@@ -37,7 +37,6 @@ val dispatch : t -> unit
 type content = string list
 (** Content of a file represented as a list of lines. *)
 
-val git_commit : unit -> string option
 val merlin_file : Item.t list -> content
 val meta_file : Item.lib list -> version -> content
 val install_file : Item.t list -> content
@@ -53,7 +52,6 @@ module Rule : sig
       [path] with given [content]. *)
   val static_file : string -> content -> unit
 
-  val ml_m4_to_ml : git_commit:string option -> version:version -> unit
   val atd_to_t : unit -> unit
   val atd_to_j : unit -> unit
   (* val clib : Item.lib -> unit *)

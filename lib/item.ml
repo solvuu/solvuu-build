@@ -136,7 +136,7 @@ let ocamlopt = OCaml.ocamlopt
     ~thread:() ~bin_annot:() ~annot:()
     ~short_paths:() ~safe_string:() ~g:() ~w
 
-let build_lib (x:lib) =
+let build_lib ?git_commit ~project_version (x:lib) =
   let files =
     Sys.readdir x.dir |> Array.to_list |>
     List.map ~f:(fun file -> Filename.concat x.dir file)
@@ -213,6 +213,22 @@ let build_lib (x:lib) =
       in
       rule ~deps ~prods (ocamlopt ~c ~_I ~for_pack ~o:cmx [file]);
     )
+
+    (* .ml.m4 -> .ml *)
+    else if Filename.check_suffix file ".ml.m4" then (
+      let base = Filename.chop_suffix file ".ml.m4" in
+      let ml = sprintf "%s.ml" base in
+      let git_commit = match git_commit with
+        | None -> "None"
+        | Some x -> sprintf "Some \"%s\"" x
+      in
+      let _D = [
+        "GIT_COMMIT", Some git_commit;
+        "VERSION", Some project_version;
+      ]
+      in
+      rule ~deps:[file] ~prods:[ml] (M4.m4 ~_D ~infile:file ~outfile:ml)
+    )
     else
       ()
   )
@@ -255,9 +271,6 @@ let build_app (x:app) =
   rule ~deps:(deps `native) ~prods:[prod `native]
     (ocamlopt ~_I ~o:(prod `native) (files `native))
 
-let build = function
-  | Lib x -> build_lib x
-  | App x -> build_app x
 
 (******************************************************************************)
 (** {2 Graph Operations} *)

@@ -26,15 +26,6 @@ type t = {
 (******************************************************************************)
 type content = string list
 
-let git_commit () =
-  if Sys.file_exists ".git" then
-    Some (
-      Ocamlbuild_pack.My_unix.run_and_read "git rev-parse HEAD"
-      |> fun x -> String.sub x 0 (String.length x - 1)
-    )
-  else
-    None
-
 let merlin_file items : string list =
   [
     ["B +threads"; "PKG solvuu_build"];
@@ -247,25 +238,6 @@ module Rule = struct
       ]
     )
 
-  let ml_m4_to_ml ~git_commit ~version =
-    let git_commit = match git_commit with
-      | None -> "None"
-      | Some x -> sprintf "Some \"%s\"" x
-    in
-    rule "m4: ml.m4 -> ml"
-      ~prod:"%.ml"
-      ~dep:"%.ml.m4"
-      (fun env _ ->
-         let ml_m4 = env "%.ml.m4" in
-         Cmd (S [
-           A "m4";
-           A "-D"; A ("VERSION=" ^ version);
-           A "-D"; A ("GIT_COMMIT=" ^ git_commit);
-           P ml_m4;
-           Sh ">";
-           P (env "%.ml");
-         ]) )
-
   let atd_to_t () =
     rule "atd: .atd -> _t.ml, _t.mli"
       ~dep:"%.atd"
@@ -338,7 +310,7 @@ let make ?(ocamlinit_postfix=[]) ~name ~version items =
   {
     name;
     version;
-    git_commit = git_commit();
+    git_commit = Git.last_commit();
     libs = libs;
     apps = apps;
     merlin_file = merlin_file items;
@@ -348,18 +320,20 @@ let make ?(ocamlinit_postfix=[]) ~name ~version items =
     makefile_rules_file = makefile_rules_file items name;
   }
 
-let plugin t = function
+let plugin t =
+  let git_commit = t.git_commit in
+  let project_version = t.version in
+  function
   | Ocamlbuild_plugin.Before_options -> (
       Ocamlbuild_plugin.Options.use_ocamlfind := true
     )
   | Ocamlbuild_plugin.After_rules -> (
       Ocamlbuild_plugin.clear_rules();
 
-      Rule.ml_m4_to_ml ~git_commit:t.git_commit ~version:t.version;
       Rule.atd_to_t();
       Rule.atd_to_j();
 
-      List.iter t.libs ~f:Item.build_lib;
+      List.iter t.libs ~f:(Item.build_lib ?git_commit ~project_version);
       List.iter t.apps ~f:Item.build_app;
       (* List.iter t.libs ~f:Rule.clib; *)
 
