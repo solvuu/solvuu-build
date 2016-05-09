@@ -1,6 +1,7 @@
 (** OCaml commands. *)
 open Ocamlbuild_plugin
 
+(** Arguments common to both ocamlc and ocamlopt. *)
 type 'a common_compiler_args =
   ?a:unit ->
   ?absname:unit ->
@@ -58,14 +59,14 @@ type 'a common_compiler_args =
   ?help:unit ->
   'a
 
-val ocamlc : (
+type ocamlc = (
   ?compat_32:unit ->
   ?vmthread:unit ->
   Pathname.t list ->
   Command.t
 ) common_compiler_args
 
-val ocamlopt : (
+type ocamlopt = (
   ?compact:unit ->
   ?inline:int ->
   ?nodynlink:unit ->
@@ -75,6 +76,17 @@ val ocamlopt : (
   Pathname.t list ->
   Command.t
 ) common_compiler_args
+
+type 'a ocamlfind_args =
+  ?package:string list ->
+  ?linkpkg:unit ->
+  'a
+
+val ocamlc   : ocamlc
+val ocamlopt : ocamlopt
+
+val ocamlfind_ocamlc   : ocamlc ocamlfind_args
+val ocamlfind_ocamlopt : ocamlopt ocamlfind_args
 
 val ocamldep
   :  ?modules:unit
