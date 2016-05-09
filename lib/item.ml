@@ -157,7 +157,13 @@ let ocamlopt = OCaml.ocamlfind_ocamlopt
 let build_lib ?git_commit ~project_version (x:lib) =
   let open Filename in
 
-  let _I = [x.dir] in
+  let _I =
+    x.dir
+    ::(
+      filter_libs x.internal_deps |>
+      List.map ~f:(fun x -> Filename.dirname x.dir)
+    )
+  in
 
   let files =
     Sys.readdir x.dir |> Array.to_list |>
