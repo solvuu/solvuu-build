@@ -104,6 +104,14 @@ let string_list (flag:string) (value:string list option) = match value with
   | None -> [None]
   | Some l -> List.map l ~f:(fun x -> string flag (Some x)) |> List.flatten
 
+let string_list_comma_sep (flag:string) (value:string list option) =
+  match value with
+  | None -> [None]
+  | Some l -> (
+      String.concat "," l |> fun x ->
+      string flag (Some x)
+    )
+
 let unit (flag:string) (value:unit option) = match value with
   | None -> [None]
   | Some () -> [Some (A flag)]
@@ -313,7 +321,7 @@ let ocamlfind_specs
   : spec option list list
   =
   [
-    string_list "-package" package;
+    string_list_comma_sep "-package" package;
     unit "-linkpkg" linkpkg;
   ]
 
