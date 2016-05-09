@@ -130,11 +130,11 @@ let path_of_app ~suffix (x:app) : string =
 
 let w = "A-4-33-41-42-44-45-48"
 
-let ocamlc = OCaml.ocamlc
+let ocamlc = OCaml.ocamlfind_ocamlc
     ~thread:() ~bin_annot:() ~annot:()
     ~short_paths:() ~safe_string:() ~g:() ~w
 
-let ocamlopt = OCaml.ocamlopt
+let ocamlopt = OCaml.ocamlfind_ocamlopt
     ~thread:() ~bin_annot:() ~annot:()
     ~short_paths:() ~safe_string:() ~g:() ~w
 
@@ -222,7 +222,8 @@ let build_lib ?git_commit ~project_version (x:lib) =
     let base = chop_suffix file ".mli" in
     let cmi = sprintf "%s.cmi" base in
     let deps = file::(deps_of cmi) in
-    rule ~deps ~prods:[cmi] (ocamlc ~c:() ~_I ~o:cmi [file])
+    rule ~deps ~prods:[cmi]
+      (ocamlc ~c:() ~_I ~package:x.findlib_deps ~o:cmi [file])
   );
 
   (* .ml -> ... *)
@@ -242,7 +243,9 @@ let build_lib ?git_commit ~project_version (x:lib) =
       then file::(deps_of cmo), [cmo]
       else file::(deps_of cmo)@(deps_of cmi), [cmo;cmi]
     in
-    rule ~deps ~prods (ocamlc ~c ~_I ~for_pack ~o:cmo [file]);
+    rule ~deps ~prods
+      (ocamlc ~c ~_I ~package:x.findlib_deps ~for_pack ~o:cmo [file])
+    ;
 
     (* .ml -> .cmx and .cmi if no corresponding .mli *)
     let cmx = sprintf "%s.cmx" base in
@@ -251,7 +254,9 @@ let build_lib ?git_commit ~project_version (x:lib) =
       then file::(deps_of cmx), [cmx]
       else file::(deps_of cmx)@(deps_of cmi), [cmx;cmi]
     in
-    rule ~deps ~prods (ocamlopt ~c ~_I ~for_pack ~o:cmx [file]);
+    rule ~deps ~prods
+      (ocamlopt ~c ~_I ~package:x.findlib_deps ~for_pack ~o:cmx [file])
+    ;
   );
 
   (* .ml.m4 -> .ml *)
