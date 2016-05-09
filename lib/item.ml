@@ -111,6 +111,22 @@ let rec should_build (i:t) =
     should_build x
   )
 
+
+(******************************************************************************)
+(** {2 List Operations} *)
+(******************************************************************************)
+let filter_libs t =
+  List.filter_map t ~f:(function Lib x -> Some x | App _ -> None)
+
+let filter_apps t =
+  List.filter_map t ~f:(function App x -> Some x | Lib _ -> None)
+
+let all_findlib_pkgs t =
+  List.map t ~f:findlib_deps
+  |> List.flatten
+  |> List.sort_uniq String.compare
+
+
 (******************************************************************************)
 (** {2 Rules} *)
 (******************************************************************************)
@@ -373,17 +389,3 @@ module Graph = struct
         g
 
 end
-
-(******************************************************************************)
-(** {2 List Operations} *)
-(******************************************************************************)
-let filter_libs t =
-  List.filter_map t ~f:(function Lib x -> Some x | App _ -> None)
-
-let filter_apps t =
-  List.filter_map t ~f:(function App x -> Some x | Lib _ -> None)
-
-let all_findlib_pkgs t =
-  List.map t ~f:findlib_deps
-  |> List.flatten
-  |> List.sort_uniq String.compare
