@@ -15,7 +15,7 @@ type t = private {
   libs : Item.lib list;
   apps : Item.app list;
   merlin_file : string list;
-  meta_file : string list;
+  meta_file : Fl_metascanner.pkg_expr;
   install_file : string list;
   ocamlinit_file : string list;
   makefile_rules_file : string list;
@@ -38,7 +38,7 @@ type content = string list
 (** Content of a file represented as a list of lines. *)
 
 val merlin_file : Item.t list -> content
-val meta_file : Item.lib list -> version -> content
+val meta_file : Item.lib list -> version -> Fl_metascanner.pkg_expr
 val install_file : Item.t list -> content
 val ocamlinit_file : Item.t list -> postfix:string list -> content
 val makefile_rules_file : Item.t list -> name -> content

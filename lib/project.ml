@@ -1,8 +1,7 @@
 (** Build system. *)
 open Printf
 module Findlib = Solvuu_build_findlib
-module List = Util.List
-module String = Util.String
+open Util
 
 type name = string
 type version = string
@@ -14,7 +13,7 @@ type t = {
   libs : Item.lib list;
   apps : Item.app list;
   merlin_file : string list;
-  meta_file : string list;
+  meta_file : Fl_metascanner.pkg_expr;
   install_file : string list;
   ocamlinit_file : string list;
   makefile_rules_file : string list;
@@ -56,29 +55,57 @@ let merlin_file items : string list =
   |> List.concat
   |> List.sort_uniq String.compare
 
-let meta_file libs version : string list =
-  List.map libs ~f:(fun x ->
-    let requires : string list =
-      (Item.findlib_deps_all (Item.Lib x))
-      @(
-        Item.internal_deps (Item.Lib x)
-        |> Item.filter_libs
-        |> List.map ~f:(fun x -> x.Item.pkg)
-      )
-    in
+let meta_file libs version : Fl_metascanner.pkg_expr =
+  let def ?(preds=[]) var value =
+      {
+        Fl_metascanner.def_var = var;
+        def_preds = preds;
+        def_flav = `BaseDef;
+        def_value = value;
+      }
+  in
+  let pkg_defs_of_lib (x:Item.lib) =
     [
-      sprintf "package \"%s\" (" x.Item.name;
-      sprintf "  directory = \"%s\"" x.Item.dir;
-      sprintf "  version = \"%s\"" version;
-      sprintf "  archive(byte) = \"%s.cma\"" x.Item.name;
-      sprintf "  archive(native) = \"%s.cmxa\"" x.Item.name;
-      sprintf "  requires = \"%s\"" (String.concat " " requires);
-      sprintf "  exists_if = \"%s.cma\"" x.Item.name;
-      sprintf ")";
+      def "directory"
+        (Findlib.to_path x.Item.pkg |> List.tl |> String.concat "/");
+      def "version" version;
+      def ~preds:[`Pred "byte"] "archive" (sprintf "%s.cma" x.Item.name);
+      def ~preds:[`Pred "native"] "archive" (sprintf "%s.cmxa" x.Item.name);
+      def "requires" (
+        (Item.findlib_deps_all (Item.Lib x))
+        @(
+          Item.internal_deps (Item.Lib x)
+          |> Item.filter_libs
+          |> List.map ~f:(fun x -> x.Item.pkg)
+        )
+        |> String.concat " "
+      );
+      def "exists_if" (sprintf "%s.cma" x.Item.name);
     ]
-  )
-  |> List.flatten
-  |> List.filter ~f:((<>) "")
+  in
+  let pkgs = List.map libs ~f:(fun x -> x.Item.pkg) in
+  let graph = Findlib.Graph.of_list pkgs in
+  let root = match Findlib.Graph.roots graph with
+    | x::[] -> x
+    | [] -> failwith "findlib packages have no root"
+    | l -> failwithf "cannot create META file for findlib packages with \
+                      multiple roots: %s" (String.concat "," l) ()
+  in
+  let pkg_defs (pkg:Findlib.pkg) =
+    try pkg_defs_of_lib @@ List.find libs ~f:(fun x -> x.Item.pkg = pkg)
+    with _ -> []
+  in
+  let rec pkg_expr (pkg:Findlib.pkg) =
+    {
+      Fl_metascanner.pkg_defs = pkg_defs pkg;
+      pkg_children =
+        List.map (Findlib.Graph.succ graph pkg) ~f:(fun x ->
+          (Findlib.to_path x |> List.last_exn),
+          (pkg_expr x)
+        )
+    }
+  in
+  pkg_expr root
 
 let install_file items : string list =
   let all_libs = Item.filter_libs items in
@@ -321,7 +348,14 @@ let plugin t =
       (* List.iter t.libs ~f:Rule.clib; *)
 
       Rule.static_file ".merlin" t.merlin_file;
-      Rule.static_file "META" t.meta_file;
+
+      Ocamlbuild_plugin.rule "META" ~prod:"META" (fun _ _ ->
+        let oc = open_out "META" in
+        Fl_metascanner.print oc t.meta_file;
+        close_out oc;
+        Ocamlbuild_plugin.Nop
+      );
+
       Rule.static_file (sprintf "%s.install" t.name) t.install_file;
       Rule.static_file ".ocamlinit" t.ocamlinit_file;
       Rule.static_file "Makefile.rules" t.makefile_rules_file;
