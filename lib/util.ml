@@ -105,6 +105,13 @@ module List = struct
     let m = length l in
     let n = length (sort_uniq cmp l) in
     m = n
+
+  let last l = match List.rev l with
+    | [] -> None
+    | x::_ -> Some x
+
+  let last_exn l = List.rev l |> List.hd
+
 end
 
 module Filename = struct

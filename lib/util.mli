@@ -55,6 +55,10 @@ module List : sig
       according to [cmp]. *)
   val is_uniq : cmp:('a -> 'a -> int) -> 'a list -> bool
 
+
+  val last : 'a list -> 'a option
+  val last_exn : 'a list -> 'a
+
 end
 
 module Filename : sig
