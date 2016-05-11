@@ -16,6 +16,14 @@ type app = {
   findlib_deps : pkg list;
   build_if : condition list;
   file : string;
+
+  annot : unit option;
+  bin_annot : unit option;
+  g : unit option;
+  safe_string : unit option;
+  short_paths : unit option;
+  thread : unit option;
+  w : string option;
 }
 
 and lib = {
@@ -26,21 +34,39 @@ and lib = {
   pack_name : string;
   dir : string;
   pkg : Solvuu_build_findlib.pkg;
+
+  annot : unit option;
+  bin_annot : unit option;
+  g : unit option;
+  safe_string : unit option;
+  short_paths : unit option;
+  thread : unit option;
+  w : string option;
 }
 
 and t = Lib of lib | App of app
 
 type typ = [`Lib | `App]
 
-let lib ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[])
+let lib
+    ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+    ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[])
     ~pkg ~pack_name ~dir name
   =
-  Lib {name;internal_deps;findlib_deps;build_if;pack_name;dir;pkg}
+  Lib {
+    name; internal_deps; findlib_deps; build_if; pack_name; dir; pkg;
+    annot; bin_annot; g; safe_string; short_paths; thread; w;
+  }
 
-let app ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[])
+let app
+    ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+    ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[])
     ~file name
   =
-  App {name;internal_deps;findlib_deps;build_if;file}
+  App {
+    name; internal_deps; findlib_deps; build_if; file;
+    annot; bin_annot; g; safe_string; short_paths; thread; w;
+  }
 
 let typ = function Lib _ -> `Lib | App _ -> `App
 let name = function Lib x -> x.name | App x -> x.name
@@ -154,18 +180,21 @@ let path_of_lib ~suffix (x:lib) : string =
 let path_of_app ~suffix (x:app) : string =
   sprintf "%s/%s%s" (Filename.dirname x.file) x.name suffix
 
-let w = "A-4-33-41-42-44-45-48"
-
-let ocamlc = OCaml.ocamlfind_ocamlc
-    ~thread:() ~bin_annot:() ~annot:()
-    ~short_paths:() ~safe_string:() ~g:() ~w
-
-let ocamlopt = OCaml.ocamlfind_ocamlopt
-    ~thread:() ~bin_annot:() ~annot:()
-    ~short_paths:() ~safe_string:() ~g:() ~w
-
 let build_lib ?git_commit ~project_version (x:lib) =
   let open Filename in
+  let annot = x.annot in
+  let bin_annot = x.bin_annot in
+  let g = x.g in
+  let safe_string = x.safe_string in
+  let short_paths = x.short_paths in
+  let thread = x.thread in
+  let w = x.w in
+  let ocamlc = OCaml.ocamlfind_ocamlc
+      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+  in
+  let ocamlopt = OCaml.ocamlfind_ocamlopt
+      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+  in
 
   let _I =
     x.dir
@@ -335,6 +364,19 @@ let build_lib ?git_commit ~project_version (x:lib) =
 
 
 let build_app (x:app) =
+  let annot = x.annot in
+  let bin_annot = x.bin_annot in
+  let g = x.g in
+  let safe_string = x.safe_string in
+  let short_paths = x.short_paths in
+  let thread = x.thread in
+  let w = x.w in
+  let ocamlc = OCaml.ocamlfind_ocamlc
+      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+  in
+  let ocamlopt = OCaml.ocamlfind_ocamlopt
+      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+  in
   let _I = List.filter_map x.internal_deps ~f:(function
     | Lib x -> Some (Filename.dirname x.dir)
     | App _ -> None )

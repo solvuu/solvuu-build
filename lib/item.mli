@@ -70,6 +70,14 @@ type app = {
   findlib_deps : pkg list;
   build_if : condition list;
   file : string;
+
+  annot : unit option;
+  bin_annot : unit option;
+  g : unit option;
+  safe_string : unit option;
+  short_paths : unit option;
+  thread : unit option;
+  w : string option;
 }
 
 and lib = {
@@ -80,6 +88,14 @@ and lib = {
   pack_name : string;
   dir : string;
   pkg : Solvuu_build_findlib.pkg;
+
+  annot : unit option;
+  bin_annot : unit option;
+  g : unit option;
+  safe_string : unit option;
+  short_paths : unit option;
+  thread : unit option;
+  w : string option;
 }
 
 and t = Lib of lib | App of app
@@ -87,7 +103,14 @@ and t = Lib of lib | App of app
 type typ = [`Lib | `App]
 
 val lib
-  :  ?internal_deps:t list
+  :  ?annot:unit
+  -> ?bin_annot:unit
+  -> ?g:unit
+  -> ?safe_string:unit
+  -> ?short_paths:unit
+  -> ?thread:unit
+  -> ?w:string
+  -> ?internal_deps:t list
   -> ?findlib_deps:pkg list
   -> ?build_if:condition list
   -> pkg : Solvuu_build_findlib.pkg
@@ -97,7 +120,14 @@ val lib
   -> t
 
 val app
-  :  ?internal_deps:t list
+  :  ?annot:unit
+  -> ?bin_annot:unit
+  -> ?g:unit
+  -> ?safe_string:unit
+  -> ?short_paths:unit
+  -> ?thread:unit
+  -> ?w:string
+  -> ?internal_deps:t list
   -> ?findlib_deps:pkg list
   -> ?build_if:condition list
   -> file:string
