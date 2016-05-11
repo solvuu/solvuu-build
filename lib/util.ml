@@ -25,6 +25,12 @@ module Core = struct
   module String = struct
     module String = BytesLabels
 
+    let for_all =
+      let rec loop s i ~len ~f =
+        i = len || (f s.[i] && loop s (i + 1) ~len ~f)
+      in
+      fun s ~f -> loop s 0 ~len:(String.length s) ~f
+
     let rec char_list_mem l (c:char) =
       match l with
       | [] -> false
@@ -57,8 +63,20 @@ module Fn = struct
   let id x = x
 end
 
+module Char = struct
+  include Char
+
+  let is_whitespace = function
+    | ' ' | '\r' | '\n' | '\t' -> true
+    | _ -> false
+
+end
+
 module String = struct
   include String
+
+  let for_all = Core.String.for_all
+
   let hash = Hashtbl.hash
   let equal = ( = )
   let split = Core.String.split

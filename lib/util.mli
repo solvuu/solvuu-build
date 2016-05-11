@@ -20,8 +20,16 @@ module Fn : sig
   val id : 'a -> 'a
 end
 
+module Char : sig
+  include module type of Char
+  val is_whitespace : char -> bool
+end
+
 module String : sig
   include module type of String
+
+  val for_all : string -> f:(char -> bool) -> bool
+
   val hash : string -> int
   val equal : string -> string -> bool
   val split : string -> on:char -> string list
