@@ -130,13 +130,23 @@ let all_findlib_pkgs t =
 (******************************************************************************)
 (** {2 Rules} *)
 (******************************************************************************)
-let rule ~deps ~prods cmd =
+let rule_helper ~deps ~prods command_or_action =
   let deps = List.map deps ~f:Filename.normalize in
   let prods = List.map prods ~f:Filename.normalize in
   let name = sprintf "%s -> %s"
       (String.concat "," deps) (String.concat "," prods)
   in
-  Ocamlbuild_plugin.rule name ~deps ~prods (fun _ _ -> cmd)
+  let action = match command_or_action with
+    | `Command x -> (fun _ _ -> x)
+    | `Action x -> x
+  in
+  Ocamlbuild_plugin.rule name ~deps ~prods action
+
+let rule ~deps ~prods cmd =
+  rule_helper ~deps ~prods (`Command cmd)
+
+let rule_of_action ~deps ~prods action =
+  rule_helper ~deps ~prods (`Action action)
 
 let path_of_lib ~suffix (x:lib) : string =
   sprintf "%s/%s%s" (Filename.dirname x.dir) x.pack_name suffix
@@ -216,7 +226,13 @@ let build_lib ?git_commit ~project_version (x:lib) =
         ~f:(replace_suffix_exn ~old:".ml" ~new_: ".cmo")
     in
     let prod = path_of_lib ~suffix:".cmo" x in
-    rule ~deps ~prods:[prod] (ocamlc ~pack:() ~o:prod deps)
+    rule_of_action ~deps ~prods:[prod] (fun _ _ ->
+      let sorted_deps =
+        OCaml.ocamldep_sort ml_files |>
+        List.map ~f:(replace_suffix_exn ~old:".ml" ~new_: ".cmo")
+      in
+      (ocamlc ~pack:() ~o:prod sorted_deps)
+    )
   );
 
   ( (* .cmx* -> packed .cmx *)
@@ -224,7 +240,13 @@ let build_lib ?git_commit ~project_version (x:lib) =
         ~f:(replace_suffix_exn ~old:".ml" ~new_:".cmx")
     in
     let prod = path_of_lib ~suffix:".cmx" x in
-    rule ~deps ~prods:[prod] (ocamlopt ~pack:() ~o:prod deps)
+    rule_of_action ~deps ~prods:[prod] (fun _ _ ->
+      let sorted_deps =
+        OCaml.ocamldep_sort ml_files |>
+        List.map ~f:(replace_suffix_exn ~old:".ml" ~new_: ".cmx")
+      in
+      (ocamlopt ~pack:() ~o:prod sorted_deps)
+    )
   );
 
   ( (* packed .cmo -> .cma *)
