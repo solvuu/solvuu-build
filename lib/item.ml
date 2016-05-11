@@ -154,6 +154,52 @@ let all_findlib_pkgs t =
 
 
 (******************************************************************************)
+(** {2 Graph Operations} *)
+(******************************************************************************)
+module T = struct
+  type nonrec t = t
+  let compare = compare
+  let hash = hash
+  let equal = equal
+end
+
+module Graph = struct
+  include Graph.Persistent.Digraph.Concrete(T)
+
+  module Dfs = Graph.Traverse.Dfs(
+    Graph.Persistent.Digraph.Concrete(T)
+  )
+
+  module Topological = struct
+    include Graph.Topological.Make(
+        Graph.Persistent.Digraph.Concrete(T)
+      )
+
+    let sort g = fold (fun x l -> x::l) g []
+  end
+
+  let of_list items =
+    if not (List.is_uniq ~cmp:compare items) then
+      failwith "multiple libs or apps have an identical name"
+    else
+      let g = List.fold_left items ~init:empty ~f:(fun g x ->
+        match internal_deps x with
+        | [] -> add_vertex g x
+        | _ ->
+          List.fold_left (internal_deps x) ~init:g ~f:(fun g y ->
+            add_edge g x y
+          )
+      )
+      in
+      if Dfs.has_cycle g then
+        failwith "internal dependencies form a cycle"
+      else
+        g
+
+end
+
+
+(******************************************************************************)
 (** {2 Rules} *)
 (******************************************************************************)
 let rule_helper ~deps ~prods command_or_action =
@@ -413,49 +459,3 @@ let build_app (x:app) =
   ;
   rule ~deps:(deps `native) ~prods:[prod `native]
     (ocamlopt ~_I ~o:(prod `native) (files `native))
-
-
-(******************************************************************************)
-(** {2 Graph Operations} *)
-(******************************************************************************)
-module T = struct
-  type nonrec t = t
-  let compare = compare
-  let hash = hash
-  let equal = equal
-end
-
-module Graph = struct
-  include Graph.Persistent.Digraph.Concrete(T)
-
-  module Dfs = Graph.Traverse.Dfs(
-    Graph.Persistent.Digraph.Concrete(T)
-  )
-
-  module Topological = struct
-    include Graph.Topological.Make(
-        Graph.Persistent.Digraph.Concrete(T)
-      )
-
-    let sort g = fold (fun x l -> x::l) g []
-  end
-
-  let of_list items =
-    if not (List.is_uniq ~cmp:compare items) then
-      failwith "multiple libs or apps have an identical name"
-    else
-      let g = List.fold_left items ~init:empty ~f:(fun g x ->
-        match internal_deps x with
-        | [] -> add_vertex g x
-        | _ ->
-          List.fold_left (internal_deps x) ~init:g ~f:(fun g y ->
-            add_edge g x y
-          )
-      )
-      in
-      if Dfs.has_cycle g then
-        failwith "internal dependencies form a cycle"
-      else
-        g
-
-end
