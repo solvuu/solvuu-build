@@ -93,3 +93,5 @@ val ocamldep
   -> ?_I:string list
   -> Pathname.t list
   -> (string * string list) list
+
+val ocamldep_sort : Pathname.t list -> Pathname.t list

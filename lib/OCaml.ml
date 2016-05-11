@@ -412,3 +412,12 @@ let ocamldep ?modules ?(_I=[]) files =
   ) |>
   List.filter ~f:(function "",[] -> false  | _ -> true) |>
   List.map ~f:(function x,[""] -> x,[] | x,y -> x,y)
+
+let ocamldep_sort files =
+  let cmd =
+    ["ocamldep"; "-sort"]@files |>
+    String.concat " "
+  in
+  Ocamlbuild_pack.My_unix.run_and_read cmd |>
+  String.split ~on:' ' |>
+  List.filter ~f:(fun x -> not @@ String.for_all x ~f:Char.is_whitespace)
