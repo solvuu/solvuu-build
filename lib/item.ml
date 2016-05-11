@@ -242,6 +242,8 @@ let build_lib ?git_commit ~project_version (x:lib) =
       ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
   in
 
+  let package = findlib_deps_all (Lib x) in
+
   let _I =
     x.dir
     ::(
@@ -342,7 +344,7 @@ let build_lib ?git_commit ~project_version (x:lib) =
     let cmi = sprintf "%s.cmi" base in
     let deps = file::(deps_of cmi) in
     rule ~deps ~prods:[cmi]
-      (ocamlc ~c:() ~_I ~package:x.findlib_deps ~o:cmi [file])
+      (ocamlc ~c:() ~_I ~package ~o:cmi [file])
   );
 
   (* .ml -> ... *)
@@ -363,7 +365,7 @@ let build_lib ?git_commit ~project_version (x:lib) =
       else file::(deps_of cmo)@(deps_of cmi), [cmo;cmi]
     in
     rule ~deps ~prods
-      (ocamlc ~c ~_I ~package:x.findlib_deps ~for_pack ~o:cmo [file])
+      (ocamlc ~c ~_I ~package ~for_pack ~o:cmo [file])
     ;
 
     (* .ml -> .cmx and .cmi if no corresponding .mli *)
@@ -374,7 +376,7 @@ let build_lib ?git_commit ~project_version (x:lib) =
       else file::(deps_of cmx)@(deps_of cmi), [cmx;cmi]
     in
     rule ~deps ~prods
-      (ocamlopt ~c ~_I ~package:x.findlib_deps ~for_pack ~o:cmx [file])
+      (ocamlopt ~c ~_I ~package ~for_pack ~o:cmx [file])
     ;
   );
 
@@ -417,15 +419,20 @@ let build_app (x:app) =
   let short_paths = x.short_paths in
   let thread = x.thread in
   let w = x.w in
+  let package = findlib_deps_all (App x) in
+  let _I =
+    internal_deps_all (App x) |>
+    List.filter_map ~f:(function
+      | Lib x -> Some (Filename.dirname x.dir)
+      | App _ -> None )
+  in
   let ocamlc = OCaml.ocamlfind_ocamlc
       ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+      ~package ~_I ~linkpkg:()
   in
   let ocamlopt = OCaml.ocamlfind_ocamlopt
       ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
-  in
-  let _I = List.filter_map x.internal_deps ~f:(function
-    | Lib x -> Some (Filename.dirname x.dir)
-    | App _ -> None )
+      ~package ~_I ~linkpkg:()
   in
   let path_of_lib mode (x:lib) = match mode with
     | `byte -> path_of_lib ~suffix:".cma" x
@@ -446,7 +453,10 @@ let build_app (x:app) =
   in
   let files mode =
     (
-      List.filter_map x.internal_deps ~f:(function
+      internal_deps_all (App x) |>
+      Graph.of_list |>
+      Graph.Topological.sort |>
+      List.filter_map ~f:(function
         | Lib x -> Some (path_of_lib mode x)
         | App _ -> None
       )
@@ -455,7 +465,7 @@ let build_app (x:app) =
   in
   let prod mode = path_of_app mode x in
   rule ~deps:(deps `byte) ~prods:[prod `byte]
-    (ocamlc ~_I ~o:(prod `byte) (files `byte))
+    (ocamlc ~o:(prod `byte) (files `byte))
   ;
   rule ~deps:(deps `native) ~prods:[prod `native]
-    (ocamlopt ~_I ~o:(prod `native) (files `native))
+    (ocamlopt ~o:(prod `native) (files `native))
