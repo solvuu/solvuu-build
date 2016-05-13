@@ -1,8 +1,9 @@
 open Printf
-open Ocamlbuild_plugin
 open Util
 
 let m4 ?(_D=[]) ~infile ~outfile =
+  let open Ocamlbuild_plugin in
+  let open Util in
   [
     [A "m4"];
     (
@@ -20,3 +21,13 @@ let m4 ?(_D=[]) ~infile ~outfile =
   ] |>
   List.flatten |> fun l ->
   Cmd (S l)
+
+let m4_rule ?_D ?dep ?(prod="%.ml") () =
+  let open Filename in
+  let dep = match dep with
+    | Some x -> x
+    | None -> sprintf "%s.m4" prod
+  in
+  Rule.rule ~deps:[dep] ~prods:[prod] (fun env _ ->
+    m4 ?_D ~infile:(env dep) ~outfile:(env prod)
+  )

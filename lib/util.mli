@@ -16,6 +16,13 @@ val h_files_of_dir : string -> string list
     to any .c files in [dir], if any. *)
 val clib_file : string -> string -> string list option
 
+(** Raise exception if any item in given list is [exn], else return
+    the list of all good pathnames. Note the input argument is the
+    output type of Ocamlbuild's [builder]. *)
+val assert_all_outcomes :
+  (Ocamlbuild_plugin.Pathname.t, exn) Ocamlbuild_plugin.Outcome.t list ->
+  Ocamlbuild_plugin.Pathname.t list
+
 module Fn : sig
   val id : 'a -> 'a
 end
@@ -77,4 +84,36 @@ module Filename : sig
       this helps to workaround an
       {{:https://github.com/ocaml/ocamlbuild/issues/76}ocamlbuild bug}. *)
   val normalize : string -> string
+end
+
+(** Functions related to Ocamlbuild's rules. *)
+module Rule : sig
+  open Ocamlbuild_plugin
+
+  (** Generate a name from given [deps] and [prods]. This saves the
+      trouble of having to think of a name manually, and makes rule names
+      systematic. *)
+  val name : deps:string list -> prods:string list -> string
+
+  (** Like Ocamlbuild's [rule] function, except:
+
+      - [name]: By default it is computed by the [name] function
+        above.
+
+      - [dep],[prod]: Not provided as you can always use [deps],
+        [prods].
+
+      - [deps], [prods]: All items are passed through
+        [Filename.normalize].
+  *)
+  val rule :
+    ?name:string ->
+    ?deps:string list ->
+    ?prods:string list ->
+    ?stamp:string ->
+    ?insert:[`top | `before of string | `after of string | `bottom] ->
+    ?doc:string ->
+    action ->
+    unit
+
 end

@@ -413,6 +413,18 @@ let ocamldep ?modules ?(_I=[]) files =
   List.filter ~f:(function "",[] -> false  | _ -> true) |>
   List.map ~f:(function x,[""] -> x,[] | x,y -> x,y)
 
+let ocamldep1 ?modules ?_I file =
+  assert (Sys.file_exists file);
+  ocamldep ?modules ?_I [file] |> function
+  | [] -> failwithf "ocamldep returned no output for existing file %s"
+            file ()
+  | (x,deps)::[] ->
+    if x = file then deps
+    else failwithf "ocamldep returned output for unexpected file %s when \
+                    called on %s" x file ()
+  | _ -> failwithf "ocamldep returned multiple outputs for single file %s"
+           file ()
+
 let ocamldep_sort files =
   let cmd =
     ["ocamldep"; "-sort"]@files |>

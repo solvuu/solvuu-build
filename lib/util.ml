@@ -136,6 +136,41 @@ module Filename = struct
 
 end
 
+module Rule = struct
+
+  let name0 ~deps ~prods =
+    sprintf "%s -> %s" (String.concat "," deps) (String.concat "," prods)
+
+  let name = name0
+
+  let rule ?name ?deps ?prods ?stamp ?insert ?doc action =
+    let normalize_l = function
+      | None -> None
+      | Some l -> Some (List.map l ~f:Filename.normalize)
+    in
+    let deps = normalize_l deps in
+    let prods = normalize_l prods in
+    let name = match name with
+      | Some x -> x
+      | None ->
+        let deps = match deps with None -> [] | Some x -> x in
+        let stamp = match stamp with None -> [] | Some x -> [x] in
+        let prods = (match prods with None -> [] | Some x -> x)@stamp in
+        name0 ~deps ~prods
+    in
+    Ocamlbuild_plugin.rule name ?deps ?prods ?stamp ?insert ?doc action
+
+end
+
+let assert_all_outcomes l =
+  let rec loop accum = function
+    | [] -> accum
+    | (Ocamlbuild_plugin.Outcome.Good x)::l -> loop (x::accum) l
+    | (Ocamlbuild_plugin.Outcome.Bad exn)::_ -> raise exn
+  in
+  loop [] l |>
+  List.rev
+
 let readdir dir : string list =
   match Sys.file_exists dir && Sys.is_directory dir with
   | false -> []

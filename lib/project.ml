@@ -334,8 +334,6 @@ let make ?(ocamlinit_postfix=[]) ~name ~version items =
   }
 
 let plugin t =
-  let git_commit = t.git_commit in
-  let project_version = t.version in
   function
   | Ocamlbuild_plugin.Before_options -> (
       Ocamlbuild_plugin.Options.use_ocamlfind := true
@@ -343,7 +341,19 @@ let plugin t =
   | Ocamlbuild_plugin.After_rules -> (
       Ocamlbuild_plugin.clear_rules();
 
-      List.iter t.libs ~f:(Item.build_lib ?git_commit ~project_version);
+      M4.m4_rule ()
+        ~_D:[
+          "GIT_COMMIT", Some (match t.git_commit with
+            | None -> "None"
+            | Some x -> sprintf "Some \"%s\"" x
+          );
+          "VERSION", Some t.version;
+        ];
+
+      Atdgen.atdgen_t_rule ~j_std:() ();
+      Atdgen.atdgen_j_rule ~j_std:() ();
+
+      List.iter t.libs ~f:Item.build_lib;
       List.iter t.apps ~f:Item.build_app;
       (* List.iter t.libs ~f:Rule.clib; *)
 

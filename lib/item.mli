@@ -87,6 +87,8 @@ and lib = {
   build_if : condition list;
   pack_name : string;
   dir : string;
+  ml_files : string list;
+  mli_files : string list;
   pkg : Solvuu_build_findlib.pkg;
 
   annot : unit option;
@@ -102,6 +104,15 @@ and t = Lib of lib | App of app
 
 type typ = [`Lib | `App]
 
+(** Construct a [lib]. Most arguments correspond to the OCaml
+    compiler or to fields in type [lib]. Other arguments are:
+
+    - [ml_files], [mli_files]: The default list of [ml_files] and
+      [mli_files] is the files statically present in [dir]. You can
+      [`Add] to these, e.g. when you will be declaring rules to
+      generate ml or mli files, or entirely [`Replace] the lists with
+      ones you provide. All paths should be relative to [dir].
+*)
 val lib
   :  ?annot:unit
   -> ?bin_annot:unit
@@ -113,6 +124,8 @@ val lib
   -> ?internal_deps:t list
   -> ?findlib_deps:pkg list
   -> ?build_if:condition list
+  -> ?ml_files:[`Add of string list | `Replace of string list]
+  -> ?mli_files:[`Add of string list | `Replace of string list]
   -> pkg : Solvuu_build_findlib.pkg
   -> pack_name:string
   -> dir:string
@@ -160,7 +173,7 @@ val should_build : t -> bool
 (******************************************************************************)
 (** {2 Rules} *)
 (******************************************************************************)
-val build_lib : ?git_commit:string -> project_version:string -> lib -> unit
+val build_lib : lib -> unit
 val build_app : app -> unit
 
 

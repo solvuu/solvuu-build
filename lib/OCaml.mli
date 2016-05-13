@@ -88,10 +88,27 @@ val ocamlopt : ocamlopt
 val ocamlfind_ocamlc   : ocamlc ocamlfind_args
 val ocamlfind_ocamlopt : ocamlopt ocamlfind_args
 
+(** Return an association list mapping each given input file to its
+    list of dependencies. Note ocamldep ignores files that don't
+    exist. You may want to assert that the given files exist prior to
+    calling this function. *)
 val ocamldep
   :  ?modules:unit
   -> ?_I:string list
   -> Pathname.t list
   -> (string * string list) list
 
+(** Similar to [ocamldep] but more convenient when you want the
+    dependencies of a single file. We directly return the dependencies
+    of the given file. In this case, we also raise an exception if the
+    given file doesn't already exist since ocamldep can't compute
+    anything in this case. *)
+val ocamldep1
+  :  ?modules:unit
+  -> ?_I:string list
+  -> Pathname.t
+  -> string list
+
+(** Sort given files in dependency order, i.e. later files depend on
+    earlier ones. *)
 val ocamldep_sort : Pathname.t list -> Pathname.t list

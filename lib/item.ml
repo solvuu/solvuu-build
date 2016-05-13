@@ -1,6 +1,7 @@
 open Printf
 open Util
 module Findlib = Solvuu_build_findlib
+let (/) = Filename.concat
 
 type name = string
 
@@ -33,6 +34,8 @@ and lib = {
   build_if : condition list;
   pack_name : string;
   dir : string;
+  ml_files : string list;
+  mli_files : string list;
   pkg : Solvuu_build_findlib.pkg;
 
   annot : unit option;
@@ -51,10 +54,30 @@ type typ = [`Lib | `App]
 let lib
     ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
     ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[])
-    ~pkg ~pack_name ~dir name
+    ?ml_files ?mli_files ~pkg ~pack_name ~dir name
   =
+  let open Filename in
+  let files =
+    try Sys.readdir dir |> Array.to_list
+    with _ -> []
+  in
+  let ml_files =
+    List.filter files ~f:(fun x -> check_suffix x ".ml") |> fun l ->
+    (match ml_files with
+     |None -> l | Some (`Add x) -> x@l | Some (`Replace x) -> x
+    )
+    |> List.sort_uniq String.compare
+  in
+  let mli_files =
+    List.filter files ~f:(fun x -> check_suffix x ".mli") |> fun l ->
+    (match mli_files with
+     | None -> l | Some (`Add x) -> x@l | Some (`Replace x) -> x
+    )
+    |> List.sort_uniq String.compare
+  in
   Lib {
-    name; internal_deps; findlib_deps; build_if; pack_name; dir; pkg;
+    name; internal_deps; findlib_deps; build_if; pack_name;
+    dir; ml_files; mli_files; pkg;
     annot; bin_annot; g; safe_string; short_paths; thread; w;
   }
 
@@ -202,31 +225,13 @@ end
 (******************************************************************************)
 (** {2 Rules} *)
 (******************************************************************************)
-let rule_helper ~deps ~prods command_or_action =
-  let deps = List.map deps ~f:Filename.normalize in
-  let prods = List.map prods ~f:Filename.normalize in
-  let name = sprintf "%s -> %s"
-      (String.concat "," deps) (String.concat "," prods)
-  in
-  let action = match command_or_action with
-    | `Command x -> (fun _ _ -> x)
-    | `Action x -> x
-  in
-  Ocamlbuild_plugin.rule name ~deps ~prods action
-
-let rule ~deps ~prods cmd =
-  rule_helper ~deps ~prods (`Command cmd)
-
-let rule_of_action ~deps ~prods action =
-  rule_helper ~deps ~prods (`Action action)
-
 let path_of_lib ~suffix (x:lib) : string =
   sprintf "%s/%s%s" (Filename.dirname x.dir) x.pack_name suffix
 
 let path_of_app ~suffix (x:app) : string =
   sprintf "%s/%s%s" (Filename.dirname x.file) x.name suffix
 
-let build_lib ?git_commit ~project_version (x:lib) =
+let build_lib (x:lib) =
   let open Filename in
   let annot = x.annot in
   let bin_annot = x.bin_annot in
@@ -241,8 +246,9 @@ let build_lib ?git_commit ~project_version (x:lib) =
   let ocamlopt = OCaml.ocamlfind_ocamlopt
       ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
   in
-
   let package = findlib_deps_all (Lib x) in
+  let ml_files = List.map x.ml_files ~f:(fun y -> x.dir/y) in
+  let mli_files = List.map x.mli_files ~f:(fun y -> x.dir/y) in
 
   let _I =
     x.dir
@@ -252,50 +258,18 @@ let build_lib ?git_commit ~project_version (x:lib) =
     )
   in
 
-  let files =
-    Sys.readdir x.dir |> Array.to_list |>
-    List.map ~f:(fun file -> concat x.dir file)
-  in
-
-  let ml_files =
-    List.filter_map files ~f:(fun x ->
-      if check_suffix x ".ml" then
-        Some [x]
-      else if check_suffix x ".atd" then
-        let base = basename x in
-        Some [sprintf "%s_j.ml" base; sprintf "%s_t.ml" base]
-      else if check_suffix x ".ml.m4" then
-        Some [chop_suffix x ".m4"]
-      else
-        None
-    ) |> List.flatten
-  in
-
-  let mli_files =
-    List.filter_map files ~f:(fun x ->
-      if check_suffix x ".mli" then
-        Some [x]
-      else if check_suffix x ".atd" then
-        let base = basename x in
-        Some [sprintf "%s_j.mli" base; sprintf "%s_t.mli" base]
-      else
-        None
-    ) |>
-    List.flatten
-  in
-
-  let ml_m4_files =
-    List.filter files ~f:(fun x -> check_suffix x ".ml.m4")
-  in
-
-  let atd_files =
-    List.filter files ~f:(fun x -> check_suffix x ".atd")
-  in
-
-  let deps = OCaml.ocamldep ~_I files in
-  let deps_of file =
-    try List.assoc file deps
-    with Not_found -> []
+  let file_base_of_module mod_name : string option =
+    let ml_bases = List.map ml_files ~f:(fun x -> chop_suffix x ".ml") in
+    let mli_bases = List.map mli_files ~f:(fun x -> chop_suffix x ".mli") in
+    let bases = List.sort_uniq String.compare (ml_bases@mli_bases) in
+    List.filter bases ~f:(fun x -> String.capitalize (basename x) = mod_name)
+    |> function
+    | [] -> None (* Module is presumably from an external library. *)
+    | x::[] -> Some x
+    | l -> failwithf "module %s defined by multiple files: %s"
+             mod_name
+             (List.map l ~f:(fun x -> x ^ ".ml[i]") |> String.concat ",")
+             ()
   in
 
   ( (* .cmo* -> packed .cmo *)
@@ -303,7 +277,7 @@ let build_lib ?git_commit ~project_version (x:lib) =
         ~f:(replace_suffix_exn ~old:".ml" ~new_: ".cmo")
     in
     let prod = path_of_lib ~suffix:".cmo" x in
-    rule_of_action ~deps ~prods:[prod] (fun _ _ ->
+    Rule.rule ~deps ~prods:[prod] (fun _ _ ->
       let sorted_deps =
         OCaml.ocamldep_sort ml_files |>
         List.map ~f:(replace_suffix_exn ~old:".ml" ~new_: ".cmo")
@@ -317,7 +291,7 @@ let build_lib ?git_commit ~project_version (x:lib) =
         ~f:(replace_suffix_exn ~old:".ml" ~new_:".cmx")
     in
     let prod = path_of_lib ~suffix:".cmx" x in
-    rule_of_action ~deps ~prods:[prod] (fun _ _ ->
+    Rule.rule ~deps ~prods:[prod] (fun _ _ ->
       let sorted_deps =
         OCaml.ocamldep_sort ml_files |>
         List.map ~f:(replace_suffix_exn ~old:".ml" ~new_: ".cmx")
@@ -329,84 +303,75 @@ let build_lib ?git_commit ~project_version (x:lib) =
   ( (* packed .cmo -> .cma *)
     let dep = sprintf "%s/%s.cmo" (dirname x.dir) x.pack_name in
     let prod = sprintf "%s/%s.cma" (dirname x.dir) x.pack_name in
-    rule ~deps:[dep] ~prods:[prod] (ocamlc ~a:() ~o:prod [dep])
+    Rule.rule ~deps:[dep] ~prods:[prod]
+      (fun _ _ -> ocamlc ~a:() ~o:prod [dep])
   );
 
   ( (* packed .cmx -> .cmxa *)
     let dep = sprintf "%s/%s.cmx" (dirname x.dir) x.pack_name in
     let prod = sprintf "%s/%s.cmxa" (dirname x.dir) x.pack_name in
-    rule ~deps:[dep] ~prods:[prod] (ocamlopt ~a:() ~o:prod [dep])
+    Rule.rule ~deps:[dep] ~prods:[prod]
+      (fun _ _ -> ocamlopt ~a:() ~o:prod [dep])
   );
 
   (* .mli -> .cmi *)
-  List.iter mli_files ~f:(fun file ->
-    let base = chop_suffix file ".mli" in
+  List.iter mli_files ~f:(fun mli ->
+    let base = chop_suffix mli ".mli" in
     let cmi = sprintf "%s.cmi" base in
-    let deps = file::(deps_of cmi) in
-    rule ~deps ~prods:[cmi]
-      (ocamlc ~c:() ~_I ~package ~o:cmi [file])
+    Rule.rule ~deps:[mli] ~prods:[cmi]
+      (fun _ build ->
+         let _ =
+           OCaml.ocamldep1 ~modules:() ~_I mli |>
+           List.filter_map ~f:file_base_of_module |>
+           List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
+           build |>
+           assert_all_outcomes
+         in
+         ocamlc ~c:() ~_I ~package ~o:cmi [mli]
+      )
   );
 
   (* .ml -> ... *)
-  List.iter ml_files ~f:(fun file ->
-    let base = chop_suffix file ".ml" in
+  List.iter ml_files ~f:(fun ml ->
+    let base = chop_suffix ml ".ml" in
     let mli = sprintf "%s.mli" base in
     let cmi = sprintf "%s.cmi" base in
-    let mli_exists = Sys.file_exists mli in
+    let mli_exists = List.mem ~set:mli_files mli in
 
     let c = () in
     let for_pack = String.capitalize x.pack_name in
 
     (* .ml -> .cmo and .cmi if no corresponding .mli *)
     let cmo = sprintf "%s.cmo" base in
-    let deps,prods =
-      if mli_exists
-      then file::(deps_of cmo), [cmo]
-      else file::(deps_of cmo)@(deps_of cmi), [cmo;cmi]
-    in
-    rule ~deps ~prods
-      (ocamlc ~c ~_I ~package ~for_pack ~o:cmo [file])
-    ;
+    let deps = if mli_exists then [ml;cmi] else [ml] in
+    let prods = if mli_exists then [cmo] else [cmo;cmi] in
+    Rule.rule ~deps ~prods
+      (fun _ build ->
+         let _ =
+           OCaml.ocamldep1 ~modules:() ~_I ml |>
+           List.filter_map ~f:file_base_of_module |>
+           List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
+           build |>
+           assert_all_outcomes
+         in
+         ocamlc ~c ~_I ~package ~for_pack ~o:cmo [ml]
+      );
 
     (* .ml -> .cmx and .cmi if no corresponding .mli *)
     let cmx = sprintf "%s.cmx" base in
-    let deps,prods =
-      if mli_exists
-      then file::(deps_of cmx), [cmx]
-      else file::(deps_of cmx)@(deps_of cmi), [cmx;cmi]
-    in
-    rule ~deps ~prods
-      (ocamlopt ~c ~_I ~package ~for_pack ~o:cmx [file])
-    ;
-  );
-
-  (* .ml.m4 -> .ml *)
-  List.iter ml_m4_files ~f:(fun file ->
-    let base = chop_suffix file ".ml.m4" in
-    let ml = sprintf "%s.ml" base in
-    let git_commit = match git_commit with
-      | None -> "None"
-      | Some x -> sprintf "Some \"%s\"" x
-    in
-    let _D = [
-      "GIT_COMMIT", Some git_commit;
-      "VERSION", Some project_version;
-    ]
-    in
-    rule ~deps:[file] ~prods:[ml] (M4.m4 ~_D ~infile:file ~outfile:ml)
-  );
-
-  (* .atd -> ... *)
-  List.iter atd_files ~f:(fun file ->
-    let base = chop_suffix file ".atd" in
-
-    (* .atd -> _t.ml, _t.mli *)
-    let prods = [sprintf "%s_t.ml" base; sprintf "%s_t.mli" base] in
-    rule ~deps:[file] ~prods (Atdgen.atdgen ~t:() ~j_std:() file);
-
-    (* .atd -> _j.ml, _j.mli *)
-    let prods = [sprintf "%s_j.ml" base; sprintf "%s_j.mli" base] in
-    rule ~deps:[file] ~prods (Atdgen.atdgen ~j:() ~j_std:() file)
+    let deps = if mli_exists then [ml;cmi] else [ml] in
+    let prods = if mli_exists then [cmx] else [cmx;cmi] in
+    Rule.rule ~deps ~prods
+      (fun _ build ->
+         let _ =
+           OCaml.ocamldep1 ~modules:() ~_I ml |>
+           List.filter_map ~f:file_base_of_module |>
+           List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
+           build |>
+           assert_all_outcomes
+         in
+         ocamlopt ~c ~_I ~package ~for_pack ~o:cmx [ml]
+      )
   )
 ;;
 
@@ -464,8 +429,11 @@ let build_app (x:app) =
     [x.file]
   in
   let prod mode = path_of_app mode x in
-  rule ~deps:(deps `byte) ~prods:[prod `byte]
-    (ocamlc ~o:(prod `byte) (files `byte))
-  ;
-  rule ~deps:(deps `native) ~prods:[prod `native]
-    (ocamlopt ~o:(prod `native) (files `native))
+  (
+    Rule.rule ~deps:(deps `byte) ~prods:[prod `byte]
+      (fun _ _ -> ocamlc ~o:(prod `byte) (files `byte))
+  );
+  (
+    Rule.rule ~deps:(deps `native) ~prods:[prod `native]
+      (fun _ _ -> ocamlopt ~o:(prod `native) (files `native))
+  )

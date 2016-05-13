@@ -16,3 +16,27 @@ let atdgen ?j ?j_std ?t file =
   ] |>
   List.filter_map ~f:Fn.id |> fun l ->
   Cmd (S l)
+
+let atdgen_t_rule ?(dep="%.atd") ?j_std () =
+  let open Filename in
+  let base =
+    if check_suffix dep ".atd"
+    then chop_suffix dep ".atd"
+    else failwithf "atdgen_t_rule: invalid ~dep = %s" dep ()
+  in
+  let deps = [dep] in
+  let prods = [sprintf "%s_t.ml" base; sprintf "%s_t.mli" base] in
+  let name = Rule.name ~deps ~prods in
+  rule name ~deps ~prods (fun env _ -> atdgen ~t:() ?j_std (env dep))
+
+let atdgen_j_rule ?(dep="%.atd") ?j_std () =
+  let open Filename in
+  let base =
+    if check_suffix dep ".atd"
+    then chop_suffix dep ".atd"
+    else failwithf "atdgen_j_rule: invalid ~dep = %s" dep ()
+  in
+  let deps = [dep] in
+  let prods = [sprintf "%s_j.ml" base; sprintf "%s_j.mli" base] in
+  let name = Rule.name ~deps ~prods in
+  rule name ~deps ~prods (fun env _ -> atdgen ~j:() ?j_std (env dep))
