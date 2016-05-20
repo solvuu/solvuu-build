@@ -45,7 +45,7 @@ module Info = struct
 
   let is_uniq (l : string list) : bool =
     let m = List.length l in
-    let n = List.length (List.sort_uniq compare l) in
+    let n = List.length (List.sort_uniq ~cmp:compare l) in
     m = n
 
   let libs t = List.filter ~f:is_lib t
@@ -108,7 +108,7 @@ module Info = struct
       List.map item.libs ~f:(fun x -> libs_all t (`Lib x))
       |> List.flatten
     )
-    |> List.sort_uniq compare
+    |> List.sort_uniq ~cmp:compare
 
   let pkgs_direct t name = (get t name).pkgs
 
@@ -119,7 +119,7 @@ module Info = struct
       List.map item.libs ~f:(fun x -> pkgs_all t (`Lib x))
       |> List.flatten
     )
-    |> List.sort_uniq compare
+    |> List.sort_uniq ~cmp:compare
 
 end
 
@@ -151,7 +151,7 @@ end = struct
   let all_pkgs : string list =
     List.map (Project.info :> Info.item list) ~f:(fun x -> x.Info.pkgs)
     |> List.flatten
-    |> List.sort_uniq compare
+    |> List.sort_uniq ~cmp:compare
 
   let list_diff big small =
     List.filter big ~f:(fun x -> not (List.mem x small))
@@ -236,7 +236,7 @@ end = struct
     readdir dir
     |> List.map ~f:modules_of_file
     |> List.concat
-    |> List.sort_uniq compare
+    |> List.sort_uniq ~cmp:compare
     |> List.map ~f:String.capitalize
 
   (* returns names of C files in a dir (without their .c
