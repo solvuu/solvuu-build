@@ -274,8 +274,9 @@ let build_lib (x:lib) =
 
   ( (* .cmo* -> packed .cmo *)
     let deps =
-      OCaml.ocamldep_sort ml_files |>
-      List.map ~f:(replace_suffix_exn ~old:".ml" ~new_: ".cmo")
+      let found = OCaml.ocamldep_sort ml_files in
+      let unfound = List.diff ml_files found in
+      List.map (unfound@found) ~f:(replace_suffix_exn ~old:".ml" ~new_: ".cmo")
     in
     let prod = path_of_lib ~suffix:".cmo" x in
     Rule.rule ~deps ~prods:[prod] (fun _ _ ->
@@ -285,8 +286,9 @@ let build_lib (x:lib) =
 
   ( (* .cmx* -> packed .cmx *)
     let deps =
-      OCaml.ocamldep_sort ml_files |>
-      List.map ~f:(replace_suffix_exn ~old:".ml" ~new_: ".cmx")
+      let found = OCaml.ocamldep_sort ml_files in
+      let unfound = List.diff ml_files found in
+      List.map (unfound@found) ~f:(replace_suffix_exn ~old:".ml" ~new_: ".cmx")
     in
     let prod = path_of_lib ~suffix:".cmx" x in
     Rule.rule ~deps ~prods:[prod] (fun _ _ ->

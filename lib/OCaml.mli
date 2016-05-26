@@ -110,5 +110,7 @@ val ocamldep1
   -> string list
 
 (** Sort given files in dependency order, i.e. later files depend on
-    earlier ones. *)
+    earlier ones. Note that ocamldep ignores files that don't exist,
+    so there is no guarantee that the returned list contains all files
+    in the input list. *)
 val ocamldep_sort : Pathname.t list -> Pathname.t list
