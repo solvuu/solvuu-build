@@ -218,12 +218,12 @@ let makefile_rules_file items project_name : string list =
     |> sprintf "byte: %s"
   in
   let static = [
-    "default: byte project_files.stamp";
+    "default: .merlin .ocamlinit byte";
 
     "%.cma %.cmxa %.cmxs %.native %.byte %.mlpack:";
     "\t$(OCAMLBUILD) $@";
 
-    "project_files.stamp META:";
+    "META:";
     "\t$(OCAMLBUILD) $@";
 
     sprintf ".merlin %s.install .ocamlinit:" project_name;
@@ -286,24 +286,6 @@ module Rule = struct
   (*     static_file *)
   (*       (sprintf "%s/lib%s.clib" (Filename.dirname lib.Item.dir) cstub) *)
   (*       file *)
-
-  let project_files () =
-    rule "project files"
-      ~stamp:"project_files.stamp"
-      (fun _ build ->
-         let project_files = [
-           [".merlin"];
-           [".ocamlinit"];
-         ]
-         in
-         List.map (build project_files) ~f:Outcome.good
-         |> List.map ~f:(fun result ->
-           Cmd (S [A "ln"; A "-sf";
-                   P ((Filename.basename !Options.build_dir)/result);
-                   P Pathname.pwd] )
-         )
-         |> fun l -> Seq l
-      )
 
 end
 
@@ -370,8 +352,6 @@ let plugin t =
       Rule.static_file (sprintf "%s.install" t.name) t.install_file;
       Rule.static_file ".ocamlinit" t.ocamlinit_file;
       Rule.static_file "Makefile.rules" t.makefile_rules_file;
-
-      Rule.project_files();
     )
   | _ -> ()
 

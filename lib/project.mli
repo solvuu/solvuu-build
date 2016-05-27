@@ -53,5 +53,4 @@ module Rule : sig
   val static_file : string -> content -> unit
 
   (* val clib : Item.lib -> unit *)
-  val project_files : unit -> unit
 end
