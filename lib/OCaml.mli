@@ -114,3 +114,27 @@ val ocamldep1
     so there is no guarantee that the returned list contains all files
     in the input list. *)
 val ocamldep_sort : Pathname.t list -> Pathname.t list
+
+module Menhir : sig
+  val command :
+    ?base:string ->
+    Pathname.t ->
+    Command.t
+
+  (** Register a rule to run menhir. By default, [dep = "%.mly"]. *)
+  val rule :
+    ?base:string ->
+    ?dep:string ->
+    unit ->
+    unit
+
+end
+
+module Ocamllex : sig
+  val command : ?ml:unit -> ?q:unit -> ?o:string -> Pathname.t -> Command.t
+
+  val rule : ?ml:unit -> ?q:unit -> ?dep:string -> ?prod:string -> unit -> unit
+  (** Register a rule to run ocamllex. By default, [dep = "%.mll"] and
+      [prod = "%.ml"]. *)
+
+end

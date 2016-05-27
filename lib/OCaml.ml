@@ -433,3 +433,41 @@ let ocamldep_sort files =
   Ocamlbuild_pack.My_unix.run_and_read cmd |>
   String.split ~on:' ' |>
   List.filter ~f:(fun x -> not @@ String.for_all x ~f:Char.is_whitespace)
+
+module Menhir = struct
+  let command ?base mly =
+    specs_to_command [
+      [Some (A "menhir")];
+      string "--base" base;
+      [Some (A mly)];
+    ]
+
+  let rule ?base ?(dep="%.mly") () =
+    let prods =
+      let base = match base with
+        | None -> Filename.chop_extension dep
+        | Some x -> x
+      in
+      [base ^ ".ml"; base ^ ".mli"]
+    in
+    Rule.rule ~deps:[dep] ~prods (fun env _ ->
+      command ?base (env dep)
+    )
+
+end
+
+module Ocamllex = struct
+  let command ?ml ?q ?o mll =
+    specs_to_command [
+      [Some (A "ocamllex")];
+      unit "-ml" ml;
+      string "-o" o;
+      unit "-q" q;
+      [Some (A mll)];
+    ]
+
+  let rule ?ml ?q ?(dep="%.mll") ?(prod="%.ml") () =
+    Rule.rule ~deps:[dep] ~prods:[prod] (fun env _ ->
+      command ?ml ?q ~o:(env prod) (env dep)
+    )
+end

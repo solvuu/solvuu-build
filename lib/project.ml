@@ -353,6 +353,9 @@ let plugin t =
       Atdgen.atdgen_t_rule ~j_std:() ();
       Atdgen.atdgen_j_rule ~j_std:() ();
 
+      OCaml.Menhir.rule ();
+      OCaml.Ocamllex.rule ();
+
       List.iter t.libs ~f:Item.build_lib;
       List.iter t.apps ~f:Item.build_app;
       (* List.iter t.libs ~f:Rule.clib; *)
