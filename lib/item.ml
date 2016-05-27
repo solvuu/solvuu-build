@@ -275,10 +275,16 @@ let build_lib (x:lib) =
   ( (* .cmo* -> packed .cmo *)
     let prod = path_of_lib ~suffix:".cmo" x in
     Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
-      OCaml.ocamldep_sort ml_files |>
-      List.map ~f:(fun x -> [replace_suffix_exn ~old:".ml" ~new_:".cmo" x]) |>
-      build |>
-      List.map ~f:Ocamlbuild_plugin.Outcome.good |> fun deps ->
+      let deps =
+        OCaml.ocamldep_sort ml_files |>
+        List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:".cmo")
+      in
+      List.iter deps ~f:(fun x ->
+        match build [[x]] with
+        | [Ocamlbuild_plugin.Outcome.Good _] -> ()
+        | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
+        | _ -> assert false
+      );
       ocamlc ~pack:() ~o:prod deps
     )
   );
@@ -286,10 +292,16 @@ let build_lib (x:lib) =
   ( (* .cmx* -> packed .cmx *)
     let prod = path_of_lib ~suffix:".cmx" x in
     Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
-      OCaml.ocamldep_sort ml_files |>
-      List.map ~f:(fun x -> [replace_suffix_exn ~old:".ml" ~new_:".cmx" x]) |>
-      build |>
-      List.map ~f:Ocamlbuild_plugin.Outcome.good |> fun deps ->
+      let deps =
+        OCaml.ocamldep_sort ml_files |>
+        List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:".cmx")
+      in
+      List.iter deps ~f:(fun x ->
+        match build [[x]] with
+        | [Ocamlbuild_plugin.Outcome.Good _] -> ()
+        | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
+        | _ -> assert false
+      );
       ocamlopt ~pack:() ~o:prod deps
     )
   );
