@@ -16,7 +16,7 @@ open Printf
 open Ocamlbuild_plugin
 open Util
 
-type 'a common_compiler_args =
+type 'a ocaml_args =
   ?a:unit ->
   ?absname:unit ->
   ?annot:unit ->
@@ -78,7 +78,7 @@ type ocamlc = (
   ?vmthread:unit ->
   Pathname.t list ->
   Command.t
-) common_compiler_args
+) ocaml_args
 
 type ocamlopt = (
   ?compact:unit ->
@@ -89,7 +89,13 @@ type ocamlopt = (
   ?shared:unit ->
   Pathname.t list ->
   Command.t
-) common_compiler_args
+) ocaml_args
+
+type ocaml = (
+  [`Byte | `Native] ->
+  Pathname.t list ->
+  Command.t
+) ocaml_args
 
 type 'a ocamlfind_args =
   ?package:string list ->
@@ -125,7 +131,7 @@ let specs_to_command (specs : spec option list list) : Command.t =
   |> List.filter_map ~f:Fn.id
   |> fun l -> Cmd (S l)
 
-let ocaml_specs compiler
+let ocaml_common_specs compiler
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -137,7 +143,7 @@ let ocaml_specs compiler
     ?w ?warn_error ?warn_help ?where ?help ()
   : spec option list list =
   [
-    [Some (A (match compiler with `byte -> "ocamlc" | `native -> "ocamlopt"))];
+    [Some (A (match compiler with `Byte -> "ocamlc" | `Native -> "ocamlopt"))];
     unit "-a" a;
     unit "-absname" absname;
     unit "-annot" annot;
@@ -212,7 +218,7 @@ let ocamlc_specs
     ?compat_32 ?vmthread files
   : spec option list list
   =
-  (ocaml_specs `byte
+  (ocaml_common_specs `Byte
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -266,7 +272,7 @@ let ocamlopt_specs
     ?compact ?inline ?nodynlink ?p ?_S ?shared files
   : spec option list list
   =
-  (ocaml_specs `native
+  (ocaml_common_specs `Native
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -313,6 +319,58 @@ let ocamlopt
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
     ?compact ?inline ?nodynlink ?p ?_S ?shared files
+  |> specs_to_command
+
+let ocaml_specs
+    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+    ?rectypes ?runtime_variant ?safe_string ?short_paths
+    ?strict_sequence ?strict_formats ?thread ?unsafe
+    ?unsafe_string ?use_runtime ?v ?verbose ?version
+    ?w ?warn_error ?warn_help ?where ?help
+    mode files
+  : spec option list list
+  =
+  (ocaml_common_specs mode
+     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+     ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+     ?rectypes ?runtime_variant ?safe_string ?short_paths
+     ?strict_sequence ?strict_formats ?thread ?unsafe
+     ?unsafe_string ?use_runtime ?v ?verbose ?version
+     ?w ?warn_error ?warn_help ?where ?help ()
+  )@[
+    List.map files ~f:(fun file -> Some (A file));
+  ]
+
+let ocaml
+    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+    ?rectypes ?runtime_variant ?safe_string ?short_paths
+    ?strict_sequence ?strict_formats ?thread ?unsafe
+    ?unsafe_string ?use_runtime ?v ?verbose ?version
+    ?w ?warn_error ?warn_help ?where ?help
+    mode files
+  =
+  ocaml_specs
+    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+    ?rectypes ?runtime_variant ?safe_string ?short_paths
+    ?strict_sequence ?strict_formats ?thread ?unsafe
+    ?unsafe_string ?use_runtime ?v ?verbose ?version
+    ?w ?warn_error ?warn_help ?where ?help
+    mode files
   |> specs_to_command
 
 let ocamlfind_specs
@@ -380,6 +438,36 @@ let ocamlfind_ocamlopt
       ?w ?warn_error ?warn_help ?where ?help
       ?compact ?inline ?nodynlink ?p ?_S ?shared files
    )
+  @(ocamlfind_specs ?package ?linkpkg ())
+  |> specs_to_command
+
+let ocamlfind_ocaml
+    ?package ?linkpkg
+    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+    ?rectypes ?runtime_variant ?safe_string ?short_paths
+    ?strict_sequence ?strict_formats ?thread ?unsafe
+    ?unsafe_string ?use_runtime ?v ?verbose ?version
+    ?w ?warn_error ?warn_help ?where ?help
+    mode files
+  =
+  [[Some (A "ocamlfind")]]
+  @(
+    ocaml_specs
+      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+      ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+      ?rectypes ?runtime_variant ?safe_string ?short_paths
+      ?strict_sequence ?strict_formats ?thread ?unsafe
+      ?unsafe_string ?use_runtime ?v ?verbose ?version
+      ?w ?warn_error ?warn_help ?where ?help
+      mode files
+  )
   @(ocamlfind_specs ?package ?linkpkg ())
   |> specs_to_command
 
