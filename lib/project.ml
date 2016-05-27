@@ -241,27 +241,21 @@ let makefile_rules_file items project_name : string list =
 (******************************************************************************)
 (** {2 Rules} *)
 (******************************************************************************)
-module Rule = struct
-  open Ocamlbuild_plugin
-
-  (* override some modules from Ocamlbuild_plugin *)
-  module List = Util.List
-  module String = Util.String
-  module Findlib = Solvuu_build_findlib
-
-  let static_file path content =
-    (* Workar ocamlbuild bug: https://github.com/ocaml/ocamlbuild/issues/76. *)
-    let path = match String.split ~on:'/' path with
-      | "."::l -> String.concat "/" l
-      | _ -> path
-    in
-    let content = List.map content ~f:(sprintf "%s\n") in
-    rule path ~prod:path (fun _ _ ->
-      Seq [
-        Cmd (Sh (sprintf "mkdir -p %s" (Filename.dirname path)));
-        Echo (content,path);
-      ]
-    )
+let build_static_file path content =
+  let open Ocamlbuild_plugin in
+  let open Util in
+  (* Workaround ocamlbuild bug: https://github.com/ocaml/ocamlbuild/issues/76. *)
+  let path = match String.split ~on:'/' path with
+    | "."::l -> String.concat "/" l
+    | _ -> path
+  in
+  let content = List.map content ~f:(sprintf "%s\n") in
+  rule path ~prod:path (fun _ _ ->
+    Seq [
+      Cmd (Sh (sprintf "mkdir -p %s" (Filename.dirname path)));
+      Echo (content,path);
+    ]
+  )
 
   (* let clib lib = *)
   (*   match Util.clib_file lib.Item.dir lib.Item.name with *)
@@ -286,8 +280,6 @@ module Rule = struct
   (*     static_file *)
   (*       (sprintf "%s/lib%s.clib" (Filename.dirname lib.Item.dir) cstub) *)
   (*       file *)
-
-end
 
 (******************************************************************************)
 (** {2 Main Functions} *)
@@ -340,7 +332,7 @@ let plugin t =
       List.iter t.apps ~f:Item.build_app;
       (* List.iter t.libs ~f:Rule.clib; *)
 
-      Rule.static_file ".merlin" t.merlin_file;
+      build_static_file ".merlin" t.merlin_file;
 
       Ocamlbuild_plugin.rule "META" ~prod:"META" (fun _ _ ->
         let oc = open_out "META" in
@@ -349,9 +341,9 @@ let plugin t =
         Ocamlbuild_plugin.Nop
       );
 
-      Rule.static_file (sprintf "%s.install" t.name) t.install_file;
-      Rule.static_file ".ocamlinit" t.ocamlinit_file;
-      Rule.static_file "Makefile.rules" t.makefile_rules_file;
+      build_static_file (sprintf "%s.install" t.name) t.install_file;
+      build_static_file ".ocamlinit" t.ocamlinit_file;
+      build_static_file "Makefile.rules" t.makefile_rules_file;
     )
   | _ -> ()
 

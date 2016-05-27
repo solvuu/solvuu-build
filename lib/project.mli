@@ -46,11 +46,8 @@ val makefile_rules_file : Item.t list -> name -> content
 (******************************************************************************)
 (** {2 Rules} *)
 (******************************************************************************)
-module Rule : sig
+(** [static_file path content] registers a rule to create a file at
+    [path] with given [content]. *)
+val build_static_file : string -> content -> unit
 
-  (** [static_file path content] registers a rule to create a file at
-      [path] with given [content]. *)
-  val static_file : string -> content -> unit
-
-  (* val clib : Item.lib -> unit *)
-end
+(* val clib : Item.lib -> unit *)
