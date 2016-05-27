@@ -240,10 +240,9 @@ let build_lib (x:lib) =
   let short_paths = x.short_paths in
   let thread = x.thread in
   let w = x.w in
-  let ocamlc = OCaml.ocamlfind_ocamlc
-      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
-  in
-  let ocamlopt = OCaml.ocamlfind_ocamlopt
+  let ocaml ?pack ?o ?a ?c ?_I ?package ?for_pack mode files =
+    OCaml.ocamlfind_ocaml mode files
+      ?pack ?o ?a ?c ?_I ?package ?for_pack
       ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
   in
   let package = findlib_deps_all (Lib x) in
@@ -272,12 +271,14 @@ let build_lib (x:lib) =
              ()
   in
 
-  ( (* .cmo* -> packed .cmo *)
-    let prod = path_of_lib ~suffix:".cmo" x in
+  (* .cmo*/.cmx* -> packed .cmo/.cmx *)
+  List.iter [`Byte; `Native] ~f:(fun mode ->
+    let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
+    let prod = path_of_lib x ~suffix in
     Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
       let deps =
         OCaml.ocamldep_sort ml_files |>
-        List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:".cmo")
+        List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
       in
       List.iter deps ~f:(fun x ->
         match build [[x]] with
@@ -285,39 +286,21 @@ let build_lib (x:lib) =
         | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
         | _ -> assert false
       );
-      ocamlc ~pack:() ~o:prod deps
+      ocaml mode ~pack:() ~o:prod deps
     )
   );
 
-  ( (* .cmx* -> packed .cmx *)
-    let prod = path_of_lib ~suffix:".cmx" x in
-    Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
-      let deps =
-        OCaml.ocamldep_sort ml_files |>
-        List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:".cmx")
-      in
-      List.iter deps ~f:(fun x ->
-        match build [[x]] with
-        | [Ocamlbuild_plugin.Outcome.Good _] -> ()
-        | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
-        | _ -> assert false
-      );
-      ocamlopt ~pack:() ~o:prod deps
-    )
-  );
 
-  ( (* packed .cmo -> .cma *)
-    let dep = sprintf "%s/%s.cmo" (dirname x.dir) x.pack_name in
-    let prod = sprintf "%s/%s.cma" (dirname x.dir) x.pack_name in
+  (* packed .cmo/.cmx -> .cma/.cmxa *)
+  List.iter [`Byte; `Native] ~f:(fun mode ->
+    let dep = sprintf "%s/%s.%s" (dirname x.dir) x.pack_name
+        (match mode with `Byte -> "cmo" | `Native -> "cmx")
+    in
+    let prod = sprintf "%s/%s.%s" (dirname x.dir) x.pack_name
+        (match mode with `Byte -> "cma" | `Native -> "cmxa")
+    in
     Rule.rule ~deps:[dep] ~prods:[prod]
-      (fun _ _ -> ocamlc ~a:() ~o:prod [dep])
-  );
-
-  ( (* packed .cmx -> .cmxa *)
-    let dep = sprintf "%s/%s.cmx" (dirname x.dir) x.pack_name in
-    let prod = sprintf "%s/%s.cmxa" (dirname x.dir) x.pack_name in
-    Rule.rule ~deps:[dep] ~prods:[prod]
-      (fun _ _ -> ocamlopt ~a:() ~o:prod [dep])
+      (fun _ _ -> ocaml mode ~a:() ~o:prod [dep])
   );
 
   (* .mli -> .cmi *)
@@ -333,7 +316,7 @@ let build_lib (x:lib) =
            build |>
            assert_all_outcomes
          in
-         ocamlc ~c:() ~_I ~package ~o:cmi [mli]
+         ocaml `Byte ~c:() ~_I ~package ~o:cmi [mli]
       )
   );
 
@@ -347,37 +330,25 @@ let build_lib (x:lib) =
     let c = () in
     let for_pack = String.capitalize x.pack_name in
 
-    (* .ml -> .cmo and .cmi if no corresponding .mli *)
-    let cmo = sprintf "%s.cmo" base in
-    let deps = if mli_exists then [ml;cmi] else [ml] in
-    let prods = if mli_exists then [cmo] else [cmo;cmi] in
-    Rule.rule ~deps ~prods
-      (fun _ build ->
-         let _ =
-           OCaml.ocamldep1 ~modules:() ~_I ml |>
-           List.filter_map ~f:file_base_of_module |>
-           List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
-           build |>
-           assert_all_outcomes
-         in
-         ocamlc ~c ~_I ~package ~for_pack ~o:cmo [ml]
-      );
-
-    (* .ml -> .cmx and .cmi if no corresponding .mli *)
-    let cmx = sprintf "%s.cmx" base in
-    let deps = if mli_exists then [ml;cmi] else [ml] in
-    let prods = if mli_exists then [cmx] else [cmx;cmi] in
-    Rule.rule ~deps ~prods
-      (fun _ build ->
-         let _ =
-           OCaml.ocamldep1 ~modules:() ~_I ml |>
-           List.filter_map ~f:file_base_of_module |>
-           List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
-           build |>
-           assert_all_outcomes
-         in
-         ocamlopt ~c ~_I ~package ~for_pack ~o:cmx [ml]
-      )
+    (* .ml -> .cmo/.cmx and .cmi if no corresponding .mli *)
+    List.iter [`Byte; `Native] ~f:(fun mode ->
+      let obj = sprintf "%s.%s" base
+          (match mode with `Byte -> "cmo" | `Native -> "cmx")
+      in
+      let deps = if mli_exists then [ml;cmi] else [ml] in
+      let prods = if mli_exists then [obj] else [obj;cmi] in
+      Rule.rule ~deps ~prods
+        (fun _ build ->
+           let _ =
+             OCaml.ocamldep1 ~modules:() ~_I ml |>
+             List.filter_map ~f:file_base_of_module |>
+             List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
+             build |>
+             assert_all_outcomes
+           in
+           ocaml mode ~c ~_I ~package ~for_pack ~o:obj [ml]
+        )
+    )
   )
 ;;
 
@@ -397,49 +368,42 @@ let build_app (x:app) =
       | Lib x -> Some (Filename.dirname x.dir)
       | App _ -> None )
   in
-  let ocamlc = OCaml.ocamlfind_ocamlc
-      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
-      ~package ~_I ~linkpkg:()
-  in
-  let ocamlopt = OCaml.ocamlfind_ocamlopt
-      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
-      ~package ~_I ~linkpkg:()
-  in
-  let path_of_lib mode (x:lib) = match mode with
-    | `byte -> path_of_lib ~suffix:".cma" x
-    | `native -> path_of_lib ~suffix:".cmxa" x
-  in
-  let path_of_app mode (x:app) = match mode with
-    | `byte -> path_of_app ~suffix:".byte" x
-    | `native -> path_of_app ~suffix:".native" x
-  in
-  let deps mode =
-    (
-      List.map x.internal_deps ~f:(function
-        | Lib x -> path_of_lib mode x
-        | App x -> path_of_app mode  x
-      )
-    )@
-    [x.file]
-  in
-  let files mode =
-    (
-      internal_deps_all (App x) |>
-      Graph.of_list |>
-      Graph.Topological.sort |>
-      List.filter_map ~f:(function
-        | Lib x -> Some (path_of_lib mode x)
-        | App _ -> None
-      )
-    )@
-    [x.file]
-  in
-  let prod mode = path_of_app mode x in
-  (
-    Rule.rule ~deps:(deps `byte) ~prods:[prod `byte]
-      (fun _ _ -> ocamlc ~o:(prod `byte) (files `byte))
-  );
-  (
-    Rule.rule ~deps:(deps `native) ~prods:[prod `native]
-      (fun _ _ -> ocamlopt ~o:(prod `native) (files `native))
+  List.iter [`Byte; `Native] ~f:(fun mode ->
+    let ocaml ?o files = OCaml.ocamlfind_ocaml mode files
+        ?o
+        ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+        ~package ~_I ~linkpkg:()
+    in
+    let path_of_lib (x:lib) = match mode with
+      | `Byte -> path_of_lib ~suffix:".cma" x
+      | `Native -> path_of_lib ~suffix:".cmxa" x
+    in
+    let path_of_app (x:app) = match mode with
+      | `Byte -> path_of_app ~suffix:".byte" x
+      | `Native -> path_of_app ~suffix:".native" x
+    in
+    let files =
+      (
+        internal_deps_all (App x) |>
+        Graph.of_list |>
+        Graph.Topological.sort |>
+        List.filter_map ~f:(function
+          | Lib x -> Some (path_of_lib x)
+          | App _ -> None
+        )
+      )@
+      [x.file]
+    in
+    let deps =
+      (
+        List.map x.internal_deps ~f:(function
+          | Lib x -> path_of_lib x
+          | App x -> path_of_app x
+        )
+      )@
+      [x.file]
+    in
+    let prod = path_of_app x in
+    Rule.rule ~deps ~prods:[prod]
+      (fun _ _ -> ocaml ~o:prod files)
   )
