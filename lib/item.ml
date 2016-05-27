@@ -160,6 +160,12 @@ let rec should_build (i:t) =
     should_build x
   )
 
+let path_of_lib ~suffix (x:lib) : string =
+  sprintf "%s/%s%s" (Filename.dirname x.dir) x.pack_name suffix
+
+let path_of_app ~suffix (x:app) : string =
+  sprintf "%s/%s%s" (Filename.dirname x.file) x.name suffix
+
 
 (******************************************************************************)
 (** {2 List Operations} *)
@@ -225,12 +231,6 @@ end
 (******************************************************************************)
 (** {2 Rules} *)
 (******************************************************************************)
-let path_of_lib ~suffix (x:lib) : string =
-  sprintf "%s/%s%s" (Filename.dirname x.dir) x.pack_name suffix
-
-let path_of_app ~suffix (x:app) : string =
-  sprintf "%s/%s%s" (Filename.dirname x.file) x.name suffix
-
 let build_lib (x:lib) =
   let open Filename in
   let annot = x.annot in

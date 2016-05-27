@@ -170,7 +170,17 @@ val typ_to_string : typ -> string
 val should_build : t -> bool
 
 val path_of_lib : suffix:string -> lib -> string
+(** Return path to lib file with given suffix. Files are siblings of
+    the lib's [dir]. For example, given a lib [x] with [x.dir =
+    "src/mylib"], we choose to install files in the directory
+    "src/". Thus, [path_of_lib ~suffix:".cma" x] will return
+    "src/mylib.cma". *)
+
 val path_of_app : suffix:string -> app -> string
+(** Return path to app file with given suffix. Files are in the same
+    directory as the app's implementation [file]. For example, assume
+    app [x] defines [x.file = "app/myapp.ml"]. Then [path_of_app
+    ~suffix:".byte" x] will return "app/myapp.byte". *)
 
 (******************************************************************************)
 (** {2 Rules} *)
