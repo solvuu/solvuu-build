@@ -169,6 +169,8 @@ val typ_to_string : typ -> string
     [build_if] conditions. *)
 val should_build : t -> bool
 
+val path_of_lib : suffix:string -> lib -> string
+val path_of_app : suffix:string -> app -> string
 
 (******************************************************************************)
 (** {2 Rules} *)

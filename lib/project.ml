@@ -203,8 +203,7 @@ let makefile_rules_file items project_name : string list =
         sprintf "%s/%s.cmxa" (Filename.dirname x.Item.dir) x.Item.name);
       List.map all_libs ~f:(fun x ->
         sprintf "%s/%s.cmxs" (Filename.dirname x.Item.dir) x.Item.name);
-      List.map all_apps ~f:(fun (x:Item.app) ->
-        sprintf "%s.native" (Filename.chop_extension x.Item.file));
+      List.map all_apps ~f:(Item.path_of_app ~suffix:".native");
     ]
     |> String.concat " "
     |> sprintf "native: %s"
@@ -213,8 +212,7 @@ let makefile_rules_file items project_name : string list =
     List.concat [
       List.map all_libs ~f:(fun x ->
         sprintf "%s/%s.cma" (Filename.dirname x.Item.dir) x.Item.name);
-      List.map all_apps ~f:(fun x ->
-        sprintf "%s.byte" (Filename.chop_extension x.Item.file));
+      List.map all_apps ~f:(Item.path_of_app ~suffix:".byte");
     ]
     |> String.concat " "
     |> sprintf "byte: %s"
