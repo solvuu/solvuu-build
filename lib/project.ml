@@ -144,6 +144,13 @@ let is_app = function App _ -> true | Lib _ -> false
 
 let typ_to_string = function `Lib -> "lib" | `App -> "app"
 
+let dep_opts_sat x optional_deps =
+  let all_deps = findlib_deps_all x in
+  List.for_all optional_deps ~f:(fun optional_dep ->
+    not (List.mem optional_dep ~set:all_deps)
+    || Findlib.installed optional_dep
+  )
+
 let path_of_lib ~suffix (x:lib) : string =
   sprintf "%s/%s%s" (Filename.dirname x.dir) x.pack_name suffix
 

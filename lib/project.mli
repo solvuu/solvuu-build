@@ -149,6 +149,11 @@ val is_app : item -> bool
 
 val typ_to_string : typ -> string
 
+val dep_opts_sat : item -> Solvuu_build_findlib.pkg list -> bool
+(** [dep_opt_sat x pkgs] returns true if the optional dependencies
+    [pkgs] are satisfied for [x], i.e. either [x] doesn't depend on
+    the [pkgs] or any package it does depend on is installed. *)
+
 val path_of_lib : suffix:string -> lib -> string
 (** Return path to lib file with given suffix. Files are siblings of
     the lib's [dir]. For example, given a lib [x] with [x.dir =
