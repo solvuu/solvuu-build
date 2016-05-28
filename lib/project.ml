@@ -166,11 +166,10 @@ let ocamlinit_file items ~postfix =
       "#thread;;";
       "";
     ];
-    [
-      sprintf "#require \"%s\";;"
-        (String.concat " " @@ Item.all_findlib_pkgs items);
-      "";
-    ];
+    (
+      let pkgs = "solvuu_build"::(Item.all_findlib_pkgs items) in
+      [sprintf "#require \"%s\";;"(String.concat " " pkgs); ""]
+    );
     [
       "(* Load each lib provided by this project. *)";
     ];
