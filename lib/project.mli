@@ -22,11 +22,6 @@
       item can depend on other findlib packages. Again, only {i
       direct} dependencies should be listed.
 
-    - [build_if]: Normally failure to build an item is an error, but
-      sometimes you want to consider an item to be optional. An item
-      is built only if the conjunction of all conditions specified are
-      satisfied.
-
 
     Libs additionally have the fields:
 
@@ -51,13 +46,6 @@
       repo root.
 *)
 
-(** Predicate on an item.
-
-    - [`Pkgs_installed]: all findlib pkgs are present.
-*)
-type condition = [
-  | `Pkgs_installed
-]
 
 (** Findlib package name. *)
 type pkg = string
@@ -66,7 +54,6 @@ type app = {
   name : string;
   internal_deps : item list;
   findlib_deps : pkg list;
-  build_if : condition list;
   file : string;
 
   annot : unit option;
@@ -82,7 +69,6 @@ and lib = {
   name : string;
   internal_deps : item list;
   findlib_deps : pkg list;
-  build_if : condition list;
   pack_name : string;
   dir : string;
   ml_files : string list;
@@ -121,7 +107,6 @@ val lib
   -> ?w:string
   -> ?internal_deps:item list
   -> ?findlib_deps:pkg list
-  -> ?build_if:condition list
   -> ?ml_files:[`Add of string list | `Replace of string list]
   -> ?mli_files:[`Add of string list | `Replace of string list]
   -> pkg : Solvuu_build_findlib.pkg
@@ -140,7 +125,6 @@ val app
   -> ?w:string
   -> ?internal_deps:item list
   -> ?findlib_deps:pkg list
-  -> ?build_if:condition list
   -> file:string
   -> string
   -> item
@@ -156,7 +140,6 @@ val typ : item -> typ
 val name : item -> string
 val internal_deps : item -> item list
 val findlib_deps : item -> pkg list
-val build_if : item -> condition list
 
 val internal_deps_all : item -> item list
 val findlib_deps_all : item -> pkg list
@@ -165,10 +148,6 @@ val is_lib : item -> bool
 val is_app : item -> bool
 
 val typ_to_string : typ -> string
-
-(** Return [true] if given item should be built according to its
-    [build_if] conditions. *)
-val should_build : item -> bool
 
 val path_of_lib : suffix:string -> lib -> string
 (** Return path to lib file with given suffix. Files are siblings of

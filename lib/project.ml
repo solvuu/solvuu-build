@@ -3,17 +3,12 @@ open Util
 module Findlib = Solvuu_build_findlib
 let (/) = Filename.concat
 
-type condition = [
-  | `Pkgs_installed
-]
-
 type pkg = string
 
 type app = {
   name : string;
   internal_deps : item list;
   findlib_deps : pkg list;
-  build_if : condition list;
   file : string;
 
   annot : unit option;
@@ -29,7 +24,6 @@ and lib = {
   name : string;
   internal_deps : item list;
   findlib_deps : pkg list;
-  build_if : condition list;
   pack_name : string;
   dir : string;
   ml_files : string list;
@@ -51,7 +45,7 @@ type typ = [`Lib | `App]
 
 let lib
     ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
-    ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[])
+    ?(internal_deps=[]) ?(findlib_deps=[])
     ?ml_files ?mli_files ~pkg ~pack_name ~dir name
   =
   let open Filename in
@@ -74,18 +68,18 @@ let lib
     |> List.sort_uniq String.compare
   in
   Lib {
-    name; internal_deps; findlib_deps; build_if; pack_name;
+    name; internal_deps; findlib_deps; pack_name;
     dir; ml_files; mli_files; pkg;
     annot; bin_annot; g; safe_string; short_paths; thread; w;
   }
 
 let app
     ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
-    ?(internal_deps=[]) ?(findlib_deps=[]) ?(build_if=[])
+    ?(internal_deps=[]) ?(findlib_deps=[])
     ~file name
   =
   App {
-    name; internal_deps; findlib_deps; build_if; file;
+    name; internal_deps; findlib_deps; file;
     annot; bin_annot; g; safe_string; short_paths; thread; w;
   }
 
@@ -112,8 +106,6 @@ let internal_deps = function
 
 let findlib_deps = function
   | Lib x -> x.findlib_deps | App x -> x.findlib_deps
-
-let build_if = function Lib x -> x.build_if | App x -> x.build_if
 
 let internal_deps_all t =
   let count = ref 0 in
@@ -151,16 +143,6 @@ let is_lib = function Lib _ -> true | App _ -> false
 let is_app = function App _ -> true | Lib _ -> false
 
 let typ_to_string = function `Lib -> "lib" | `App -> "app"
-
-let rec should_build (i:item) =
-  List.for_all (build_if i) ~f:(function
-    | `Pkgs_installed ->
-      List.for_all (findlib_deps i) ~f:Findlib.installed
-  )
-  &&
-  List.for_all (internal_deps i) ~f:(fun x ->
-    should_build x
-  )
 
 let path_of_lib ~suffix (x:lib) : string =
   sprintf "%s/%s%s" (Filename.dirname x.dir) x.pack_name suffix
