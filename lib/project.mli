@@ -86,8 +86,6 @@ and lib = {
 
 and item = Lib of lib | App of app
 
-type typ = [`Lib | `App]
-
 (** Construct a [lib]. Most arguments correspond to the OCaml
     compiler or to fields in type [lib]. Other arguments are:
 
@@ -129,14 +127,6 @@ val app
   -> string
   -> item
 
-module Item : sig
-  type t = item
-  val compare : t -> t -> int
-  val equal : t -> t -> bool
-  val hash : t -> int
-end
-
-val typ : item -> typ
 val name : item -> string
 val internal_deps : item -> item list
 val findlib_deps : item -> pkg list
@@ -146,8 +136,6 @@ val findlib_deps_all : item -> pkg list
 
 val is_lib : item -> bool
 val is_app : item -> bool
-
-val typ_to_string : typ -> string
 
 val dep_opts_sat : item -> Solvuu_build_findlib.pkg list -> bool
 (** [dep_opt_sat x pkgs] returns true if the optional dependencies
@@ -219,6 +207,19 @@ val all_findlib_pkgs : item list -> pkg list
 val filter_libs : item list -> lib list
 val filter_apps : item list -> app list
 
+(******************************************************************************)
+(** {2 Item Module} *)
+(******************************************************************************)
+module Item : sig
+  type t = item
+  val compare : t -> t -> int
+  val equal : t -> t -> bool
+  val hash : t -> int
+
+  type typ = [`Lib | `App]
+  val typ : t -> typ
+  val typ_to_string : typ -> string
+end
 
 (******************************************************************************)
 (** {2 Graph Operations} *)

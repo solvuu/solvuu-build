@@ -41,8 +41,6 @@ and lib = {
 
 and item = Lib of lib | App of app
 
-type typ = [`Lib | `App]
-
 let lib
     ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
     ?(internal_deps=[]) ?(findlib_deps=[])
@@ -83,23 +81,7 @@ let app
     annot; bin_annot; g; safe_string; short_paths; thread; w;
   }
 
-let typ = function Lib _ -> `Lib | App _ -> `App
 let name = function Lib x -> x.name | App x -> x.name
-
-module Item = struct
-  type t = item
-
-  let hash t = Hashtbl.hash (typ t, name t)
-
-  let compare t u =
-    match compare (typ t) (typ u) with
-    | -1 -> -1
-    | 1 -> 1
-    | 0 -> String.compare (name t) (name u)
-    | _ -> assert false
-
-  let equal t u = compare t u = 0
-end
 
 let internal_deps = function
   | Lib x -> x.internal_deps | App x -> x.internal_deps
@@ -142,8 +124,6 @@ let findlib_deps_all t =
 let is_lib = function Lib _ -> true | App _ -> false
 let is_app = function App _ -> true | Lib _ -> false
 
-let typ_to_string = function `Lib -> "lib" | `App -> "app"
-
 let dep_opts_sat x optional_deps =
   let all_deps = findlib_deps_all x in
   List.for_all optional_deps ~f:(fun optional_dep ->
@@ -172,6 +152,28 @@ let all_findlib_pkgs t =
   |> List.flatten
   |> List.sort_uniq String.compare
 
+(******************************************************************************)
+(** {2 Item Module} *)
+(******************************************************************************)
+module Item = struct
+  type t = item
+
+  type typ = [`Lib | `App]
+  let typ = function Lib _ -> `Lib | App _ -> `App
+  let typ_to_string = function `Lib -> "lib" | `App -> "app"
+
+  let hash t = Hashtbl.hash (typ t, name t)
+
+  let compare t u =
+    match compare (typ t) (typ u) with
+    | -1 -> -1
+    | 1 -> 1
+    | 0 -> String.compare (name t) (name u)
+    | _ -> assert false
+
+  let equal t u = compare t u = 0
+
+end
 
 (******************************************************************************)
 (** {2 Graph Operations} *)
