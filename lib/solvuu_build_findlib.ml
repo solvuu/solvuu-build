@@ -18,6 +18,14 @@ let to_use_tag x =
 let to_path x =
   String.split x ~on:'.'
 
+let build_meta_file ?(prod="META") x =
+  Ocamlbuild_plugin.rule prod ~prod (fun _ _ ->
+    let oc = open_out prod in
+    Fl_metascanner.print oc x;
+    close_out oc;
+    Ocamlbuild_plugin.Nop
+  )
+
 
 (******************************************************************************)
 (** {2 Graph Operations} *)

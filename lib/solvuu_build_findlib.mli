@@ -14,6 +14,9 @@ val to_use_tag : pkg -> string
 (** Split [pkg] on dots to expose its path structure. *)
 val to_path : pkg -> string list
 
+val build_meta_file : ?prod:string -> Fl_metascanner.pkg_expr -> unit
+(** Register a rule to print out contents of given [pkg_expr] to
+    path [prod], which by default is "./META". *)
 
 (******************************************************************************)
 (** {2 Graph Operations} *)
