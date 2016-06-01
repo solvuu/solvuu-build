@@ -164,7 +164,7 @@ type content = string list
 val merlin_file : item list -> content
 val meta_file : version:string -> lib list -> Fl_metascanner.pkg_expr
 val install_file : item list -> content
-val ocamlinit_file : item list -> postfix:string list -> content
+val ocamlinit_file : ?postfix:string list -> item list -> content
 val makefile_rules_file : project_name:string -> item list -> content
 
 (******************************************************************************)

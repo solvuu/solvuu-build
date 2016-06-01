@@ -345,7 +345,7 @@ let install_file items : string list =
     | l -> ["bin: ["]@l@["]"]
   )
 
-let ocamlinit_file items ~postfix =
+let ocamlinit_file ?(postfix=[]) items =
   let graph = Graph.of_list items in
   [
     [
