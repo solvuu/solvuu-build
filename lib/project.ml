@@ -662,27 +662,21 @@ let basic1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
   let libs = filter_libs items in
   let apps = filter_apps items in
 
-  let merlin_file = merlin_file items in
-  let meta_file = meta_file ~version libs in
-  let install_file = install_file items in
-  let ocamlinit_file = ocamlinit_file items ~postfix:ocamlinit_postfix in
-  let makefile_rules_file = makefile_rules_file items ~project_name in
-
   Ocamlbuild_plugin.dispatch @@ function
-  | Ocamlbuild_plugin.Before_options -> (
-      Ocamlbuild_plugin.Options.use_ocamlfind := true
-    )
   | Ocamlbuild_plugin.After_rules -> (
       Ocamlbuild_plugin.clear_rules();
 
       List.iter libs ~f:build_lib;
       List.iter apps ~f:build_app;
 
-      Findlib.build_meta_file meta_file;
-      build_static_file ".merlin" merlin_file;
-      build_static_file (sprintf "%s.install" project_name) install_file;
-      build_static_file ".ocamlinit" ocamlinit_file;
-      build_static_file "Makefile.rules" makefile_rules_file;
+      build_static_file ".merlin" (merlin_file items);
+      build_static_file ".ocamlinit"
+        (ocamlinit_file ~postfix:ocamlinit_postfix items);
+      build_static_file "Makefile.rules"
+        (makefile_rules_file ~project_name items);
+      Findlib.build_meta_file (meta_file ~version libs);
+      build_static_file (sprintf "%s.install" project_name)
+        (install_file items);
     )
   | _ -> ()
 
@@ -709,13 +703,6 @@ let solvuu1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
   let libs = filter_libs items in
   let apps = filter_apps items in
 
-  let git_commit = Git.last_commit() in
-  let merlin_file = merlin_file items in
-  let meta_file = meta_file ~version libs in
-  let install_file = install_file items in
-  let ocamlinit_file = ocamlinit_file items ~postfix:ocamlinit_postfix in
-  let makefile_rules_file = makefile_rules_file items ~project_name in
-
   Ocamlbuild_plugin.dispatch @@ function
   | Ocamlbuild_plugin.Before_options -> (
       Ocamlbuild_plugin.Options.use_ocamlfind := true
@@ -725,7 +712,7 @@ let solvuu1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
 
       M4.m4_rule ()
         ~_D:[
-          "GIT_COMMIT", Some (match git_commit with
+          "GIT_COMMIT", Some (match Git.last_commit() with
             | None -> "None"
             | Some x -> sprintf "Some \"%s\"" x
           );
@@ -742,10 +729,13 @@ let solvuu1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
       List.iter apps ~f:build_app;
       (* List.iter libs ~f:clib; *)
 
-      Findlib.build_meta_file meta_file;
-      build_static_file ".merlin" merlin_file;
-      build_static_file (sprintf "%s.install" project_name) install_file;
-      build_static_file ".ocamlinit" ocamlinit_file;
-      build_static_file "Makefile.rules" makefile_rules_file;
+      build_static_file ".merlin" (merlin_file items);
+      build_static_file ".ocamlinit"
+        (ocamlinit_file ~postfix:ocamlinit_postfix items);
+      build_static_file "Makefile.rules"
+        (makefile_rules_file ~project_name items);
+      Findlib.build_meta_file (meta_file ~version libs);
+      build_static_file (sprintf "%s.install" project_name)
+        (install_file items);
     )
   | _ -> ()
