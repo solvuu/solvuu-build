@@ -27,9 +27,6 @@ type 'a ocaml_args =
   ?ccopt:string ->
   ?color:[`auto | `always | `never] ->
   ?config:unit ->
-  ?custom:unit ->
-  ?dllib:string ->
-  ?dllpath:string ->
   ?for_pack:string ->
   ?g:unit ->
   ?i:unit ->
@@ -75,6 +72,9 @@ type 'a ocaml_args =
 
 type ocamlc = (
   ?compat_32:unit ->
+  ?custom:unit ->
+  ?dllib:string ->
+  ?dllpath:string ->
   ?vmthread:unit ->
   Pathname.t list ->
   Command.t
@@ -133,7 +133,7 @@ let specs_to_command (specs : spec option list list) : Command.t =
 
 let ocaml_common_specs compiler
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -159,9 +159,6 @@ let ocaml_common_specs compiler
       | Some `never -> Some "never"
     );
     unit "-config" config;
-    unit "-custom" custom;
-    string "-dllib" dllib;
-    string "-dllpath" dllpath;
     string "-for-pack" for_pack;
     unit "-g" g;
     unit "-i" i;
@@ -207,7 +204,7 @@ let ocaml_common_specs compiler
 
 let ocamlc_specs
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -215,12 +212,12 @@ let ocamlc_specs
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
-    ?compat_32 ?vmthread files
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
   : spec option list list
   =
   (ocaml_common_specs `Byte
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-     ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+     ?config ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -230,13 +227,16 @@ let ocamlc_specs
      ?w ?warn_error ?warn_help ?where ?help ()
   )@[
     unit "-compat-32" compat_32;
+    unit "-custom" custom;
+    string "-dllib" dllib;
+    string "-dllpath" dllpath;
     unit "-vmthread" vmthread;
     (List.map files ~f:(fun file -> Some (A file)));
   ]
 
 let ocamlc
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -244,7 +244,7 @@ let ocamlc
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
-    ?compat_32 ?vmthread files
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
   =
   ocamlc_specs
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
@@ -261,7 +261,7 @@ let ocamlc
 
 let ocamlopt_specs
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -274,7 +274,7 @@ let ocamlopt_specs
   =
   (ocaml_common_specs `Native
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-     ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+     ?config ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -298,7 +298,7 @@ let ocamlopt_specs
 
 let ocamlopt
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -310,7 +310,7 @@ let ocamlopt
   =
   ocamlopt_specs
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -323,7 +323,7 @@ let ocamlopt
 
 let ocaml_specs
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -336,7 +336,7 @@ let ocaml_specs
   =
   (ocaml_common_specs mode
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-     ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+     ?config ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -350,7 +350,7 @@ let ocaml_specs
 
 let ocaml
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -362,7 +362,7 @@ let ocaml
   =
   ocaml_specs
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -386,7 +386,7 @@ let ocamlfind_specs
 let ocamlfind_ocamlc
     ?package ?linkpkg
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -394,12 +394,12 @@ let ocamlfind_ocamlc
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
-    ?compat_32 ?vmthread files
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
   =
   [[Some (A "ocamlfind")]]
   @(ocamlc_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+      ?config ?for_pack ?g ?i ?_I
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
       ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -407,7 +407,7 @@ let ocamlfind_ocamlc
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version
       ?w ?warn_error ?warn_help ?where ?help
-      ?compat_32 ?vmthread files
+      ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
    )
   @(ocamlfind_specs ?package ?linkpkg ())
   |> specs_to_command
@@ -415,7 +415,7 @@ let ocamlfind_ocamlc
 let ocamlfind_ocamlopt
     ?package ?linkpkg
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -428,7 +428,7 @@ let ocamlfind_ocamlopt
   [[Some (A "ocamlfind")]]
   @(ocamlopt_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+      ?config ?for_pack ?g ?i ?_I
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
       ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -444,7 +444,7 @@ let ocamlfind_ocamlopt
 let ocamlfind_ocaml
     ?package ?linkpkg
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -458,7 +458,7 @@ let ocamlfind_ocaml
   @(
     ocaml_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+      ?config ?for_pack ?g ?i ?_I
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
       ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal

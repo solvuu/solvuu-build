@@ -13,9 +13,6 @@ type 'a ocaml_args =
   ?ccopt:string ->
   ?color:[`auto | `always | `never] ->
   ?config:unit ->
-  ?custom:unit ->
-  ?dllib:string ->
-  ?dllpath:string ->
   ?for_pack:string ->
   ?g:unit ->
   ?i:unit ->
@@ -61,6 +58,9 @@ type 'a ocaml_args =
 
 type ocamlc = (
   ?compat_32:unit ->
+  ?custom:unit ->
+  ?dllib:string ->
+  ?dllpath:string ->
   ?vmthread:unit ->
   Pathname.t list ->
   Command.t
