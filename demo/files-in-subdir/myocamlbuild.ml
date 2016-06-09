@@ -4,16 +4,19 @@ open Solvuu_build.Std
 let project_name = "my_project"
 let version = "dev"
 
-let lib = Item.lib project_name
+let lib : Project.item = Project.lib project_name
   ~dir:"lib"
   ~pack_name:project_name
   ~pkg:project_name
 
-let app = Item.app "my_app"
+let app : Project.item = Project.app "my-app"
   ~file:"app/my_app.ml"
   ~internal_deps:[lib]
 
-let project = Project.make ~name:project_name ~version [lib;app]
+let ocamlinit_postfix = [
+  sprintf "open %s" (String.capitalize project_name);
+]
 
 ;;
-let () = Project.dispatch project
+let () = Project.basic1 ~project_name ~version [lib;app]
+    ~ocamlinit_postfix
