@@ -73,6 +73,7 @@ and lib = {
   dir : string;
   ml_files : string list;
   mli_files : string list;
+  c_files : string list;
   pkg : Solvuu_build_findlib.pkg;
 
   annot : unit option;
@@ -107,6 +108,7 @@ val lib
   -> ?findlib_deps:pkg list
   -> ?ml_files:[`Add of string list | `Replace of string list]
   -> ?mli_files:[`Add of string list | `Replace of string list]
+  -> ?c_files:[`Add of string list | `Replace of string list]
   -> pkg : Solvuu_build_findlib.pkg
   -> pack_name:string
   -> dir:string

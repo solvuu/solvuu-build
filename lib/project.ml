@@ -28,6 +28,7 @@ and lib = {
   dir : string;
   ml_files : string list;
   mli_files : string list;
+  c_files : string list;
   pkg : Solvuu_build_findlib.pkg;
 
   annot : unit option;
@@ -44,7 +45,7 @@ and item = Lib of lib | App of app
 let lib
     ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
     ?(internal_deps=[]) ?(findlib_deps=[])
-    ?ml_files ?mli_files ~pkg ~pack_name ~dir name
+    ?ml_files ?mli_files ?c_files ~pkg ~pack_name ~dir name
   =
   let open Filename in
   let files =
@@ -65,9 +66,16 @@ let lib
     )
     |> List.sort_uniq String.compare
   in
+  let c_files =
+    List.filter files ~f:(fun x -> check_suffix x ".c") |> fun l ->
+    (match c_files with
+     | None -> l | Some (`Add x) -> x@l | Some (`Replace x) -> x
+    )
+    |> List.sort_uniq String.compare
+  in
   Lib {
     name; internal_deps; findlib_deps; pack_name;
-    dir; ml_files; mli_files; pkg;
+    dir; ml_files; mli_files; c_files; pkg;
     annot; bin_annot; g; safe_string; short_paths; thread; w;
   }
 
@@ -443,17 +451,25 @@ let build_lib (x:lib) =
   let short_paths = x.short_paths in
   let thread = x.thread in
   let w = x.w in
-  let ocaml ?pack ?o ?a ?c ?_I ?package ?for_pack mode files =
-    OCaml.ocamlfind_ocaml mode files
-      ?pack ?o ?a ?c ?_I ?package ?for_pack
-      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+  let ocaml ?pack ?o ?a ?c ?_I ?package ?for_pack ?custom mode files =
+    match mode with
+    | `Byte ->
+      OCaml.ocamlfind_ocamlc files
+        ?pack ?o ?a ?c ?_I ?package ?for_pack ?custom
+        ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+    | `Native ->
+      OCaml.ocamlfind_ocamlopt files
+        ?pack ?o ?a ?c ?_I ?package ?for_pack
+        ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
   in
   let package = findlib_deps_all (Lib x) in
   let ml_files = List.map x.ml_files ~f:(fun y -> x.dir/y) in
   let mli_files = List.map x.mli_files ~f:(fun y -> x.dir/y) in
+  let c_files = List.map x.c_files ~f:(fun y -> x.dir/y) in
 
-  let _I =
+  let _I = List.sort_uniq String.compare @@
     x.dir
+    ::(Filename.dirname x.dir)
     ::(
       filter_libs x.internal_deps |>
       List.map ~f:(fun x -> Filename.dirname x.dir)
@@ -493,17 +509,39 @@ let build_lib (x:lib) =
     )
   );
 
+  ((* .cmo/.cmx,.o -> .cma/.cmxa *)
+    let ml_obj mode = path_of_lib x
+        ~suffix:(match mode with `Byte -> ".cmo" | `Native -> ".cmx")
+    in
+    let ml_lib mode = path_of_lib x
+        ~suffix:(match mode with `Byte -> ".cma" | `Native -> ".cmxa")
+    in
+    match c_files with
+    | [] -> ( (* No C files. Call ocamlc/ocamlopt directly. *)
+        List.iter [`Byte; `Native] ~f:(fun mode ->
+          let dep = ml_obj mode in
+          let prod = ml_lib mode in
+          Rule.rule ~deps:[dep] ~prods:[prod]
+            (fun _ _ -> ocaml mode ~a:() ~o:prod [dep])
+        )
+      )
+    | _ -> ( (* There is C code. Call ocamlmklib. *)
 
-  (* packed .cmo/.cmx -> .cma/.cmxa *)
-  List.iter [`Byte; `Native] ~f:(fun mode ->
-    let dep = sprintf "%s/%s.%s" (dirname x.dir) x.pack_name
-        (match mode with `Byte -> "cmo" | `Native -> "cmx")
-    in
-    let prod = sprintf "%s/%s.%s" (dirname x.dir) x.pack_name
-        (match mode with `Byte -> "cma" | `Native -> "cmxa")
-    in
-    Rule.rule ~deps:[dep] ~prods:[prod]
-      (fun _ _ -> ocaml mode ~a:() ~o:prod [dep])
+        let c_objs = List.map c_files ~f:(fun c_file ->
+          sprintf "%s.o" (chop_suffix c_file ".c") )
+        in
+        let c_libs = [
+          sprintf "%s/dll%s.so" (Filename.dirname x.dir) x.name;
+          sprintf "%s/lib%s.a" (Filename.dirname x.dir) x.name;
+        ]
+        in
+        let deps =  (ml_obj `Byte)::(ml_obj `Native)::c_objs in
+        let prods = (ml_lib `Byte)::(ml_lib `Native)::c_libs in
+        let o = path_of_lib x ~suffix:"" in
+        Rule.rule ~deps ~prods (fun _ _ ->
+          OCaml.ocamlmklib ~verbose:() ~o deps
+        )
+      )
   );
 
   (* .mli -> .cmi *)
@@ -551,6 +589,23 @@ let build_lib (x:lib) =
            in
            ocaml mode ~c ~_I ~package ~for_pack ~o:obj [ml]
         )
+    )
+  );
+
+  (* .c -> .o *)
+  List.iter c_files ~f:(fun c_file ->
+    let base = chop_suffix c_file ".c" in
+    let obj = sprintf "%s.o" base in
+    let c = () in
+    Rule.rule ~deps:[c_file] ~prods:[obj] (fun _ _ ->
+      Ocamlbuild_plugin.(Seq [
+        OCaml.ocamlc ~c ~_I ~o:obj [c_file];
+
+        (* OCaml compiler appears to ignore the -o option set
+           above. Output file always goes into _build, so moving
+           manually. *)
+        Cmd (S [A"mv"; A"-f"; A(Filename.basename obj); A obj]);
+      ])
     )
   )
 ;;
