@@ -626,7 +626,7 @@ let build_app (x:app) =
       | App _ -> None )
   in
   List.iter [`Byte; `Native] ~f:(fun mode ->
-    let ocaml ?o files = OCaml.ocamlfind_ocaml mode files
+    let ocaml ?o files = OCaml.ocamlfind_ocaml_compiler mode files
         ?o
         ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
         ~package ~_I ~linkpkg:()

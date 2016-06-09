@@ -16,7 +16,7 @@ open Printf
 open Ocamlbuild_plugin
 open Util
 
-type 'a ocaml_args =
+type 'a ocaml_compiler_args =
   ?a:unit ->
   ?absname:unit ->
   ?annot:unit ->
@@ -78,7 +78,7 @@ type ocamlc = (
   ?vmthread:unit ->
   Pathname.t list ->
   Command.t
-) ocaml_args
+) ocaml_compiler_args
 
 type ocamlopt = (
   ?compact:unit ->
@@ -89,13 +89,13 @@ type ocamlopt = (
   ?shared:unit ->
   Pathname.t list ->
   Command.t
-) ocaml_args
+) ocaml_compiler_args
 
-type ocaml = (
+type ocaml_compiler = (
   [`Byte | `Native] ->
   Pathname.t list ->
   Command.t
-) ocaml_args
+) ocaml_compiler_args
 
 type 'a ocamlfind_args =
   ?package:string list ->
@@ -330,7 +330,7 @@ let ocamlopt
     ?compact ?inline ?nodynlink ?p ?_S ?shared files
   |> specs_to_command
 
-let ocaml_specs
+let ocaml_compiler_specs
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -357,7 +357,7 @@ let ocaml_specs
     List.map files ~f:(fun file -> Some (A file));
   ]
 
-let ocaml
+let ocaml_compiler
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -369,7 +369,7 @@ let ocaml
     ?w ?warn_error ?warn_help ?where ?help
     mode files
   =
-  ocaml_specs
+  ocaml_compiler_specs
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -450,7 +450,7 @@ let ocamlfind_ocamlopt
   @(ocamlfind_specs ?package ?linkpkg ())
   |> specs_to_command
 
-let ocamlfind_ocaml
+let ocamlfind_ocaml_compiler
     ?package ?linkpkg
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
@@ -465,7 +465,7 @@ let ocamlfind_ocaml
   =
   [[Some (A "ocamlfind")]]
   @(
-    ocaml_specs
+    ocaml_compiler_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
       ?config ?for_pack ?g ?i ?_I
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime

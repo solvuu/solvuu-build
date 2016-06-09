@@ -2,7 +2,7 @@
 open Ocamlbuild_plugin
 
 (** Arguments common to both ocamlc and ocamlopt. *)
-type 'a ocaml_args =
+type 'a ocaml_compiler_args =
   ?a:unit ->
   ?absname:unit ->
   ?annot:unit ->
@@ -64,7 +64,7 @@ type ocamlc = (
   ?vmthread:unit ->
   Pathname.t list ->
   Command.t
-) ocaml_args
+) ocaml_compiler_args
 
 type ocamlopt = (
   ?compact:unit ->
@@ -75,15 +75,15 @@ type ocamlopt = (
   ?shared:unit ->
   Pathname.t list ->
   Command.t
-) ocaml_args
+) ocaml_compiler_args
 
 (** Abstraction over ocamlc and ocamlopt to help construct commands
     uniformly over either compiler. *)
-type ocaml = (
+type ocaml_compiler = (
   [`Byte | `Native] ->
   Pathname.t list ->
   Command.t
-) ocaml_args
+) ocaml_compiler_args
 
 type 'a ocamlfind_args =
   ?package:string list ->
@@ -92,11 +92,11 @@ type 'a ocamlfind_args =
 
 val ocamlc   : ocamlc
 val ocamlopt : ocamlopt
-val ocaml : ocaml
+val ocaml_compiler : ocaml_compiler
 
-val ocamlfind_ocamlc   : ocamlc ocamlfind_args
-val ocamlfind_ocamlopt : ocamlopt ocamlfind_args
-val ocamlfind_ocaml    : ocaml ocamlfind_args
+val ocamlfind_ocamlc         : ocamlc ocamlfind_args
+val ocamlfind_ocamlopt       : ocamlopt ocamlfind_args
+val ocamlfind_ocaml_compiler : ocaml_compiler ocamlfind_args
 
 val ocamlmklib :
   ?cclib:string ->
