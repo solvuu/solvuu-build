@@ -102,13 +102,22 @@ type 'a ocamlfind_args =
   ?linkpkg:unit ->
   'a
 
-let string (flag:string) (value:string option) = match value with
+let string ?(delim=`Space) (flag:string) (value:string option) =
+  match value with
   | None -> [None]
-  | Some value -> [Some (A flag); Some (A value)]
+  | Some value ->
+    match delim with
+    | `Space -> [Some (A flag); Some (A value)]
+    | `None -> [Some (A (flag ^ value))]
 
-let string_list (flag:string) (value:string list option) = match value with
+let string_list ?delim (flag:string) (value:string list option) =
+  match value with
   | None -> [None]
-  | Some l -> List.map l ~f:(fun x -> string flag (Some x)) |> List.flatten
+  | Some l ->
+    List.map l ~f:(fun x ->
+      string ?delim flag (Some x)
+    ) |>
+    List.flatten
 
 let string_list_comma_sep (flag:string) (value:string list option) =
   match value with
@@ -469,6 +478,38 @@ let ocamlfind_ocaml
       mode files
   )
   @(ocamlfind_specs ?package ?linkpkg ())
+  |> specs_to_command
+
+let ocamlmklib
+    ?cclib ?ccopt ?custom ?g ?dllpath ?framework ?_I
+    ?failsafe ?ldopt ?linkall ?l ?_L
+    ?ocamlc ?ocamlcflags ?ocamlopt ?ocamloptflags
+    ?o ?oc ?verbose
+    files
+  =
+  [
+    [Some (A "ocamlmklib")];
+    string "-cclib" cclib;
+    string "-ccopt" ccopt;
+    unit "-custom" custom;
+    unit "-g" g;
+    string "-dllpath" dllpath;
+    string "-framework" framework;
+    string_list "-I" _I;
+    unit "-failsafe" failsafe;
+    string "-ldopt" ldopt;
+    unit "-linkall" linkall;
+    string "-l" l;
+    string_list ~delim:`None "-L" _L;
+    string "-ocamlc" ocamlc;
+    string "-ocamlcflags" ocamlcflags;
+    string "-ocamlopt" ocamlopt;
+    string "-ocamloptflags" ocamloptflags;
+    string "-o" o;
+    string "-oc" oc;
+    unit "-verbose" verbose;
+    (List.map files ~f:(fun file -> Some (A file)));
+  ]
   |> specs_to_command
 
 let ocamldep ?modules ?(_I=[]) files =

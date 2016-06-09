@@ -98,6 +98,29 @@ val ocamlfind_ocamlc   : ocamlc ocamlfind_args
 val ocamlfind_ocamlopt : ocamlopt ocamlfind_args
 val ocamlfind_ocaml    : ocaml ocamlfind_args
 
+val ocamlmklib :
+  ?cclib:string ->
+  ?ccopt:string ->
+  ?custom:unit ->
+  ?g:unit ->
+  ?dllpath:string ->
+  ?framework:string ->
+  ?_I:string list ->
+  ?failsafe:unit ->
+  ?ldopt:string ->
+  ?linkall:unit ->
+  ?l:string ->
+  ?_L:string list ->
+  ?ocamlc:string ->
+  ?ocamlcflags:string ->
+  ?ocamlopt:string ->
+  ?ocamloptflags:string ->
+  ?o:string ->
+  ?oc:string ->
+  ?verbose:unit ->
+  Pathname.t list ->
+  Command.t
+
 (** Return an association list mapping each given input file to its
     list of dependencies. Note ocamldep ignores files that don't
     exist. You may want to assert that the given files exist prior to
