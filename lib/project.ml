@@ -586,6 +586,12 @@ let build_lib (x:lib) =
       )
     | _ -> ( (* There is C code. Call ocamlmklib. *)
 
+        let clibs = [
+          sprintf "%s/dll%s.so" (Filename.dirname x.dir) x.name;
+          sprintf "%s/lib%s.a" (Filename.dirname x.dir) x.name;
+        ]
+        in
+
         List.iter [`Byte;`Native] ~f:(fun mode ->
           let dep = ml_obj mode in
           let prod = ml_lib mode in
@@ -593,7 +599,7 @@ let build_lib (x:lib) =
             sprintf "%s/%s" (Filename.dirname x.dir) x.name |>
             Filename.normalize
           in
-          Rule.rule ~deps:[dep] ~prods:[prod] (fun _ _ ->
+          Rule.rule ~deps:(dep::clibs) ~prods:[prod] (fun _ _ ->
             OCaml.ocamlmklib ~verbose:() ~o [dep]
           )
         );
@@ -602,16 +608,11 @@ let build_lib (x:lib) =
           let deps = List.map c_files ~f:(fun c_file ->
             sprintf "%s.o" (chop_suffix c_file ".c") )
           in
-          let prods = [
-            sprintf "%s/dll%s.so" (Filename.dirname x.dir) x.name;
-            sprintf "%s/lib%s.a" (Filename.dirname x.dir) x.name;
-          ]
-          in
           let o =
             sprintf "%s/%s" (Filename.dirname x.dir) x.name |>
             Filename.normalize
           in
-          Rule.rule ~deps ~prods (fun _ _ ->
+          Rule.rule ~deps ~prods:clibs (fun _ _ ->
             OCaml.ocamlmklib ~verbose:() ~o deps
           )
         )
