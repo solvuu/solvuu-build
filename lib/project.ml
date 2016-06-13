@@ -379,11 +379,7 @@ let install_file items : string list =
       | _ -> (
           let file = sprintf "dll%s.so" x.name in
           let src = sprintf "?_build/%s/%s" (Filename.dirname x.dir) file in
-          let dst =
-            [Filename.dirname x.dir; file] |>
-            String.concat ~sep:"/" |>
-            fun x -> Some x
-          in
+          let dst = Some file in
           Some (src,dst)
         )
     )
