@@ -75,6 +75,7 @@ end
 module String = struct
   include String
 
+  let concat = StringLabels.concat
   let for_all = Core.String.for_all
 
   let hash = Hashtbl.hash
@@ -130,7 +131,7 @@ module Filename = struct
   let normalize x =
     String.split ~on:'/' x |>
     List.filter_map ~f:(function "." | "" -> None | x -> Some x) |>
-    String.concat "/" |> function
+    String.concat ~sep:"/" |> function
     | "" -> "."
     | x -> x
 
@@ -139,7 +140,9 @@ end
 module Rule = struct
 
   let name0 ~deps ~prods =
-    sprintf "%s -> %s" (String.concat "," deps) (String.concat "," prods)
+    sprintf "%s -> %s"
+      (String.concat ~sep:"," deps)
+      (String.concat ~sep:"," prods)
 
   let name = name0
 

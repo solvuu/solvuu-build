@@ -35,6 +35,8 @@ end
 module String : sig
   include module type of String
 
+  val concat : sep:string -> string list -> string
+
   val for_all : string -> f:(char -> bool) -> bool
 
   val hash : string -> int

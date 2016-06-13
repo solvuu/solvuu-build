@@ -123,7 +123,7 @@ let string_list_comma_sep (flag:string) (value:string list option) =
   match value with
   | None -> [None]
   | Some l -> (
-      String.concat "," l |> fun x ->
+      String.concat ~sep:"," l |> fun x ->
       string flag (Some x)
     )
 
@@ -520,7 +520,7 @@ let ocamldep ?modules ?(_I=[]) files =
       (match modules with None -> [] | Some () -> ["-modules"]);
     ] |>
     List.flatten |> fun l ->
-    String.concat " " (l@files)
+    String.concat ~sep:" " (l@files)
   in
   Ocamlbuild_pack.My_unix.run_and_read cmd |>
   String.split ~on:'\n' |>
@@ -557,7 +557,7 @@ let ocamldep1 ?modules ?_I file =
 let ocamldep_sort files =
   let cmd =
     ["ocamldep"; "-sort"]@files |>
-    String.concat " "
+    String.concat ~sep:" "
   in
   Ocamlbuild_pack.My_unix.run_and_read cmd |>
   String.split ~on:' ' |>

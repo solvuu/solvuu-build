@@ -76,7 +76,7 @@ module Graph = struct
 
   let of_list xs =
     let concat (prefix:string list) (x:string) =
-      String.concat "." (prefix@[x])
+      String.concat ~sep:"." (prefix@[x])
     in
     if not (List.is_uniq ~cmp:T.compare xs) then
       failwith "multiple findlib packages have an identical name"

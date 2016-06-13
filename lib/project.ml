@@ -269,7 +269,7 @@ let meta_file ~version libs : Fl_metascanner.pkg_expr =
   let pkg_defs_of_lib (x:lib) =
     [
       def "directory"
-        (Findlib.to_path x.pkg |> List.tl |> String.concat "/");
+        (Findlib.to_path x.pkg |> List.tl |> String.concat ~sep:"/");
       def "version" version;
       def ~preds:[`Pred "byte"] "archive" (sprintf "%s.cma" x.name);
       def ~preds:[`Pred "native"] "archive" (sprintf "%s.cmxa" x.name);
@@ -280,7 +280,7 @@ let meta_file ~version libs : Fl_metascanner.pkg_expr =
           |> filter_libs
           |> List.map ~f:(fun x -> x.pkg)
         )
-        |> String.concat " "
+        |> String.concat ~sep:" "
       );
       def "exists_if" (sprintf "%s.cma" x.name);
     ]
@@ -291,7 +291,7 @@ let meta_file ~version libs : Fl_metascanner.pkg_expr =
     | x::[] -> x
     | [] -> failwith "findlib packages have no root"
     | l -> failwithf "cannot create META file for findlib packages with \
-                      multiple roots: %s" (String.concat "," l) ()
+                      multiple roots: %s" (String.concat ~sep:"," l) ()
   in
   let pkg_defs (pkg:Findlib.pkg) =
     try pkg_defs_of_lib @@ List.find libs ~f:(fun x -> x.pkg = pkg)
@@ -347,7 +347,7 @@ let install_file items : string list =
             let src = sprintf "?_build/%s/%s" (Filename.dirname x.dir) file in
             let dst =
               (Findlib.to_path x.pkg |> List.tl)@[file] |>
-              String.concat "/" |>
+              String.concat ~sep:"/" |>
               fun x -> Some x
             in
             src,dst
@@ -363,7 +363,7 @@ let install_file items : string list =
           let src = sprintf "?_build/%s/%s" (Filename.dirname x.dir) file in
           let dst =
             [Filename.dirname x.dir; file] |>
-            String.concat "/" |>
+            String.concat ~sep:"/" |>
             fun x -> Some x
           in
           Some (src,dst)
@@ -408,7 +408,7 @@ let ocamlinit_file ?(postfix=[]) items =
     ];
     (
       let pkgs = "solvuu_build"::(all_findlib_pkgs items) in
-      [sprintf "#require \"%s\";;"(String.concat " " pkgs); ""]
+      [sprintf "#require \"%s\";;"(String.concat ~sep:" " pkgs); ""]
     );
     [
       "(* Load each lib provided by this project. *)";
@@ -444,7 +444,7 @@ let makefile_rules_file ~project_name items : string list =
         sprintf "%s/%s.cmxs" (Filename.dirname x.dir) x.name);
       List.map all_apps ~f:(path_of_app ~suffix:".native");
     ]
-    |> String.concat " "
+    |> String.concat ~sep:" "
     |> sprintf "native: %s"
   in
   let byte =
@@ -453,7 +453,7 @@ let makefile_rules_file ~project_name items : string list =
         sprintf "%s/%s.cma" (Filename.dirname x.dir) x.name);
       List.map all_apps ~f:(path_of_app ~suffix:".byte");
     ]
-    |> String.concat " "
+    |> String.concat ~sep:" "
     |> sprintf "byte: %s"
   in
   let static = [
@@ -524,7 +524,7 @@ let build_lib (x:lib) =
     | x::[] -> Some x
     | l -> failwithf "module %s defined by multiple files: %s"
              mod_name
-             (List.map l ~f:(fun x -> x ^ ".ml[i]") |> String.concat ",")
+             (List.map l ~f:(fun x -> x ^ ".ml[i]") |> String.concat ~sep:",")
              ()
   in
 
@@ -709,7 +709,7 @@ let build_static_file path content =
   let open Util in
   (* Workaround ocamlbuild bug: https://github.com/ocaml/ocamlbuild/issues/76. *)
   let path = match String.split ~on:'/' path with
-    | "."::l -> String.concat "/" l
+    | "."::l -> String.concat ~sep:"/" l
     | _ -> path
   in
   let content = List.map content ~f:(sprintf "%s\n") in
