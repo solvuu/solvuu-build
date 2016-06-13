@@ -310,48 +310,86 @@ let meta_file ~version libs : Fl_metascanner.pkg_expr =
   pkg_expr root
 
 let install_file items : string list =
-  let all_libs = filter_libs items in
-  let all_apps = filter_apps items in
-  let suffixes = [
-    "a";"annot";"cma";"cmi";"cmo";"cmt";"cmti";"cmx";"cmxa";
-    "cmxs";"dll";"o"]
+
+  (* Return lines for given section, or [None] if [items] is empty. *)
+  let section name (items : (string * string option) list)
+    : string list option
+    =
+    match items with
+    | [] -> None
+    | _ ->
+      let items =
+        List.map items ~f:(fun (src,dst) ->
+          let src = Filename.normalize src in
+          let dst = match dst with
+            | None -> None
+            | Some x -> Some (Filename.normalize x)
+          in
+          match dst with
+          | None -> sprintf "  \"%s\"" src
+          | Some dst -> sprintf "  \"%s\" {\"%s\"}" src dst
+        )
+      in
+      Some ((sprintf "%s: [" name)::items@["]"])
   in
-  (
-    List.map all_libs ~f:(fun lib ->
-      List.map suffixes ~f:(fun suffix ->
-        sprintf "  \"?_build/%s/%s.%s\" { \"%s/%s.%s\" }"
-          (Filename.dirname lib.dir) lib.name suffix
-          (Findlib.to_path lib.pkg |> List.tl |> String.concat "/")
-          lib.name suffix
-      )
-    )
-    |> List.flatten
-    |> fun l -> "  \"_build/META\""::l
-                |> fun l -> ["lib: ["]@l@["]"]
-  )
-  @(
-    let lines =
-      List.map all_libs ~f:(fun lib ->
-        sprintf "  \"?_build/%s/dll%s_stub.so\""
-          (Filename.dirname lib.dir) lib.name
-      )
+  let lib =
+    let suffixes = [
+      "a";"annot";"cma";"cmi";"cmo";"cmt";"cmti";"cmx";"cmxa";
+      "cmxs";"dll";"o"]
     in
-    "stublibs: [" :: lines @ ["]"]
-  )
-  @(
-    List.map all_apps ~f:(fun app ->
-      List.map ["byte"; "native"] ~f:(fun suffix ->
-        sprintf "  \"?_build/%s.%s\" {\"%s\"}"
-          (Filename.chop_extension app.file)
-          suffix
-          app.name
-      )
+    section "lib" (
+      [("_build/META",None)]
+      ::(
+        filter_libs items |>
+        List.map ~f:(fun (x:lib) ->
+          List.map suffixes ~f:(fun suffix ->
+            let file = sprintf "%s.%s" x.name suffix in
+            let src = sprintf "?_build/%s/%s" (Filename.dirname x.dir) file in
+            let dst =
+              (Findlib.to_path x.pkg |> List.tl)@[file] |>
+              String.concat "/" |>
+              fun x -> Some x
+            in
+            src,dst
+          ) ) )
+      |> List.flatten )
+  in
+  let stublibs = section "stublibs" (
+    filter_libs items |>
+    List.filter_map ~f:(fun (x:lib) -> match x.c_files with
+      | [] -> None
+      | _ -> (
+          let file = sprintf "dll%s_stub.so" x.name in
+          let src = sprintf "?_build/%s/%s" (Filename.dirname x.dir) file in
+          let dst =
+            [Filename.dirname x.dir; file] |>
+            String.concat "/" |>
+            fun x -> Some x
+          in
+          Some (src,dst)
+        )
     )
-    |> List.flatten
-    |> function
-    | [] -> []
-    | l -> ["bin: ["]@l@["]"]
   )
+  in
+  let bin = section "bin" (
+    filter_apps items |>
+    List.map ~f:(fun (x:app) ->
+      List.map ["byte"; "native"] ~f:(fun suffix ->
+        let src = sprintf "?_build/%s/%s.%s"
+            (Filename.dirname x.file)
+            x.name
+            suffix
+        in
+        let dst = Some x.name in
+        src,dst
+      )
+    ) |>
+    List.flatten
+  )
+  in
+  [lib; stublibs; bin] |>
+  List.filter_map ~f:Fn.id |>
+  List.flatten
 
 let ocamlinit_file ?(postfix=[]) items =
   let graph = Graph.of_list items in
