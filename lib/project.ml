@@ -332,17 +332,34 @@ let install_file items : string list =
       in
       Some ((sprintf "%s: [" name)::items@["]"])
   in
+
   let lib =
-    let suffixes = [
-      "a";"annot";"cma";"cmi";"cmo";"cmt";"cmti";"cmx";"cmxa";
-      "cmxs";"dll";"o"]
-    in
     section "lib" (
-      [("_build/META",None)]
+      ["_build/META",None]
+      ::(
+        filter_libs items |>
+        List.filter_map ~f:(fun (x:lib) ->
+          match x.c_files with
+          | [] -> None
+          | _ ->
+            let file = sprintf "lib%s.a" x.name in
+            let src = sprintf "?_build/%s/%s" (Filename.dirname x.dir) file in
+            let dst =
+              (Findlib.to_path x.pkg |> List.tl)@[file] |>
+              String.concat ~sep:"/" |>
+              fun x -> Some x
+            in
+            Some (src,dst)
+        )
+      )
       ::(
         filter_libs items |>
         List.map ~f:(fun (x:lib) ->
-          List.map suffixes ~f:(fun suffix ->
+          [
+            "annot";"cma";"cmi";"cmo";"cmt";"cmti";"cmx";"cmxa";
+            "cmxs";"dll";"o"
+          ] |>
+          List.map ~f:(fun suffix ->
             let file = sprintf "%s.%s" x.name suffix in
             let src = sprintf "?_build/%s/%s" (Filename.dirname x.dir) file in
             let dst =
@@ -354,12 +371,13 @@ let install_file items : string list =
           ) ) )
       |> List.flatten )
   in
+
   let stublibs = section "stublibs" (
     filter_libs items |>
     List.filter_map ~f:(fun (x:lib) -> match x.c_files with
       | [] -> None
       | _ -> (
-          let file = sprintf "dll%s_stub.so" x.name in
+          let file = sprintf "dll%s.so" x.name in
           let src = sprintf "?_build/%s/%s" (Filename.dirname x.dir) file in
           let dst =
             [Filename.dirname x.dir; file] |>
@@ -371,6 +389,7 @@ let install_file items : string list =
     )
   )
   in
+
   let bin = section "bin" (
     filter_apps items |>
     List.map ~f:(fun (x:app) ->
@@ -387,9 +406,11 @@ let install_file items : string list =
     List.flatten
   )
   in
+
   [lib; stublibs; bin] |>
   List.filter_map ~f:Fn.id |>
   List.flatten
+
 
 let ocamlinit_file ?(postfix=[]) items =
   let graph = Graph.of_list items in
@@ -565,19 +586,34 @@ let build_lib (x:lib) =
       )
     | _ -> ( (* There is C code. Call ocamlmklib. *)
 
-        let c_objs = List.map c_files ~f:(fun c_file ->
-          sprintf "%s.o" (chop_suffix c_file ".c") )
-        in
-        let c_libs = [
-          sprintf "%s/dll%s.so" (Filename.dirname x.dir) x.name;
-          sprintf "%s/lib%s.a" (Filename.dirname x.dir) x.name;
-        ]
-        in
-        let deps =  (ml_obj `Byte)::(ml_obj `Native)::c_objs in
-        let prods = (ml_lib `Byte)::(ml_lib `Native)::c_libs in
-        let o = path_of_lib x ~suffix:"" in
-        Rule.rule ~deps ~prods (fun _ _ ->
-          OCaml.ocamlmklib ~verbose:() ~o deps
+        List.iter [`Byte;`Native] ~f:(fun mode ->
+          let dep = ml_obj mode in
+          let prod = ml_lib mode in
+          let o =
+            sprintf "%s/%s" (Filename.dirname x.dir) x.name |>
+            Filename.normalize
+          in
+          Rule.rule ~deps:[dep] ~prods:[prod] (fun _ _ ->
+            OCaml.ocamlmklib ~verbose:() ~o [dep]
+          )
+        );
+
+        (
+          let deps = List.map c_files ~f:(fun c_file ->
+            sprintf "%s.o" (chop_suffix c_file ".c") )
+          in
+          let prods = [
+            sprintf "%s/dll%s.so" (Filename.dirname x.dir) x.name;
+            sprintf "%s/lib%s.a" (Filename.dirname x.dir) x.name;
+          ]
+          in
+          let o =
+            sprintf "%s/%s" (Filename.dirname x.dir) x.name |>
+            Filename.normalize
+          in
+          Rule.rule ~deps ~prods (fun _ _ ->
+            OCaml.ocamlmklib ~verbose:() ~o deps
+          )
         )
       )
   );
