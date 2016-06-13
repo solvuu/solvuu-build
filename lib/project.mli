@@ -179,9 +179,6 @@ val build_app : app -> unit
     [path] with given [content]. *)
 val build_static_file : string -> content -> unit
 
-(* val clib : lib -> unit *)
-
-
 (******************************************************************************)
 (** {2 Plugins} *)
 (******************************************************************************)

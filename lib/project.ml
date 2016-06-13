@@ -754,30 +754,6 @@ let build_static_file path content =
   )
 ;;
 
-  (* let clib lib = *)
-  (*   match Util.clib_file lib.Item.dir lib.Item.name with *)
-  (*   | None -> () *)
-  (*   | Some file -> *)
-  (*     let cstub = sprintf "%s_stub" lib.Item.name in *)
-  (*     let stub_tag = "use_"^cstub in *)
-  (*     let headers = *)
-  (*       Util.h_files_of_dir lib.Item.dir *)
-  (*       |> List.map ~f:(fun x -> lib.Item.dir/x) *)
-  (*     in *)
-  (*     dep ["c" ; "compile"] headers ; *)
-  (*     dep ["link";"ocaml";stub_tag] [ *)
-  (*       sprintf "%s/lib%s.a" (Filename.dirname lib.Item.dir) cstub ; *)
-  (*     ] ; *)
-  (*     flag *)
-  (*       ["link";"ocaml";"byte";stub_tag] *)
-  (*       (S[A"-dllib";A("-l"^cstub);A"-cclib";A("-l"^cstub)]) ; *)
-  (*     flag *)
-  (*       ["link";"ocaml";"native";stub_tag] *)
-  (*       (S[A"-cclib";A("-l"^cstub)]) ; *)
-  (*     static_file *)
-  (*       (sprintf "%s/lib%s.clib" (Filename.dirname lib.Item.dir) cstub) *)
-  (*       file *)
-
 (******************************************************************************)
 (** {2 Plugins} *)
 (******************************************************************************)
@@ -853,7 +829,6 @@ let solvuu1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
 
       List.iter libs ~f:build_lib;
       List.iter apps ~f:build_app;
-      (* List.iter libs ~f:clib; *)
 
       build_static_file ".merlin" (merlin_file items);
       build_static_file ".ocamlinit"
