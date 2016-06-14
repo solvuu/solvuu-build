@@ -1,6 +1,6 @@
 OCAMLBUILD=ocamlbuild -use-ocamlfind -plugin-tag "package(solvuu_build)"
 
-include _build/Makefile.rules
+include _build/project.mk
 
-_build/Makefile.rules:
+_build/project.mk:
 	$(OCAMLBUILD) $(notdir $@)

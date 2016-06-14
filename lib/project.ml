@@ -450,7 +450,7 @@ let ocamlinit_file ?(postfix=[]) items =
   ]
   |> List.concat
 
-let makefile_rules_file ~project_name items : string list =
+let makefile ~project_name items : string list =
   let all_libs = filter_libs items in
   let all_apps = filter_apps items in
   let native =
@@ -769,8 +769,7 @@ let basic1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
       build_static_file ".merlin" (merlin_file items);
       build_static_file ".ocamlinit"
         (ocamlinit_file ~postfix:ocamlinit_postfix items);
-      build_static_file "Makefile.rules"
-        (makefile_rules_file ~project_name items);
+      build_static_file "project.mk" (makefile ~project_name items);
       Findlib.build_meta_file (meta_file ~version libs);
       build_static_file (sprintf "%s.install" project_name)
         (install_file items);
@@ -828,8 +827,7 @@ let solvuu1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
       build_static_file ".merlin" (merlin_file items);
       build_static_file ".ocamlinit"
         (ocamlinit_file ~postfix:ocamlinit_postfix items);
-      build_static_file "Makefile.rules"
-        (makefile_rules_file ~project_name items);
+      build_static_file "project.mk" (makefile ~project_name items);
       Findlib.build_meta_file (meta_file ~version libs);
       build_static_file (sprintf "%s.install" project_name)
         (install_file items);
