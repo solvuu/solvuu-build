@@ -356,7 +356,7 @@ let install_file items : string list =
         filter_libs items |>
         List.map ~f:(fun (x:lib) ->
           [
-            "annot";"cma";"cmi";"cmo";"cmt";"cmti";"cmx";"cmxa";
+            "a"; "annot";"cma";"cmi";"cmo";"cmt";"cmti";"cmx";"cmxa";
             "cmxs";"dll";"o"
           ] |>
           List.map ~f:(fun suffix ->
