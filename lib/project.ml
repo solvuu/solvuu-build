@@ -693,7 +693,9 @@ let build_app (x:app) =
     internal_deps_all (App x) |>
     List.filter_map ~f:(function
       | Lib x -> Some (dirname x.dir)
-      | App _ -> None )
+      | App _ -> None
+    ) |>
+    List.sort_uniq String.compare
   in
   List.iter [`Byte; `Native] ~f:(fun mode ->
     let ocaml ?o files = OCaml.ocamlfind_ocaml_compiler mode files
