@@ -739,11 +739,7 @@ let build_app (x:app) =
 let build_static_file path content =
   let open Ocamlbuild_plugin in
   let open Util in
-  (* Workaround ocamlbuild bug: https://github.com/ocaml/ocamlbuild/issues/76. *)
-  let path = match String.split ~on:'/' path with
-    | "."::l -> String.concat ~sep:"/" l
-    | _ -> path
-  in
+  let path = Filename.normalize path in
   let content = List.map content ~f:(sprintf "%s\n") in
   rule path ~prod:path (fun _ _ ->
     Seq [
