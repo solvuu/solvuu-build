@@ -1,6 +1,7 @@
 open Printf
 open Util
 module Findlib = Solvuu_build_findlib
+open Filename
 let (/) = Filename.concat
 
 type pkg = string
@@ -47,7 +48,6 @@ let lib
     ?(internal_deps=[]) ?(findlib_deps=[])
     ?ml_files ?mli_files ?c_files ~pkg ~pack_name ~dir name
   =
-  let open Filename in
   let files =
     try Sys.readdir dir |> Array.to_list
     with _ -> []
@@ -140,10 +140,10 @@ let dep_opts_sat x optional_deps =
   )
 
 let path_of_lib ~suffix (x:lib) : string =
-  sprintf "%s/%s%s" (Filename.dirname x.dir) x.pack_name suffix
+  sprintf "%s/%s%s" (dirname x.dir) x.pack_name suffix
 
 let path_of_app ~suffix (x:app) : string =
-  sprintf "%s/%s%s" (Filename.dirname x.file) x.name suffix
+  sprintf "%s/%s%s" (dirname x.file) x.name suffix
 
 
 (******************************************************************************)
@@ -236,15 +236,15 @@ let merlin_file items : string list =
       [
         sprintf "S %s" x.dir;
         sprintf "B _build/%s" x.dir;
-        sprintf "B _build/%s" (Filename.dirname x.dir);
+        sprintf "B _build/%s" (dirname x.dir);
       ]
     ) |> List.concat;
 
     (* apps *)
     List.map (filter_apps items) ~f:(fun x ->
       [
-        sprintf "S %s" (Filename.dirname x.file);
-        sprintf "B _build/%s" (Filename.dirname x.file);
+        sprintf "S %s" (dirname x.file);
+        sprintf "B _build/%s" (dirname x.file);
       ]
     ) |> List.concat;
 
@@ -343,7 +343,7 @@ let install_file items : string list =
           | [] -> None
           | _ ->
             let file = sprintf "lib%s.a" x.name in
-            let src = sprintf "?_build/%s/%s" (Filename.dirname x.dir) file in
+            let src = sprintf "?_build/%s/%s" (dirname x.dir) file in
             let dst =
               (Findlib.to_path x.pkg |> List.tl)@[file] |>
               String.concat ~sep:"/" |>
@@ -361,7 +361,7 @@ let install_file items : string list =
           ] |>
           List.map ~f:(fun suffix ->
             let file = sprintf "%s.%s" x.name suffix in
-            let src = sprintf "?_build/%s/%s" (Filename.dirname x.dir) file in
+            let src = sprintf "?_build/%s/%s" (dirname x.dir) file in
             let dst =
               (Findlib.to_path x.pkg |> List.tl)@[file] |>
               String.concat ~sep:"/" |>
@@ -378,7 +378,7 @@ let install_file items : string list =
       | [] -> None
       | _ -> (
           let file = sprintf "dll%s.so" x.name in
-          let src = sprintf "?_build/%s/%s" (Filename.dirname x.dir) file in
+          let src = sprintf "?_build/%s/%s" (dirname x.dir) file in
           let dst = Some file in
           Some (src,dst)
         )
@@ -391,7 +391,7 @@ let install_file items : string list =
     List.map ~f:(fun (x:app) ->
       List.map ["byte"; "native"] ~f:(fun suffix ->
         let src = sprintf "?_build/%s/%s.%s"
-            (Filename.dirname x.file)
+            (dirname x.file)
             x.name
             suffix
         in
@@ -434,7 +434,7 @@ let ocamlinit_file ?(postfix=[]) items =
       Graph.Topological.sort graph |>
       filter_libs |>
       List.map ~f:(fun x ->
-        sprintf "#directory \"_build/%s\";;" (Filename.dirname x.dir)
+        sprintf "#directory \"_build/%s\";;" (dirname x.dir)
       )
       |> List.sort_uniq String.compare
     );
@@ -456,9 +456,9 @@ let makefile_rules_file ~project_name items : string list =
   let native =
     List.concat [
       List.map all_libs ~f:(fun x ->
-        sprintf "%s/%s.cmxa" (Filename.dirname x.dir) x.name);
+        sprintf "%s/%s.cmxa" (dirname x.dir) x.name);
       List.map all_libs ~f:(fun x ->
-        sprintf "%s/%s.cmxs" (Filename.dirname x.dir) x.name);
+        sprintf "%s/%s.cmxs" (dirname x.dir) x.name);
       List.map all_apps ~f:(path_of_app ~suffix:".native");
     ]
     |> String.concat ~sep:" "
@@ -467,7 +467,7 @@ let makefile_rules_file ~project_name items : string list =
   let byte =
     List.concat [
       List.map all_libs ~f:(fun x ->
-        sprintf "%s/%s.cma" (Filename.dirname x.dir) x.name);
+        sprintf "%s/%s.cma" (dirname x.dir) x.name);
       List.map all_apps ~f:(path_of_app ~suffix:".byte");
     ]
     |> String.concat ~sep:" "
@@ -498,7 +498,6 @@ let makefile_rules_file ~project_name items : string list =
 (** {2 Rules} *)
 (******************************************************************************)
 let build_lib (x:lib) =
-  let open Filename in
   let annot = x.annot in
   let bin_annot = x.bin_annot in
   let g = x.g in
@@ -524,10 +523,10 @@ let build_lib (x:lib) =
 
   let _I = List.sort_uniq String.compare @@
     x.dir
-    ::(Filename.dirname x.dir)
+    ::(dirname x.dir)
     ::(
       filter_libs x.internal_deps |>
-      List.map ~f:(fun x -> Filename.dirname x.dir)
+      List.map ~f:(fun x -> dirname x.dir)
     )
   in
 
@@ -583,8 +582,8 @@ let build_lib (x:lib) =
     | _ -> ( (* There is C code. Call ocamlmklib. *)
 
         let clibs = [
-          sprintf "%s/dll%s.so" (Filename.dirname x.dir) x.name;
-          sprintf "%s/lib%s.a" (Filename.dirname x.dir) x.name;
+          sprintf "%s/dll%s.so" (dirname x.dir) x.name;
+          sprintf "%s/lib%s.a" (dirname x.dir) x.name;
         ]
         in
 
@@ -592,7 +591,7 @@ let build_lib (x:lib) =
           let dep = ml_obj mode in
           let prod = ml_lib mode in
           let o =
-            sprintf "%s/%s" (Filename.dirname x.dir) x.name |>
+            sprintf "%s/%s" (dirname x.dir) x.name |>
             Filename.normalize
           in
           Rule.rule ~deps:(dep::clibs) ~prods:[prod] (fun _ _ ->
@@ -605,7 +604,7 @@ let build_lib (x:lib) =
             sprintf "%s.o" (chop_suffix c_file ".c") )
           in
           let o =
-            sprintf "%s/%s" (Filename.dirname x.dir) x.name |>
+            sprintf "%s/%s" (dirname x.dir) x.name |>
             Filename.normalize
           in
           Rule.rule ~deps ~prods:clibs (fun _ _ ->
@@ -675,7 +674,7 @@ let build_lib (x:lib) =
         (* OCaml compiler appears to ignore the -o option set
            above. Output file always goes into _build, so moving
            manually. *)
-        Cmd (S [A"mv"; A"-f"; A(Filename.basename obj); A obj]);
+        Cmd (S [A"mv"; A"-f"; A(basename obj); A obj]);
       ])
     )
   )
@@ -693,7 +692,7 @@ let build_app (x:app) =
   let _I =
     internal_deps_all (App x) |>
     List.filter_map ~f:(function
-      | Lib x -> Some (Filename.dirname x.dir)
+      | Lib x -> Some (dirname x.dir)
       | App _ -> None )
   in
   List.iter [`Byte; `Native] ~f:(fun mode ->
@@ -748,7 +747,7 @@ let build_static_file path content =
   let content = List.map content ~f:(sprintf "%s\n") in
   rule path ~prod:path (fun _ _ ->
     Seq [
-      Cmd (Sh (sprintf "mkdir -p %s" (Filename.dirname path)));
+      Cmd (Sh (sprintf "mkdir -p %s" (dirname path)));
       Echo (content,path);
     ]
   )
