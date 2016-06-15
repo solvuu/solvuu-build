@@ -812,3 +812,108 @@ let eliomopt
    )
   @[List.map files ~f:(fun x -> Some (A x))]
   |> specs_to_command
+
+(******************************************************************************)
+(** {2 js_of_eliom} *)
+(******************************************************************************)
+type 'a js_of_eliom_args =
+  ?package:string list ->
+  ?no_autoload:unit ->
+  ?type_conv:unit ->
+  ?dir:string ->
+  ?type_dir:string ->
+  ?server_types_ext:string ->
+  ?jsopt:string ->
+  ?ppopt:string ->
+  ?predicates:string ->
+  ?eliom_ppx:unit ->
+  ?dont_force_linkall:unit ->
+  'a
+
+let js_of_eliom_args_specs
+    ?package ?no_autoload ?type_conv
+    ?dir ?type_dir ?server_types_ext
+    ?jsopt ?ppopt ?predicates ?eliom_ppx
+    ?dont_force_linkall
+    ()
+  =
+  let string = string ~delim:`Space in
+  [
+    (match package with
+     | None -> [None]
+     | Some l -> string "-package" (Some (String.concat ~sep:"," l))
+    );
+    unit "-no-autoload" no_autoload;
+    unit "-type_conv" type_conv;
+    string "-dir" dir;
+    string "-type-dir" type_dir;
+    string "-server-types-ext" server_types_ext;
+    string "-jsopt" jsopt;
+    string "-ppopt" ppopt;
+    string "-predicates" predicates;
+    unit "-ppx" eliom_ppx;
+    unit "-dont-force-linkall" dont_force_linkall;
+  ]
+
+let js_of_eliom
+
+    (* js_of_eliom_args *)
+    ?package ?no_autoload ?type_conv
+    ?dir ?type_dir ?server_types_ext
+    ?jsopt ?ppopt ?predicates ?eliom_ppx
+    ?dont_force_linkall
+
+    (* js_of_ocaml_args
+       - Beware some are overwritten by ocamlc_args below. I guess it
+         is a bug in the js_of_eliom command line API.
+    *)
+    ?custom_header ?debug ?debug_info ?disable ?enable
+    ?no_inline ?no_runtime ?o:_ ?opt ?pretty ?quiet ?set
+    ?source_map_inline ?source_map_no_source
+    ?source_map_root ?source_map
+    ?version:_ ?extern_fs ?file ?_I ?ofs
+    ?linkall:_ ?no_cmis ?toplevel
+
+    (* ocamlc_args *)
+    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+    ?config ?for_pack ?g ?i ?_I
+    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+    ?rectypes ?runtime_variant ?safe_string ?short_paths
+    ?strict_sequence ?strict_formats ?thread ?unsafe
+    ?unsafe_string ?use_runtime ?v ?verbose ?version
+    ?w ?warn_error ?warn_help ?where ?help
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread
+
+    files
+  =
+  [[Some (A "js_of_eliom")]]
+  @(js_of_eliom_args_specs
+      ?package ?no_autoload ?type_conv
+      ?dir ?type_dir ?server_types_ext
+      ?jsopt ?ppopt ?predicates ?eliom_ppx
+      ?dont_force_linkall ()
+   )
+  @(js_of_ocaml_args_specs
+      ?custom_header ?debug ?debug_info ?disable ?enable
+      ?no_inline ?no_runtime ?o:None ?opt ?pretty ?quiet ?set
+      ?source_map_inline ?source_map_no_source
+      ?source_map_root ?source_map
+      ?version:None ?extern_fs ?file ?_I ?ofs
+      ?linkall:None ?no_cmis ?toplevel ()
+   )
+  @(ocamlc_args_specs
+      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+      ?config ?for_pack ?g ?i ?_I
+      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+      ?rectypes ?runtime_variant ?safe_string ?short_paths
+      ?strict_sequence ?strict_formats ?thread ?unsafe
+      ?unsafe_string ?use_runtime ?v ?verbose ?version
+      ?w ?warn_error ?warn_help ?where ?help
+      ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
+   )
+  @[List.map files ~f:(fun x -> Some (A x))]
+  |> specs_to_command
