@@ -3,6 +3,8 @@ VERSION=dev
 OCAMLBUILD=ocamlbuild -use-ocamlfind
 DEMOS=$(sort $(dir $(wildcard demo/*/)))
 
+default: byte
+
 native: $(PROJECT).cmxa $(PROJECT).cmxs
 byte: $(PROJECT).cma
 
