@@ -19,30 +19,23 @@ open Util
 (******************************************************************************)
 (** {2 Low Level Functions} *)
 (******************************************************************************)
-let string ?(delim=`Space) (flag:string) (value:string option) =
+let string ~delim (flag:string) (value:string option) =
   match value with
   | None -> [None]
   | Some value ->
     match delim with
     | `Space -> [Some (A flag); Some (A value)]
     | `None -> [Some (A (flag ^ value))]
+    | `Equal -> [Some (A (sprintf "%s=%s" flag value))]
 
-let string_list ?delim (flag:string) (value:string list option) =
+let string_list ~delim (flag:string) (value:string list option) =
   match value with
   | None -> [None]
   | Some l ->
     List.map l ~f:(fun x ->
-      string ?delim flag (Some x)
+      string ~delim flag (Some x)
     ) |>
     List.flatten
-
-let string_list_comma_sep (flag:string) (value:string list option) =
-  match value with
-  | None -> [None]
-  | Some l -> (
-      String.concat ~sep:"," l |> fun x ->
-      string flag (Some x)
-    )
 
 let unit (flag:string) (value:unit option) = match value with
   | None -> [None]
@@ -126,6 +119,8 @@ let ocaml_compiler_args_specs compiler
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help ()
   : spec option list list =
+  let string = string ~delim:`Space in
+  let string_list = string_list ~delim:`Space in
   [
     [Some (A (match compiler with `Byte -> "ocamlc" | `Native -> "ocamlopt"))];
     unit "-a" a;
@@ -237,6 +232,7 @@ let ocamlc_args_specs
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
   : spec option list list
   =
+  let string = string ~delim:`Space in
   (ocaml_compiler_args_specs `Byte
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?for_pack ?g ?i ?_I
@@ -369,7 +365,11 @@ type 'a ocamlfind_args =
 
 let ocamlfind_specs ?package ?linkpkg () : spec option list list =
   [
-    string_list_comma_sep "-package" package;
+    (match package with
+     | None -> [None]
+     | Some x ->
+       string ~delim:`Space "-package" (Some (String.concat ~sep:"," x))
+    );
     unit "-linkpkg" linkpkg;
   ]
 
@@ -474,6 +474,7 @@ let ocamlmklib
     ?o ?oc ?verbose
     files
   =
+  let string = string ~delim:`Space in
   [
     [Some (A "ocamlmklib")];
     string "-cclib" cclib;
@@ -482,7 +483,7 @@ let ocamlmklib
     unit "-g" g;
     string "-dllpath" dllpath;
     string "-framework" framework;
-    string_list "-I" _I;
+    string_list ~delim:`Space "-I" _I;
     unit "-failsafe" failsafe;
     string "-ldopt" ldopt;
     unit "-linkall" linkall;
@@ -559,6 +560,7 @@ let ocamldep_sort files =
 (** {2 ocamllex/menhir} *)
 (******************************************************************************)
 let ocamllex ?ml ?q ?o mll =
+  let string = string ~delim:`Space in
   specs_to_command [
     [Some (A "ocamllex")];
     unit "-ml" ml;
@@ -573,6 +575,7 @@ let ocamllex_rule ?ml ?q ?(dep="%.mll") ?(prod="%.ml") () =
   )
 
 let menhir ?base mly =
+  let string = string ~delim:`Space in
   specs_to_command [
     [Some (A "menhir")];
     string "--base" base;
