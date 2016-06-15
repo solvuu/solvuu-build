@@ -108,7 +108,7 @@ type 'a ocaml_compiler_args =
   ?help:unit ->
   'a
 
-let ocaml_compiler_args_specs compiler
+let ocaml_compiler_args_specs
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -122,7 +122,6 @@ let ocaml_compiler_args_specs compiler
   let string = string ~delim:`Space in
   let string_list = string_list ~delim:`Space in
   [
-    [Some (A (match compiler with `Byte -> "ocamlc" | `Native -> "ocamlopt"))];
     unit "-a" a;
     unit "-absname" absname;
     unit "-annot" annot;
@@ -193,7 +192,8 @@ let ocaml_compiler
     ?w ?warn_error ?warn_help ?where ?help
     mode files
   =
-  (ocaml_compiler_args_specs mode
+  [[Some (A (match mode with `Byte -> "ocamlc" | `Native -> "ocamlopt"))]]
+  @(ocaml_compiler_args_specs
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -233,7 +233,7 @@ let ocamlc_args_specs
   : spec option list list
   =
   let string = string ~delim:`Space in
-  (ocaml_compiler_args_specs `Byte
+  (ocaml_compiler_args_specs
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -263,7 +263,8 @@ let ocamlc
     ?w ?warn_error ?warn_help ?where ?help
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
   =
-  (ocamlc_args_specs
+  [[Some (A "ocamlc")]]
+  @(ocamlc_args_specs
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -305,7 +306,7 @@ let ocamlopt_args_specs
     ?compact ?inline ?nodynlink ?p ?_S ?shared ()
   : spec option list list
   =
-  (ocaml_compiler_args_specs `Native
+  (ocaml_compiler_args_specs
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -340,7 +341,8 @@ let ocamlopt
     ?w ?warn_error ?warn_help ?where ?help
     ?compact ?inline ?nodynlink ?p ?_S ?shared files
   =
-  (ocamlopt_args_specs
+  [[Some (A "ocamlopt")]]
+  @(ocamlopt_args_specs
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -386,9 +388,12 @@ let ocamlfind_ocaml_compiler
     ?w ?warn_error ?warn_help ?where ?help
     mode files
   =
-  [[Some (A "ocamlfind")]]
+  [[
+    Some (A "ocamlfind");
+    Some (A (match mode with `Byte -> "ocamlc" | `Native -> "ocamlopt"));
+  ]]
   @(
-    ocaml_compiler_args_specs mode
+    ocaml_compiler_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
       ?config ?for_pack ?g ?i ?_I
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -416,7 +421,7 @@ let ocamlfind_ocamlc
     ?w ?warn_error ?warn_help ?where ?help
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
   =
-  [[Some (A "ocamlfind")]]
+  [[Some (A "ocamlfind"); Some (A "ocamlc")]]
   @(ocamlc_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
       ?config ?for_pack ?g ?i ?_I
@@ -446,7 +451,7 @@ let ocamlfind_ocamlopt
     ?w ?warn_error ?warn_help ?where ?help
     ?compact ?inline ?nodynlink ?p ?_S ?shared files
   =
-  [[Some (A "ocamlfind")]]
+  [[Some (A "ocamlfind"); Some (A "ocamlopt")]]
   @(ocamlopt_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
       ?config ?for_pack ?g ?i ?_I
@@ -636,7 +641,6 @@ let js_of_ocaml_args_specs
   =
   let string = string ~delim:`Equal in
   [
-    [Some (A "js_of_ocaml")];
     string "--custom-header" custom_header;
     unit "--debug" debug;
     unit "--debug-info" debug_info;
@@ -678,7 +682,8 @@ let js_of_ocaml
     ?version ?extern_fs ?file ?_I ?ofs
     ?linkall ?no_cmis ?toplevel ?js_files cma
   =
-  (js_of_ocaml_args_specs
+  [[Some (A "js_of_ocaml")]]
+  @(js_of_ocaml_args_specs
      ?custom_header ?debug ?debug_info ?disable ?enable
      ?no_inline ?no_runtime ?o ?opt ?pretty ?quiet ?set
      ?source_map_inline ?source_map_no_source
@@ -750,7 +755,8 @@ let eliomc
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread
     files
   =
-  (eliom_args_specs
+  [[Some (A "eliomc")]]
+  @(eliom_args_specs
      ?package ?no_autoload ?type_conv ?infer
      ?dir ?type_dir ?server_types_ext
      ?ppopt ?predicates ?eliom_ppx ()
@@ -786,7 +792,8 @@ let eliomopt
     ?compact ?inline ?nodynlink ?p ?_S ?shared
     files
   =
-  (eliom_args_specs
+  [[Some (A "eliomopt")]]
+  @(eliom_args_specs
      ?package ?no_autoload ?type_conv ?infer
      ?dir ?type_dir ?server_types_ext
      ?ppopt ?predicates ?eliom_ppx ()
