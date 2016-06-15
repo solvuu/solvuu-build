@@ -219,3 +219,23 @@ type 'a js_of_ocaml_args =
 
 val js_of_ocaml :
   (?js_files:Pathname.t list -> Pathname.t -> Command.t) js_of_ocaml_args
+
+
+(******************************************************************************)
+(** {2 eliomc/eliomopt} *)
+(******************************************************************************)
+type 'a eliom_args =
+  ?package:string list ->
+  ?no_autoload:unit ->
+  ?type_conv:unit ->
+  ?infer:unit ->
+  ?dir:string ->
+  ?type_dir:string ->
+  ?server_types_ext:string ->
+  ?ppopt:string ->
+  ?predicates:string ->
+  ?eliom_ppx:unit ->
+  'a
+
+val eliomc   : (Pathname.t list -> Command.t) ocamlc_args   eliom_args
+val eliomopt : (Pathname.t list -> Command.t) ocamlopt_args eliom_args
