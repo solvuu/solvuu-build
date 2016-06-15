@@ -185,3 +185,37 @@ val menhir : ?base:string -> Pathname.t -> Command.t
 
 (** Register a rule to run menhir. By default, [dep = "%.mly"]. *)
 val menhir_rule : ?base:string -> ?dep:string -> unit -> unit
+
+
+(******************************************************************************)
+(** {2 js_of_ocaml} *)
+(******************************************************************************)
+type 'a js_of_ocaml_args =
+  ?custom_header:string ->
+  ?debug:unit ->
+  ?debug_info:unit ->
+  ?disable:string ->
+  ?enable:string ->
+  ?no_inline:unit ->
+  ?no_runtime:unit ->
+  ?o:string ->
+  ?opt:int ->
+  ?pretty:unit ->
+  ?quiet:unit ->
+  ?set:(string * string) list ->
+  ?source_map_inline:unit ->
+  ?source_map_no_source:unit ->
+  ?source_map_root:string ->
+  ?source_map:unit ->
+  ?version:unit ->
+  ?extern_fs:unit ->
+  ?file:string list ->
+  ?_I:string list ->
+  ?ofs:string ->
+  ?linkall:unit ->
+  ?no_cmis:unit ->
+  ?toplevel:unit ->
+  'a
+
+val js_of_ocaml :
+  (?js_files:Pathname.t list -> Pathname.t -> Command.t) js_of_ocaml_args

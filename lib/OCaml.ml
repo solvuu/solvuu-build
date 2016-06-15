@@ -593,3 +593,104 @@ let menhir_rule ?base ?(dep="%.mly") () =
   Rule.rule ~deps:[dep] ~prods (fun env _ ->
     menhir ?base (env dep)
   )
+
+
+(******************************************************************************)
+(** {2 js_of_ocaml} *)
+(******************************************************************************)
+type 'a js_of_ocaml_args =
+  ?custom_header:string ->
+  ?debug:unit ->
+  ?debug_info:unit ->
+  ?disable:string ->
+  ?enable:string ->
+  ?no_inline:unit ->
+  ?no_runtime:unit ->
+  ?o:string ->
+  ?opt:int ->
+  ?pretty:unit ->
+  ?quiet:unit ->
+  ?set:(string * string) list ->
+  ?source_map_inline:unit ->
+  ?source_map_no_source:unit ->
+  ?source_map_root:string ->
+  ?source_map:unit ->
+  ?version:unit ->
+  ?extern_fs:unit ->
+  ?file:string list ->
+  ?_I:string list ->
+  ?ofs:string ->
+  ?linkall:unit ->
+  ?no_cmis:unit ->
+  ?toplevel:unit ->
+  'a
+
+let js_of_ocaml_args_specs
+    ?custom_header ?debug ?debug_info ?disable ?enable
+    ?no_inline ?no_runtime ?o ?opt ?pretty ?quiet ?set
+    ?source_map_inline ?source_map_no_source
+    ?source_map_root ?source_map
+    ?version ?extern_fs ?file ?_I ?ofs
+    ?linkall ?no_cmis ?toplevel ()
+  : spec option list list
+  =
+  let string = string ~delim:`Equal in
+  [
+    [Some (A "js_of_ocaml")];
+    string "--custom-header" custom_header;
+    unit "--debug" debug;
+    unit "--debug-info" debug_info;
+    string "--disable" disable;
+    string "--enable" enable;
+    unit "--no-inline" no_inline;
+    unit "--no-runtime" no_runtime;
+    string "-o" o;
+    int "--opt" opt;
+    unit "--pretty" pretty;
+    unit "--quiet" quiet;
+    (match set with
+     | None -> [None]
+     | Some l ->
+       List.map l ~f:(fun (x,y) ->
+         string "--set" (Some (sprintf "%s=%s" x y))
+       ) |>
+       List.flatten
+    );
+    unit "--source-map-inline" source_map_inline;
+    unit "--source-map-no-source" source_map_no_source;
+    string "--source-map-root" source_map_root;
+    unit "--source-map" source_map;
+    unit "--version" version;
+    unit "--extern-fs" extern_fs;
+    string_list ~delim:`Equal "--file" file;
+    string_list ~delim:`Space "-I" _I;
+    string "--ofs" ofs;
+    unit "--linkall" linkall;
+    unit "--no-cmis" no_cmis;
+    unit "--toplevel" toplevel;
+  ]
+
+let js_of_ocaml
+    ?custom_header ?debug ?debug_info ?disable ?enable
+    ?no_inline ?no_runtime ?o ?opt ?pretty ?quiet ?set
+    ?source_map_inline ?source_map_no_source
+    ?source_map_root ?source_map
+    ?version ?extern_fs ?file ?_I ?ofs
+    ?linkall ?no_cmis ?toplevel ?js_files cma
+  =
+  (js_of_ocaml_args_specs
+     ?custom_header ?debug ?debug_info ?disable ?enable
+     ?no_inline ?no_runtime ?o ?opt ?pretty ?quiet ?set
+     ?source_map_inline ?source_map_no_source
+     ?source_map_root ?source_map
+     ?version ?extern_fs ?file ?_I ?ofs
+     ?linkall ?no_cmis ?toplevel ()
+  )
+  @[
+    (match js_files with
+     | None -> []
+     | Some l -> List.map l ~f:(fun x -> Some (A x))
+    );
+    [Some (A cma)];
+  ]
+  |> specs_to_command
