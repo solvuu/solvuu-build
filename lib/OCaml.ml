@@ -363,7 +363,7 @@ type 'a ocamlfind_args =
   ?linkpkg:unit ->
   'a
 
-let ocamlfind_specs ?package ?linkpkg () : spec option list list =
+let ocamlfind_args_specs ?package ?linkpkg () : spec option list list =
   [
     (match package with
      | None -> [None]
@@ -399,7 +399,7 @@ let ocamlfind_ocaml_compiler
       ?unsafe_string ?use_runtime ?v ?verbose ?version
       ?w ?warn_error ?warn_help ?where ?help ()
   )
-  @(ocamlfind_specs ?package ?linkpkg ())
+  @(ocamlfind_args_specs ?package ?linkpkg ())
   @[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
@@ -429,7 +429,7 @@ let ocamlfind_ocamlc
       ?w ?warn_error ?warn_help ?where ?help
       ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
    )
-  @(ocamlfind_specs ?package ?linkpkg ())
+  @(ocamlfind_args_specs ?package ?linkpkg ())
   @[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
@@ -459,7 +459,7 @@ let ocamlfind_ocamlopt
       ?w ?warn_error ?warn_help ?where ?help
       ?compact ?inline ?nodynlink ?p ?_S ?shared ()
    )
-  @(ocamlfind_specs ?package ?linkpkg ())
+  @(ocamlfind_args_specs ?package ?linkpkg ())
   @[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
