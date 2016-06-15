@@ -820,8 +820,8 @@ let solvuu1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
       Atdgen.atdgen_t_rule ~j_std:() ();
       Atdgen.atdgen_j_rule ~j_std:() ();
 
-      OCaml.Menhir.rule ();
-      OCaml.Ocamllex.rule ();
+      OCaml.menhir_rule ();
+      OCaml.ocamllex_rule ();
 
       List.iter libs ~f:build_lib;
       List.iter apps ~f:build_app;

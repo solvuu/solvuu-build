@@ -1,21 +1,66 @@
 (* Implementation notes:
 
-   This list of arguments in many functions of this module seem
-   unruly, but they should be copied/pasted in almost all cases. Thus,
-   the work to write and maintain the code is simpler than it might at
-   first seem. In the mli, factoring the type definitions is key to
+   The list of arguments in many functions of this module seem unruly,
+   but they should be copied/pasted in almost all cases. Thus, the
+   work to write and maintain the code is simpler than it might at
+   first seem. Factoring the type definitions as done here is key to
    this maintainability.
 
    Many functions are implemented in two steps, first a function
    [foo_specs] is defined and then [foo]. This is to support factoring
    out code dependent on the long list of arguments that are needed in
-   multiple places. For instance [ocamlc_specs] is needed to implement
-   [ocamlc] and [ocamlfind_ocamlc].
+   multiple places. For instance [ocamlc_args_specs] is needed to
+   implement [ocamlc] and [ocamlfind_ocamlc].
 *)
 open Printf
 open Ocamlbuild_plugin
 open Util
 
+(******************************************************************************)
+(** {2 Low Level Functions} *)
+(******************************************************************************)
+let string ?(delim=`Space) (flag:string) (value:string option) =
+  match value with
+  | None -> [None]
+  | Some value ->
+    match delim with
+    | `Space -> [Some (A flag); Some (A value)]
+    | `None -> [Some (A (flag ^ value))]
+
+let string_list ?delim (flag:string) (value:string list option) =
+  match value with
+  | None -> [None]
+  | Some l ->
+    List.map l ~f:(fun x ->
+      string ?delim flag (Some x)
+    ) |>
+    List.flatten
+
+let string_list_comma_sep (flag:string) (value:string list option) =
+  match value with
+  | None -> [None]
+  | Some l -> (
+      String.concat ~sep:"," l |> fun x ->
+      string flag (Some x)
+    )
+
+let unit (flag:string) (value:unit option) = match value with
+  | None -> [None]
+  | Some () -> [Some (A flag)]
+
+let int (flag:string) (value:int option) = match value with
+  | None -> [None]
+  | Some value -> [Some (A flag); Some (A (string_of_int value))]
+
+let specs_to_command (specs : spec option list list) : Command.t =
+  List.flatten specs
+  |> List.filter_map ~f:Fn.id
+  |> fun l -> Cmd (S l)
+
+
+(******************************************************************************)
+(** {2 Abstraction over ocamlc/ocamlopt} *)
+(******************************************************************************)
 type 'a ocaml_compiler_args =
   ?a:unit ->
   ?absname:unit ->
@@ -70,77 +115,7 @@ type 'a ocaml_compiler_args =
   ?help:unit ->
   'a
 
-type ocamlc = (
-  ?compat_32:unit ->
-  ?custom:unit ->
-  ?dllib:string ->
-  ?dllpath:string ->
-  ?vmthread:unit ->
-  Pathname.t list ->
-  Command.t
-) ocaml_compiler_args
-
-type ocamlopt = (
-  ?compact:unit ->
-  ?inline:int ->
-  ?nodynlink:unit ->
-  ?p:unit ->
-  ?_S:unit ->
-  ?shared:unit ->
-  Pathname.t list ->
-  Command.t
-) ocaml_compiler_args
-
-type ocaml_compiler = (
-  [`Byte | `Native] ->
-  Pathname.t list ->
-  Command.t
-) ocaml_compiler_args
-
-type 'a ocamlfind_args =
-  ?package:string list ->
-  ?linkpkg:unit ->
-  'a
-
-let string ?(delim=`Space) (flag:string) (value:string option) =
-  match value with
-  | None -> [None]
-  | Some value ->
-    match delim with
-    | `Space -> [Some (A flag); Some (A value)]
-    | `None -> [Some (A (flag ^ value))]
-
-let string_list ?delim (flag:string) (value:string list option) =
-  match value with
-  | None -> [None]
-  | Some l ->
-    List.map l ~f:(fun x ->
-      string ?delim flag (Some x)
-    ) |>
-    List.flatten
-
-let string_list_comma_sep (flag:string) (value:string list option) =
-  match value with
-  | None -> [None]
-  | Some l -> (
-      String.concat ~sep:"," l |> fun x ->
-      string flag (Some x)
-    )
-
-let unit (flag:string) (value:unit option) = match value with
-  | None -> [None]
-  | Some () -> [Some (A flag)]
-
-let int (flag:string) (value:int option) = match value with
-  | None -> [None]
-  | Some value -> [Some (A flag); Some (A (string_of_int value))]
-
-let specs_to_command (specs : spec option list list) : Command.t =
-  List.flatten specs
-  |> List.filter_map ~f:Fn.id
-  |> fun l -> Cmd (S l)
-
-let ocaml_common_specs compiler
+let ocaml_compiler_args_specs compiler
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -211,7 +186,7 @@ let ocaml_common_specs compiler
     unit "-help" help;
   ]
 
-let ocamlc_specs
+let ocaml_compiler
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -221,10 +196,48 @@ let ocamlc_specs
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
-    ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
+    mode files
+  =
+  (ocaml_compiler_args_specs mode
+     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+     ?config ?for_pack ?g ?i ?_I
+     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+     ?rectypes ?runtime_variant ?safe_string ?short_paths
+     ?strict_sequence ?strict_formats ?thread ?unsafe
+     ?unsafe_string ?use_runtime ?v ?verbose ?version
+     ?w ?warn_error ?warn_help ?where ?help ()
+  )@[List.map files ~f:(fun file -> Some (A file))]
+  |> specs_to_command
+
+
+(******************************************************************************)
+(** {2 ocamlc} *)
+(******************************************************************************)
+type 'a ocamlc_args = (
+  ?compat_32:unit ->
+  ?custom:unit ->
+  ?dllib:string ->
+  ?dllpath:string ->
+  ?vmthread:unit ->
+  'a
+) ocaml_compiler_args
+
+let ocamlc_args_specs
+    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+    ?config ?for_pack ?g ?i ?_I
+    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+    ?rectypes ?runtime_variant ?safe_string ?short_paths
+    ?strict_sequence ?strict_formats ?thread ?unsafe
+    ?unsafe_string ?use_runtime ?v ?verbose ?version
+    ?w ?warn_error ?warn_help ?where ?help
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
   : spec option list list
   =
-  (ocaml_common_specs `Byte
+  (ocaml_compiler_args_specs `Byte
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -240,7 +253,6 @@ let ocamlc_specs
     string "-dllib" dllib;
     string "-dllpath" dllpath;
     unit "-vmthread" vmthread;
-    (List.map files ~f:(fun file -> Some (A file)));
   ]
 
 let ocamlc
@@ -255,20 +267,36 @@ let ocamlc
     ?w ?warn_error ?warn_help ?where ?help
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
   =
-  ocamlc_specs
-    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
-    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
-    ?rectypes ?runtime_variant ?safe_string ?short_paths
-    ?strict_sequence ?strict_formats ?thread ?unsafe
-    ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
-    ?compat_32 ?vmthread files
+  (ocamlc_args_specs
+     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+     ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+     ?rectypes ?runtime_variant ?safe_string ?short_paths
+     ?strict_sequence ?strict_formats ?thread ?unsafe
+     ?unsafe_string ?use_runtime ?v ?verbose ?version
+     ?w ?warn_error ?warn_help ?where ?help
+     ?compat_32 ?vmthread ()
+  )
+  @[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
-let ocamlopt_specs
+
+(******************************************************************************)
+(** {2 ocamlopt} *)
+(******************************************************************************)
+type 'a ocamlopt_args = (
+  ?compact:unit ->
+  ?inline:int ->
+  ?nodynlink:unit ->
+  ?p:unit ->
+  ?_S:unit ->
+  ?shared:unit ->
+  'a
+) ocaml_compiler_args
+
+let ocamlopt_args_specs
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -278,10 +306,10 @@ let ocamlopt_specs
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
-    ?compact ?inline ?nodynlink ?p ?_S ?shared files
+    ?compact ?inline ?nodynlink ?p ?_S ?shared ()
   : spec option list list
   =
-  (ocaml_common_specs `Native
+  (ocaml_compiler_args_specs `Native
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -302,7 +330,6 @@ let ocamlopt_specs
     unit "-p" p;
     unit "-S" _S;
     unit "-shared" shared;
-    (List.map files ~f:(fun file -> Some (A file)));
   ]
 
 let ocamlopt
@@ -317,33 +344,7 @@ let ocamlopt
     ?w ?warn_error ?warn_help ?where ?help
     ?compact ?inline ?nodynlink ?p ?_S ?shared files
   =
-  ocamlopt_specs
-    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
-    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
-    ?rectypes ?runtime_variant ?safe_string ?short_paths
-    ?strict_sequence ?strict_formats ?thread ?unsafe
-    ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
-    ?compact ?inline ?nodynlink ?p ?_S ?shared files
-  |> specs_to_command
-
-let ocaml_compiler_specs
-    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
-    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
-    ?rectypes ?runtime_variant ?safe_string ?short_paths
-    ?strict_sequence ?strict_formats ?thread ?unsafe
-    ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
-    mode files
-  : spec option list list
-  =
-  (ocaml_common_specs mode
+  (ocamlopt_args_specs
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?for_pack ?g ?i ?_I
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -352,103 +353,25 @@ let ocaml_compiler_specs
      ?rectypes ?runtime_variant ?safe_string ?short_paths
      ?strict_sequence ?strict_formats ?thread ?unsafe
      ?unsafe_string ?use_runtime ?v ?verbose ?version
-     ?w ?warn_error ?warn_help ?where ?help ()
-  )@[
-    List.map files ~f:(fun file -> Some (A file));
-  ]
-
-let ocaml_compiler
-    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
-    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
-    ?rectypes ?runtime_variant ?safe_string ?short_paths
-    ?strict_sequence ?strict_formats ?thread ?unsafe
-    ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
-    mode files
-  =
-  ocaml_compiler_specs
-    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
-    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
-    ?rectypes ?runtime_variant ?safe_string ?short_paths
-    ?strict_sequence ?strict_formats ?thread ?unsafe
-    ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
-    mode files
+     ?w ?warn_error ?warn_help ?where ?help
+     ?compact ?inline ?nodynlink ?p ?_S ?shared ()
+  )@[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
-let ocamlfind_specs
-    ?package ?linkpkg
-    ()
-  : spec option list list
-  =
+
+(******************************************************************************)
+(** {2 ocamlfind} *)
+(******************************************************************************)
+type 'a ocamlfind_args =
+  ?package:string list ->
+  ?linkpkg:unit ->
+  'a
+
+let ocamlfind_specs ?package ?linkpkg () : spec option list list =
   [
     string_list_comma_sep "-package" package;
     unit "-linkpkg" linkpkg;
   ]
-
-let ocamlfind_ocamlc
-    ?package ?linkpkg
-    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
-    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
-    ?rectypes ?runtime_variant ?safe_string ?short_paths
-    ?strict_sequence ?strict_formats ?thread ?unsafe
-    ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
-    ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
-  =
-  [[Some (A "ocamlfind")]]
-  @(ocamlc_specs
-      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?for_pack ?g ?i ?_I
-      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
-      ?rectypes ?runtime_variant ?safe_string ?short_paths
-      ?strict_sequence ?strict_formats ?thread ?unsafe
-      ?unsafe_string ?use_runtime ?v ?verbose ?version
-      ?w ?warn_error ?warn_help ?where ?help
-      ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
-   )
-  @(ocamlfind_specs ?package ?linkpkg ())
-  |> specs_to_command
-
-let ocamlfind_ocamlopt
-    ?package ?linkpkg
-    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
-    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
-    ?rectypes ?runtime_variant ?safe_string ?short_paths
-    ?strict_sequence ?strict_formats ?thread ?unsafe
-    ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
-    ?compact ?inline ?nodynlink ?p ?_S ?shared files
-  =
-  [[Some (A "ocamlfind")]]
-  @(ocamlopt_specs
-      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?for_pack ?g ?i ?_I
-      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
-      ?rectypes ?runtime_variant ?safe_string ?short_paths
-      ?strict_sequence ?strict_formats ?thread ?unsafe
-      ?unsafe_string ?use_runtime ?v ?verbose ?version
-      ?w ?warn_error ?warn_help ?where ?help
-      ?compact ?inline ?nodynlink ?p ?_S ?shared files
-   )
-  @(ocamlfind_specs ?package ?linkpkg ())
-  |> specs_to_command
 
 let ocamlfind_ocaml_compiler
     ?package ?linkpkg
@@ -465,7 +388,36 @@ let ocamlfind_ocaml_compiler
   =
   [[Some (A "ocamlfind")]]
   @(
-    ocaml_compiler_specs
+    ocaml_compiler_args_specs mode
+      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+      ?config ?for_pack ?g ?i ?_I
+      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+      ?rectypes ?runtime_variant ?safe_string ?short_paths
+      ?strict_sequence ?strict_formats ?thread ?unsafe
+      ?unsafe_string ?use_runtime ?v ?verbose ?version
+      ?w ?warn_error ?warn_help ?where ?help ()
+  )
+  @(ocamlfind_specs ?package ?linkpkg ())
+  @[List.map files ~f:(fun file -> Some (A file))]
+  |> specs_to_command
+
+let ocamlfind_ocamlc
+    ?package ?linkpkg
+    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+    ?config ?for_pack ?g ?i ?_I
+    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+    ?rectypes ?runtime_variant ?safe_string ?short_paths
+    ?strict_sequence ?strict_formats ?thread ?unsafe
+    ?unsafe_string ?use_runtime ?v ?verbose ?version
+    ?w ?warn_error ?warn_help ?where ?help
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
+  =
+  [[Some (A "ocamlfind")]]
+  @(ocamlc_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
       ?config ?for_pack ?g ?i ?_I
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -475,11 +427,46 @@ let ocamlfind_ocaml_compiler
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version
       ?w ?warn_error ?warn_help ?where ?help
-      mode files
-  )
+      ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
+   )
   @(ocamlfind_specs ?package ?linkpkg ())
+  @[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
+let ocamlfind_ocamlopt
+    ?package ?linkpkg
+    ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+    ?config ?for_pack ?g ?i ?_I
+    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+    ?rectypes ?runtime_variant ?safe_string ?short_paths
+    ?strict_sequence ?strict_formats ?thread ?unsafe
+    ?unsafe_string ?use_runtime ?v ?verbose ?version
+    ?w ?warn_error ?warn_help ?where ?help
+    ?compact ?inline ?nodynlink ?p ?_S ?shared files
+  =
+  [[Some (A "ocamlfind")]]
+  @(ocamlopt_args_specs
+      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
+      ?config ?for_pack ?g ?i ?_I
+      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+      ?rectypes ?runtime_variant ?safe_string ?short_paths
+      ?strict_sequence ?strict_formats ?thread ?unsafe
+      ?unsafe_string ?use_runtime ?v ?verbose ?version
+      ?w ?warn_error ?warn_help ?where ?help
+      ?compact ?inline ?nodynlink ?p ?_S ?shared ()
+   )
+  @(ocamlfind_specs ?package ?linkpkg ())
+  @[List.map files ~f:(fun file -> Some (A file))]
+  |> specs_to_command
+
+
+(******************************************************************************)
+(** {2 ocamlmklib} *)
+(******************************************************************************)
 let ocamlmklib
     ?cclib ?ccopt ?custom ?g ?dllpath ?framework ?_I
     ?failsafe ?ldopt ?linkall ?l ?_L
@@ -512,6 +499,10 @@ let ocamlmklib
   ]
   |> specs_to_command
 
+
+(******************************************************************************)
+(** {2 ocamldep} *)
+(******************************************************************************)
 let ocamldep ?modules ?(_I=[]) files =
   let cmd =
     [
@@ -563,40 +554,39 @@ let ocamldep_sort files =
   String.split ~on:' ' |>
   List.filter ~f:(fun x -> not @@ String.for_all x ~f:Char.is_whitespace)
 
-module Menhir = struct
-  let command ?base mly =
-    specs_to_command [
-      [Some (A "menhir")];
-      string "--base" base;
-      [Some (A mly)];
-    ]
 
-  let rule ?base ?(dep="%.mly") () =
-    let prods =
-      let base = match base with
-        | None -> Filename.chop_extension dep
-        | Some x -> x
-      in
-      [base ^ ".ml"; base ^ ".mli"]
+(******************************************************************************)
+(** {2 ocamllex/menhir} *)
+(******************************************************************************)
+let ocamllex ?ml ?q ?o mll =
+  specs_to_command [
+    [Some (A "ocamllex")];
+    unit "-ml" ml;
+    string "-o" o;
+    unit "-q" q;
+    [Some (A mll)];
+  ]
+
+let ocamllex_rule ?ml ?q ?(dep="%.mll") ?(prod="%.ml") () =
+  Rule.rule ~deps:[dep] ~prods:[prod] (fun env _ ->
+    ocamllex ?ml ?q ~o:(env prod) (env dep)
+  )
+
+let menhir ?base mly =
+  specs_to_command [
+    [Some (A "menhir")];
+    string "--base" base;
+    [Some (A mly)];
+  ]
+
+let menhir_rule ?base ?(dep="%.mly") () =
+  let prods =
+    let base = match base with
+      | None -> Filename.chop_extension dep
+      | Some x -> x
     in
-    Rule.rule ~deps:[dep] ~prods (fun env _ ->
-      command ?base (env dep)
-    )
-
-end
-
-module Ocamllex = struct
-  let command ?ml ?q ?o mll =
-    specs_to_command [
-      [Some (A "ocamllex")];
-      unit "-ml" ml;
-      string "-o" o;
-      unit "-q" q;
-      [Some (A mll)];
-    ]
-
-  let rule ?ml ?q ?(dep="%.mll") ?(prod="%.ml") () =
-    Rule.rule ~deps:[dep] ~prods:[prod] (fun env _ ->
-      command ?ml ?q ~o:(env prod) (env dep)
-    )
-end
+    [base ^ ".ml"; base ^ ".mli"]
+  in
+  Rule.rule ~deps:[dep] ~prods (fun env _ ->
+    menhir ?base (env dep)
+  )

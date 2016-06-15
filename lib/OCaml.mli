@@ -1,6 +1,9 @@
 (** OCaml commands. *)
 open Ocamlbuild_plugin
 
+(******************************************************************************)
+(** {2 Abstraction over ocamlc/ocamlopt} *)
+(******************************************************************************)
 (** Arguments common to both ocamlc and ocamlopt. *)
 type 'a ocaml_compiler_args =
   ?a:unit ->
@@ -56,48 +59,63 @@ type 'a ocaml_compiler_args =
   ?help:unit ->
   'a
 
-type ocamlc = (
+(** Abstraction over ocamlc and ocamlopt to help construct commands
+    uniformly over either compiler. If you need options specific to
+    either compiler, please see {!ocamlc} and {!ocamlopt} below. *)
+val ocaml_compiler :
+  ([`Byte | `Native] -> Pathname.t list -> Command.t) ocaml_compiler_args
+
+(******************************************************************************)
+(** {2 ocamlc} *)
+(******************************************************************************)
+type 'a ocamlc_args = (
   ?compat_32:unit ->
   ?custom:unit ->
   ?dllib:string ->
   ?dllpath:string ->
   ?vmthread:unit ->
-  Pathname.t list ->
-  Command.t
+  'a
 ) ocaml_compiler_args
 
-type ocamlopt = (
+val ocamlc : (Pathname.t list -> Command.t) ocamlc_args
+
+(******************************************************************************)
+(** {2 ocamlopt} *)
+(******************************************************************************)
+type 'a ocamlopt_args = (
   ?compact:unit ->
   ?inline:int ->
   ?nodynlink:unit ->
   ?p:unit ->
   ?_S:unit ->
   ?shared:unit ->
-  Pathname.t list ->
-  Command.t
+  'a
 ) ocaml_compiler_args
 
-(** Abstraction over ocamlc and ocamlopt to help construct commands
-    uniformly over either compiler. *)
-type ocaml_compiler = (
-  [`Byte | `Native] ->
-  Pathname.t list ->
-  Command.t
-) ocaml_compiler_args
+val ocamlopt : (Pathname.t list -> Command.t) ocamlopt_args
 
+(******************************************************************************)
+(** {2 ocamlfind} *)
+(******************************************************************************)
 type 'a ocamlfind_args =
   ?package:string list ->
   ?linkpkg:unit ->
   'a
 
-val ocamlc   : ocamlc
-val ocamlopt : ocamlopt
-val ocaml_compiler : ocaml_compiler
+val ocamlfind_ocaml_compiler :
+  (
+    [`Byte | `Native] -> Pathname.t list -> Command.t
+  ) ocaml_compiler_args ocamlfind_args
 
-val ocamlfind_ocamlc         : ocamlc ocamlfind_args
-val ocamlfind_ocamlopt       : ocamlopt ocamlfind_args
-val ocamlfind_ocaml_compiler : ocaml_compiler ocamlfind_args
+val ocamlfind_ocamlc :
+  (Pathname.t list -> Command.t) ocamlc_args ocamlfind_args
 
+val ocamlfind_ocamlopt :
+  (Pathname.t list -> Command.t) ocamlopt_args ocamlfind_args
+
+(******************************************************************************)
+(** {2 ocamlmklib} *)
+(******************************************************************************)
 val ocamlmklib :
   ?cclib:string ->
   ?ccopt:string ->
@@ -120,6 +138,11 @@ val ocamlmklib :
   ?verbose:unit ->
   Pathname.t list ->
   Command.t
+
+
+(******************************************************************************)
+(** {2 ocamldep} *)
+(******************************************************************************)
 
 (** Return an association list mapping each given input file to its
     list of dependencies. Note ocamldep ignores files that don't
@@ -148,26 +171,17 @@ val ocamldep1
     in the input list. *)
 val ocamldep_sort : Pathname.t list -> Pathname.t list
 
-module Menhir : sig
-  val command :
-    ?base:string ->
-    Pathname.t ->
-    Command.t
+(******************************************************************************)
+(** {2 ocamllex/menhir} *)
+(******************************************************************************)
+val ocamllex : ?ml:unit -> ?q:unit -> ?o:string -> Pathname.t -> Command.t
 
-  (** Register a rule to run menhir. By default, [dep = "%.mly"]. *)
-  val rule :
-    ?base:string ->
-    ?dep:string ->
-    unit ->
-    unit
+(** Register a rule to run ocamllex. By default, [dep = "%.mll"] and
+    [prod = "%.ml"]. *)
+val ocamllex_rule :
+  ?ml:unit -> ?q:unit -> ?dep:string -> ?prod:string -> unit -> unit
 
-end
+val menhir : ?base:string -> Pathname.t -> Command.t
 
-module Ocamllex : sig
-  val command : ?ml:unit -> ?q:unit -> ?o:string -> Pathname.t -> Command.t
-
-  val rule : ?ml:unit -> ?q:unit -> ?dep:string -> ?prod:string -> unit -> unit
-  (** Register a rule to run ocamllex. By default, [dep = "%.mll"] and
-      [prod = "%.ml"]. *)
-
-end
+(** Register a rule to run menhir. By default, [dep = "%.mly"]. *)
+val menhir_rule : ?base:string -> ?dep:string -> unit -> unit
