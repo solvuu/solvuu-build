@@ -109,6 +109,8 @@ type 'a ocaml_compiler_args =
   'a
 
 let ocaml_compiler_args_specs
+
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -117,7 +119,9 @@ let ocaml_compiler_args_specs
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help ()
+    ?w ?warn_error ?warn_help ?where ?help
+
+    ()
   : spec option list list =
   let string = string ~delim:`Space in
   let string_list = string_list ~delim:`Space in
@@ -181,6 +185,8 @@ let ocaml_compiler_args_specs
   ]
 
 let ocaml_compiler
+
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -190,6 +196,7 @@ let ocaml_compiler
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
+
     mode files
   =
   [[Some (A (match mode with `Byte -> "ocamlc" | `Native -> "ocamlopt"))]]
@@ -220,6 +227,8 @@ type 'a ocamlc_args = (
 ) ocaml_compiler_args
 
 let ocamlc_args_specs
+
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -229,7 +238,12 @@ let ocamlc_args_specs
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
-    ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
+
+    (* ocamlc_args *)
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread
+
+    ()
+
   : spec option list list
   =
   let string = string ~delim:`Space in
@@ -252,6 +266,8 @@ let ocamlc_args_specs
   ]
 
 let ocamlc
+
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -261,7 +277,11 @@ let ocamlc
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
-    ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
+
+    (* ocamlc_args *)
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread
+
+    files
   =
   [[Some (A "ocamlc")]]
   @(ocamlc_args_specs
@@ -294,6 +314,8 @@ type 'a ocamlopt_args = (
 ) ocaml_compiler_args
 
 let ocamlopt_args_specs
+
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -303,7 +325,11 @@ let ocamlopt_args_specs
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
-    ?compact ?inline ?nodynlink ?p ?_S ?shared ()
+
+    (* ocamlopt_args *)
+    ?compact ?inline ?nodynlink ?p ?_S ?shared
+
+    ()
   : spec option list list
   =
   (ocaml_compiler_args_specs
@@ -330,6 +356,8 @@ let ocamlopt_args_specs
   ]
 
 let ocamlopt
+
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -339,7 +367,11 @@ let ocamlopt
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
-    ?compact ?inline ?nodynlink ?p ?_S ?shared files
+
+    (* ocamlopt_args *)
+    ?compact ?inline ?nodynlink ?p ?_S ?shared
+
+    files
   =
   [[Some (A "ocamlopt")]]
   @(ocamlopt_args_specs
@@ -376,7 +408,11 @@ let ocamlfind_args_specs ?package ?linkpkg () : spec option list list =
   ]
 
 let ocamlfind_ocaml_compiler
+
+    (* ocamlfind_args *)
     ?package ?linkpkg
+
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -386,6 +422,7 @@ let ocamlfind_ocaml_compiler
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
+
     mode files
   =
   [[
@@ -409,7 +446,11 @@ let ocamlfind_ocaml_compiler
   |> specs_to_command
 
 let ocamlfind_ocamlc
+
+    (* ocamlfind_args *)
     ?package ?linkpkg
+
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -419,7 +460,11 @@ let ocamlfind_ocamlc
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
-    ?compat_32 ?custom ?dllib ?dllpath ?vmthread files
+
+    (* ocamlc_args *)
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread
+
+    files
   =
   [[Some (A "ocamlfind"); Some (A "ocamlc")]]
   @(ocamlc_args_specs
@@ -439,7 +484,11 @@ let ocamlfind_ocamlc
   |> specs_to_command
 
 let ocamlfind_ocamlopt
+
+    (* ocamlfind_args *)
     ?package ?linkpkg
+
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -449,7 +498,11 @@ let ocamlfind_ocamlopt
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
-    ?compact ?inline ?nodynlink ?p ?_S ?shared files
+
+    (* ocamlopt_args *)
+    ?compact ?inline ?nodynlink ?p ?_S ?shared
+
+    files
   =
   [[Some (A "ocamlfind"); Some (A "ocamlopt")]]
   @(ocamlopt_args_specs
@@ -631,12 +684,16 @@ type 'a js_of_ocaml_args =
   'a
 
 let js_of_ocaml_args_specs
+
+    (* js_of_ocaml_args *)
     ?custom_header ?debug ?debug_info ?disable ?enable
     ?no_inline ?no_runtime ?o ?opt ?pretty ?quiet ?set
     ?source_map_inline ?source_map_no_source
     ?source_map_root ?source_map
     ?version ?extern_fs ?file ?_I ?ofs
-    ?linkall ?no_cmis ?toplevel ()
+    ?linkall ?no_cmis ?toplevel
+
+    ()
   : spec option list list
   =
   let string = string ~delim:`Equal in
@@ -675,12 +732,16 @@ let js_of_ocaml_args_specs
   ]
 
 let js_of_ocaml
+
+    (* js_of_ocaml_args *)
     ?custom_header ?debug ?debug_info ?disable ?enable
     ?no_inline ?no_runtime ?o ?opt ?pretty ?quiet ?set
     ?source_map_inline ?source_map_no_source
     ?source_map_root ?source_map
     ?version ?extern_fs ?file ?_I ?ofs
-    ?linkall ?no_cmis ?toplevel ?js_files cma
+    ?linkall ?no_cmis ?toplevel ?js_files
+
+    cma
   =
   [[Some (A "js_of_ocaml")]]
   @(js_of_ocaml_args_specs
@@ -717,9 +778,12 @@ type 'a eliom_args =
   'a
 
 let eliom_args_specs
+
+    (* eliom_args *)
     ?package ?no_autoload ?type_conv ?infer
     ?dir ?type_dir ?server_types_ext
     ?ppopt ?predicates ?eliom_ppx
+
     ()
   =
   let string = string ~delim:`Space in
@@ -740,9 +804,13 @@ let eliom_args_specs
   ]
 
 let eliomc
+
+    (* eliom_args *)
     ?package ?no_autoload ?type_conv ?infer
     ?dir ?type_dir ?server_types_ext
     ?ppopt ?predicates ?eliom_ppx
+
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -752,7 +820,10 @@ let eliomc
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
+
+    (* ocamlc_args *)
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread
+
     files
   =
   [[Some (A "eliomc")]]
@@ -777,9 +848,13 @@ let eliomc
   |> specs_to_command
 
 let eliomopt
+
+    (* eliom_args *)
     ?package ?no_autoload ?type_conv ?infer
     ?dir ?type_dir ?server_types_ext
     ?ppopt ?predicates ?eliom_ppx
+
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -789,7 +864,10 @@ let eliomopt
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
+
+    (* ocamlopt_args *)
     ?compact ?inline ?nodynlink ?p ?_S ?shared
+
     files
   =
   [[Some (A "eliomopt")]]
@@ -831,10 +909,13 @@ type 'a js_of_eliom_args =
   'a
 
 let js_of_eliom_args_specs
+
+    (* js_of_eliom_args *)
     ?package ?no_autoload ?type_conv
     ?dir ?type_dir ?server_types_ext
     ?jsopt ?ppopt ?predicates ?eliom_ppx
     ?dont_force_linkall
+
     ()
   =
   let string = string ~delim:`Space in
@@ -874,7 +955,7 @@ let js_of_eliom
     ?version:_ ?extern_fs ?file ?_I ?ofs
     ?linkall:_ ?no_cmis ?toplevel
 
-    (* ocamlc_args *)
+    (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?_I
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
@@ -884,6 +965,8 @@ let js_of_eliom
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
     ?w ?warn_error ?warn_help ?where ?help
+
+    (* ocamlc_args *)
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread
 
     files
