@@ -952,7 +952,7 @@ let js_of_eliom
     ?no_inline ?no_runtime ?o:_ ?opt ?pretty ?quiet ?set
     ?source_map_inline ?source_map_no_source
     ?source_map_root ?source_map
-    ?version:_ ?extern_fs ?file ?pathI ?ofs
+    ?version:_ ?extern_fs ?file ?pathI:_ ?ofs
     ?linkall:_ ?no_cmis ?toplevel
 
     (* ocaml_compiler_args *)
