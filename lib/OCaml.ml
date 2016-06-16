@@ -793,7 +793,7 @@ let eliom_args_specs
      | Some l -> string "-package" (Some (String.concat ~sep:"," l))
     );
     unit "-no-autoload" no_autoload;
-    unit "-type_conv" type_conv;
+    unit "-type-conv" type_conv;
     unit "-infer" infer;
     string "-dir" dir;
     string "-type-dir" type_dir;
@@ -925,7 +925,7 @@ let js_of_eliom_args_specs
      | Some l -> string "-package" (Some (String.concat ~sep:"," l))
     );
     unit "-no-autoload" no_autoload;
-    unit "-type_conv" type_conv;
+    unit "-type-conv" type_conv;
     string "-dir" dir;
     string "-type-dir" type_dir;
     string "-server-types-ext" server_types_ext;
