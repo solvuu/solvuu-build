@@ -505,15 +505,15 @@ let build_lib (x:lib) =
   let short_paths = x.short_paths in
   let thread = x.thread in
   let w = x.w in
-  let ocaml ?pack ?o ?a ?c ?_I ?package ?for_pack ?custom mode files =
+  let ocaml ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom mode files =
     match mode with
     | `Byte ->
       OCaml.ocamlfind_ocamlc files
-        ?pack ?o ?a ?c ?_I ?package ?for_pack ?custom
+        ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom
         ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
     | `Native ->
       OCaml.ocamlfind_ocamlopt files
-        ?pack ?o ?a ?c ?_I ?package ?for_pack
+        ?pack ?o ?a ?c ?pathI ?package ?for_pack
         ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
   in
   let package = findlib_deps_all (Lib x) in
@@ -521,7 +521,7 @@ let build_lib (x:lib) =
   let mli_files = List.map x.mli_files ~f:(fun y -> x.dir/y) in
   let c_files = List.map x.c_files ~f:(fun y -> x.dir/y) in
 
-  let _I = List.sort_uniq String.compare @@
+  let pathI = List.sort_uniq String.compare @@
     x.dir
     ::(dirname x.dir)
     ::(
@@ -621,13 +621,13 @@ let build_lib (x:lib) =
     Rule.rule ~deps:[mli] ~prods:[cmi]
       (fun _ build ->
          let _ =
-           OCaml.ocamldep1 ~modules:() ~_I mli |>
+           OCaml.ocamldep1 ~modules:() ~pathI mli |>
            List.filter_map ~f:file_base_of_module |>
            List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
            build |>
            assert_all_outcomes
          in
-         ocaml `Byte ~c:() ~_I ~package ~o:cmi [mli]
+         ocaml `Byte ~c:() ~pathI ~package ~o:cmi [mli]
       )
   );
 
@@ -651,13 +651,13 @@ let build_lib (x:lib) =
       Rule.rule ~deps ~prods
         (fun _ build ->
            let _ =
-             OCaml.ocamldep1 ~modules:() ~_I ml |>
+             OCaml.ocamldep1 ~modules:() ~pathI ml |>
              List.filter_map ~f:file_base_of_module |>
              List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
              build |>
              assert_all_outcomes
            in
-           ocaml mode ~c ~_I ~package ~for_pack ~o:obj [ml]
+           ocaml mode ~c ~pathI ~package ~for_pack ~o:obj [ml]
         )
     )
   );
@@ -669,7 +669,7 @@ let build_lib (x:lib) =
     let c = () in
     Rule.rule ~deps:[c_file] ~prods:[obj] (fun _ _ ->
       Ocamlbuild_plugin.(Seq [
-        OCaml.ocamlc ~c ~_I ~o:obj [c_file];
+        OCaml.ocamlc ~c ~pathI ~o:obj [c_file];
 
         (* OCaml compiler appears to ignore the -o option set
            above. Output file always goes into _build, so moving
@@ -689,7 +689,7 @@ let build_app (x:app) =
   let thread = x.thread in
   let w = x.w in
   let package = findlib_deps_all (App x) in
-  let _I =
+  let pathI =
     internal_deps_all (App x) |>
     List.filter_map ~f:(function
       | Lib x -> Some (dirname x.dir)
@@ -701,7 +701,7 @@ let build_app (x:app) =
     let ocaml ?o files = OCaml.ocamlfind_ocaml_compiler mode files
         ?o
         ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
-        ~package ~_I ~linkpkg:()
+        ~package ~pathI ~linkpkg:()
     in
     let path_of_lib (x:lib) = match mode with
       | `Byte -> path_of_lib ~suffix:".cma" x

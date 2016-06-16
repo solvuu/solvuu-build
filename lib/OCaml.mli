@@ -1,4 +1,20 @@
-(** OCaml commands. *)
+(** OCaml commands.
+
+    Command line flags are mapped to labeled arguments with the exact
+    same name, e.g. ocamlc's [-c] flag is represented by a [~c]
+    argument to the {!ocamlc} function provided here. Sometimes this
+    is not possible and we resolve the mapping as follows:
+
+    - The flag is an OCaml keyword, in which case we suffix with an
+      underscore. For example, ocamlc takes an [-open] flag, which is
+      mapped to an [~open_] argument here.
+
+    - The flag begins with a capital letter, in which case we choose
+      an alternate name that represents the meaning of the flag. A
+      commonly occuring case of this is the [-I] flag, which we map to
+      [~pathI]. Other cases are documented below wherever they occur.
+
+*)
 open Ocamlbuild_plugin
 
 (******************************************************************************)
@@ -19,7 +35,7 @@ type 'a ocaml_compiler_args =
   ?for_pack:string ->
   ?g:unit ->
   ?i:unit ->
-  ?_I:string list ->
+  ?pathI:string list ->
   ?impl:string ->
   ?intf:string ->
   ?intf_suffix:string ->
@@ -65,6 +81,7 @@ type 'a ocaml_compiler_args =
 val ocaml_compiler :
   ([`Byte | `Native] -> Pathname.t list -> Command.t) ocaml_compiler_args
 
+
 (******************************************************************************)
 (** {2 ocamlc} *)
 (******************************************************************************)
@@ -79,20 +96,25 @@ type 'a ocamlc_args = (
 
 val ocamlc : (Pathname.t list -> Command.t) ocamlc_args
 
+
 (******************************************************************************)
 (** {2 ocamlopt} *)
 (******************************************************************************)
+
+(** The [~keep_assembly] argument corresponds to ocamlopt's [-S]
+    argument. *)
 type 'a ocamlopt_args = (
   ?compact:unit ->
   ?inline:int ->
   ?nodynlink:unit ->
   ?p:unit ->
-  ?_S:unit ->
+  ?keep_assembly:unit ->
   ?shared:unit ->
   'a
 ) ocaml_compiler_args
 
 val ocamlopt : (Pathname.t list -> Command.t) ocamlopt_args
+
 
 (******************************************************************************)
 (** {2 ocamlfind} *)
@@ -113,9 +135,13 @@ val ocamlfind_ocamlc :
 val ocamlfind_ocamlopt :
   (Pathname.t list -> Command.t) ocamlopt_args ocamlfind_args
 
+
 (******************************************************************************)
 (** {2 ocamlmklib} *)
 (******************************************************************************)
+
+(** The [~pathL] labeled argument corresponds to ocamlmklib's [-L]
+    flag. *)
 val ocamlmklib :
   ?cclib:string ->
   ?ccopt:string ->
@@ -123,12 +149,12 @@ val ocamlmklib :
   ?g:unit ->
   ?dllpath:string ->
   ?framework:string ->
-  ?_I:string list ->
+  ?pathI:string list ->
   ?failsafe:unit ->
   ?ldopt:string ->
   ?linkall:unit ->
   ?l:string ->
-  ?_L:string list ->
+  ?pathL:string list ->
   ?ocamlc:string ->
   ?ocamlcflags:string ->
   ?ocamlopt:string ->
@@ -150,7 +176,7 @@ val ocamlmklib :
     calling this function. *)
 val ocamldep
   :  ?modules:unit
-  -> ?_I:string list
+  -> ?pathI:string list
   -> Pathname.t list
   -> (string * string list) list
 
@@ -161,7 +187,7 @@ val ocamldep
     anything in this case. *)
 val ocamldep1
   :  ?modules:unit
-  -> ?_I:string list
+  -> ?pathI:string list
   -> Pathname.t
   -> string list
 
@@ -170,6 +196,7 @@ val ocamldep1
     so there is no guarantee that the returned list contains all files
     in the input list. *)
 val ocamldep_sort : Pathname.t list -> Pathname.t list
+
 
 (******************************************************************************)
 (** {2 ocamllex/menhir} *)
@@ -210,7 +237,7 @@ type 'a js_of_ocaml_args =
   ?version:unit ->
   ?extern_fs:unit ->
   ?file:string list ->
-  ?_I:string list ->
+  ?pathI:string list ->
   ?ofs:string ->
   ?linkall:unit ->
   ?no_cmis:unit ->

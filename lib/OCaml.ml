@@ -68,7 +68,7 @@ type 'a ocaml_compiler_args =
   ?for_pack:string ->
   ?g:unit ->
   ?i:unit ->
-  ?_I:string list ->
+  ?pathI:string list ->
   ?impl:string ->
   ?intf:string ->
   ?intf_suffix:string ->
@@ -112,7 +112,7 @@ let ocaml_compiler_args_specs
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -144,7 +144,7 @@ let ocaml_compiler_args_specs
     string "-for-pack" for_pack;
     unit "-g" g;
     unit "-i" i;
-    string_list "-I" _I;
+    string_list "-I" pathI;
     string "-impl" impl;
     string "-intf" intf;
     string "-intf-suffix" intf_suffix;
@@ -188,7 +188,7 @@ let ocaml_compiler
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -202,7 +202,7 @@ let ocaml_compiler
   [[Some (A (match mode with `Byte -> "ocamlc" | `Native -> "ocamlopt"))]]
   @(ocaml_compiler_args_specs
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-     ?config ?for_pack ?g ?i ?_I
+     ?config ?for_pack ?g ?i ?pathI
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -230,7 +230,7 @@ let ocamlc_args_specs
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -249,7 +249,7 @@ let ocamlc_args_specs
   let string = string ~delim:`Space in
   (ocaml_compiler_args_specs
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-     ?config ?for_pack ?g ?i ?_I
+     ?config ?for_pack ?g ?i ?pathI
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -269,7 +269,7 @@ let ocamlc
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -286,7 +286,7 @@ let ocamlc
   [[Some (A "ocamlc")]]
   @(ocamlc_args_specs
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-     ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?_I
+     ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?pathI
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -308,7 +308,7 @@ type 'a ocamlopt_args = (
   ?inline:int ->
   ?nodynlink:unit ->
   ?p:unit ->
-  ?_S:unit ->
+  ?keep_assembly:unit ->
   ?shared:unit ->
   'a
 ) ocaml_compiler_args
@@ -317,7 +317,7 @@ let ocamlopt_args_specs
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -327,14 +327,14 @@ let ocamlopt_args_specs
     ?w ?warn_error ?warn_help ?where ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?nodynlink ?p ?_S ?shared
+    ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
 
     ()
   : spec option list list
   =
   (ocaml_compiler_args_specs
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-     ?config ?for_pack ?g ?i ?_I
+     ?config ?for_pack ?g ?i ?pathI
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -351,7 +351,7 @@ let ocamlopt_args_specs
     );
     unit "-nodynlink" nodynlink;
     unit "-p" p;
-    unit "-S" _S;
+    unit "-S" keep_assembly;
     unit "-shared" shared;
   ]
 
@@ -359,7 +359,7 @@ let ocamlopt
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -369,14 +369,14 @@ let ocamlopt
     ?w ?warn_error ?warn_help ?where ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?nodynlink ?p ?_S ?shared
+    ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
 
     files
   =
   [[Some (A "ocamlopt")]]
   @(ocamlopt_args_specs
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-     ?config ?for_pack ?g ?i ?_I
+     ?config ?for_pack ?g ?i ?pathI
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -384,7 +384,7 @@ let ocamlopt
      ?strict_sequence ?strict_formats ?thread ?unsafe
      ?unsafe_string ?use_runtime ?v ?verbose ?version
      ?w ?warn_error ?warn_help ?where ?help
-     ?compact ?inline ?nodynlink ?p ?_S ?shared ()
+     ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared ()
   )@[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
@@ -414,7 +414,7 @@ let ocamlfind_ocaml_compiler
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -432,7 +432,7 @@ let ocamlfind_ocaml_compiler
   @(
     ocaml_compiler_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?for_pack ?g ?i ?_I
+      ?config ?for_pack ?g ?i ?pathI
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
       ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -452,7 +452,7 @@ let ocamlfind_ocamlc
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -469,7 +469,7 @@ let ocamlfind_ocamlc
   [[Some (A "ocamlfind"); Some (A "ocamlc")]]
   @(ocamlc_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?for_pack ?g ?i ?_I
+      ?config ?for_pack ?g ?i ?pathI
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
       ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -490,7 +490,7 @@ let ocamlfind_ocamlopt
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -500,14 +500,14 @@ let ocamlfind_ocamlopt
     ?w ?warn_error ?warn_help ?where ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?nodynlink ?p ?_S ?shared
+    ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
 
     files
   =
   [[Some (A "ocamlfind"); Some (A "ocamlopt")]]
   @(ocamlopt_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?for_pack ?g ?i ?_I
+      ?config ?for_pack ?g ?i ?pathI
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
       ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -515,7 +515,7 @@ let ocamlfind_ocamlopt
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version
       ?w ?warn_error ?warn_help ?where ?help
-      ?compact ?inline ?nodynlink ?p ?_S ?shared ()
+      ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared ()
    )
   @(ocamlfind_args_specs ?package ?linkpkg ())
   @[List.map files ~f:(fun file -> Some (A file))]
@@ -526,8 +526,8 @@ let ocamlfind_ocamlopt
 (** {2 ocamlmklib} *)
 (******************************************************************************)
 let ocamlmklib
-    ?cclib ?ccopt ?custom ?g ?dllpath ?framework ?_I
-    ?failsafe ?ldopt ?linkall ?l ?_L
+    ?cclib ?ccopt ?custom ?g ?dllpath ?framework ?pathI
+    ?failsafe ?ldopt ?linkall ?l ?pathL
     ?ocamlc ?ocamlcflags ?ocamlopt ?ocamloptflags
     ?o ?oc ?verbose
     files
@@ -541,12 +541,12 @@ let ocamlmklib
     unit "-g" g;
     string "-dllpath" dllpath;
     string "-framework" framework;
-    string_list ~delim:`Space "-I" _I;
+    string_list ~delim:`Space "-I" pathI;
     unit "-failsafe" failsafe;
     string "-ldopt" ldopt;
     unit "-linkall" linkall;
     string "-l" l;
-    string_list ~delim:`None "-L" _L;
+    string_list ~delim:`None "-L" pathL;
     string "-ocamlc" ocamlc;
     string "-ocamlcflags" ocamlcflags;
     string "-ocamlopt" ocamlopt;
@@ -562,11 +562,11 @@ let ocamlmklib
 (******************************************************************************)
 (** {2 ocamldep} *)
 (******************************************************************************)
-let ocamldep ?modules ?(_I=[]) files =
+let ocamldep ?modules ?(pathI=[]) files =
   let cmd =
     [
       ["ocamldep"; "-one-line"];
-      List.map _I ~f:(sprintf "-I %s");
+      List.map pathI ~f:(sprintf "-I %s");
       (match modules with None -> [] | Some () -> ["-modules"]);
     ] |>
     List.flatten |> fun l ->
@@ -592,9 +592,9 @@ let ocamldep ?modules ?(_I=[]) files =
   List.filter ~f:(function "",[] -> false  | _ -> true) |>
   List.map ~f:(function x,[""] -> x,[] | x,y -> x,y)
 
-let ocamldep1 ?modules ?_I file =
+let ocamldep1 ?modules ?pathI file =
   assert (Sys.file_exists file);
-  ocamldep ?modules ?_I [file] |> function
+  ocamldep ?modules ?pathI [file] |> function
   | [] -> failwithf "ocamldep returned no output for existing file %s"
             file ()
   | (x,deps)::[] ->
@@ -676,7 +676,7 @@ type 'a js_of_ocaml_args =
   ?version:unit ->
   ?extern_fs:unit ->
   ?file:string list ->
-  ?_I:string list ->
+  ?pathI:string list ->
   ?ofs:string ->
   ?linkall:unit ->
   ?no_cmis:unit ->
@@ -690,7 +690,7 @@ let js_of_ocaml_args_specs
     ?no_inline ?no_runtime ?o ?opt ?pretty ?quiet ?set
     ?source_map_inline ?source_map_no_source
     ?source_map_root ?source_map
-    ?version ?extern_fs ?file ?_I ?ofs
+    ?version ?extern_fs ?file ?pathI ?ofs
     ?linkall ?no_cmis ?toplevel
 
     ()
@@ -724,7 +724,7 @@ let js_of_ocaml_args_specs
     unit "--version" version;
     unit "--extern-fs" extern_fs;
     string_list ~delim:`Equal "--file" file;
-    string_list ~delim:`Space "-I" _I;
+    string_list ~delim:`Space "-I" pathI;
     string "--ofs" ofs;
     unit "--linkall" linkall;
     unit "--no-cmis" no_cmis;
@@ -738,7 +738,7 @@ let js_of_ocaml
     ?no_inline ?no_runtime ?o ?opt ?pretty ?quiet ?set
     ?source_map_inline ?source_map_no_source
     ?source_map_root ?source_map
-    ?version ?extern_fs ?file ?_I ?ofs
+    ?version ?extern_fs ?file ?pathI ?ofs
     ?linkall ?no_cmis ?toplevel ?js_files
 
     cma
@@ -749,7 +749,7 @@ let js_of_ocaml
      ?no_inline ?no_runtime ?o ?opt ?pretty ?quiet ?set
      ?source_map_inline ?source_map_no_source
      ?source_map_root ?source_map
-     ?version ?extern_fs ?file ?_I ?ofs
+     ?version ?extern_fs ?file ?pathI ?ofs
      ?linkall ?no_cmis ?toplevel ()
   )
   @[
@@ -812,7 +812,7 @@ let eliomc
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -834,7 +834,7 @@ let eliomc
   )
   @(ocamlc_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?for_pack ?g ?i ?_I
+      ?config ?for_pack ?g ?i ?pathI
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
       ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -856,7 +856,7 @@ let eliomopt
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -866,7 +866,7 @@ let eliomopt
     ?w ?warn_error ?warn_help ?where ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?nodynlink ?p ?_S ?shared
+    ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
 
     files
   =
@@ -878,7 +878,7 @@ let eliomopt
   )
   @(ocamlopt_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?for_pack ?g ?i ?_I
+      ?config ?for_pack ?g ?i ?pathI
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
       ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -886,7 +886,7 @@ let eliomopt
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version
       ?w ?warn_error ?warn_help ?where ?help
-      ?compact ?inline ?nodynlink ?p ?_S ?shared ()
+      ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared ()
    )
   @[List.map files ~f:(fun x -> Some (A x))]
   |> specs_to_command
@@ -952,12 +952,12 @@ let js_of_eliom
     ?no_inline ?no_runtime ?o:_ ?opt ?pretty ?quiet ?set
     ?source_map_inline ?source_map_no_source
     ?source_map_root ?source_map
-    ?version:_ ?extern_fs ?file ?_I ?ofs
+    ?version:_ ?extern_fs ?file ?pathI ?ofs
     ?linkall:_ ?no_cmis ?toplevel
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?_I
+    ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
@@ -983,12 +983,12 @@ let js_of_eliom
       ?no_inline ?no_runtime ?o:None ?opt ?pretty ?quiet ?set
       ?source_map_inline ?source_map_no_source
       ?source_map_root ?source_map
-      ?version:None ?extern_fs ?file ?_I ?ofs
+      ?version:None ?extern_fs ?file ?pathI ?ofs
       ?linkall:None ?no_cmis ?toplevel ()
    )
   @(ocamlc_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?for_pack ?g ?i ?_I
+      ?config ?for_pack ?g ?i ?pathI
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
       ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
