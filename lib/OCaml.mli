@@ -1,4 +1,17 @@
-(** OCaml commands.
+(** OCaml and related commands. We provided convenient constructors
+    for command line calls, of type [Command.t] as needed by
+    ocamlbuild. Functions here correspond to command line tools, whose
+    flags are mapped to labeled arguments.
+
+    Most functions return a value of type [Command.t], which you can
+    use to create your own rules. Sometimes we provide a function to
+    register a rule also. For example, {!ocamllex} constructs a
+    command and {!ocamllex_rule} registers a corresponding rule that
+    takes care of defining the dependency and target for you. Finally,
+    sometimes you want to run a tool right away, as opposed to
+    registering it to be run later. We provide some convenience
+    functions for this too, e.g. {!run_ocamldep} immediately runs
+    ocamldep, captures its output, and returns the parsed result.
 
     Command line flags are mapped to labeled arguments with the exact
     same name, e.g. ocamlc's [-c] flag is represented by a [~c]
@@ -13,6 +26,12 @@
       an alternate name that represents the meaning of the flag. A
       commonly occuring case of this is the [-I] flag, which we map to
       [~pathI]. Other cases are documented below wherever they occur.
+
+    Command line tools sometimes allow a flag to be passed multiple
+    times. We represent this by making the type of the corresponding
+    argument a list. For example, ocamlc's [-open] arugment takes a
+    string value, and this can be given any number of times. Thus the
+    [~open_] argument is of type [string list].
 
 *)
 open Ocamlbuild_plugin
@@ -174,18 +193,18 @@ val ocamlmklib :
     list of dependencies. Note ocamldep ignores files that don't
     exist. You may want to assert that the given files exist prior to
     calling this function. *)
-val ocamldep
+val run_ocamldep
   :  ?modules:unit
   -> ?pathI:string list
   -> Pathname.t list
   -> (string * string list) list
 
-(** Similar to [ocamldep] but more convenient when you want the
+(** Similar to [run_ocamldep] but more convenient when you want the
     dependencies of a single file. We directly return the dependencies
     of the given file. In this case, we also raise an exception if the
     given file doesn't already exist since ocamldep can't compute
     anything in this case. *)
-val ocamldep1
+val run_ocamldep1
   :  ?modules:unit
   -> ?pathI:string list
   -> Pathname.t
@@ -195,7 +214,7 @@ val ocamldep1
     earlier ones. Note that ocamldep ignores files that don't exist,
     so there is no guarantee that the returned list contains all files
     in the input list. *)
-val ocamldep_sort : Pathname.t list -> Pathname.t list
+val run_ocamldep_sort : Pathname.t list -> Pathname.t list
 
 
 (******************************************************************************)

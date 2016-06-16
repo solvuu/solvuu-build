@@ -562,7 +562,7 @@ let ocamlmklib
 (******************************************************************************)
 (** {2 ocamldep} *)
 (******************************************************************************)
-let ocamldep ?modules ?(pathI=[]) files =
+let run_ocamldep ?modules ?(pathI=[]) files =
   let cmd =
     [
       ["ocamldep"; "-one-line"];
@@ -592,9 +592,9 @@ let ocamldep ?modules ?(pathI=[]) files =
   List.filter ~f:(function "",[] -> false  | _ -> true) |>
   List.map ~f:(function x,[""] -> x,[] | x,y -> x,y)
 
-let ocamldep1 ?modules ?pathI file =
+let run_ocamldep1 ?modules ?pathI file =
   assert (Sys.file_exists file);
-  ocamldep ?modules ?pathI [file] |> function
+  run_ocamldep ?modules ?pathI [file] |> function
   | [] -> failwithf "ocamldep returned no output for existing file %s"
             file ()
   | (x,deps)::[] ->
@@ -604,7 +604,7 @@ let ocamldep1 ?modules ?pathI file =
   | _ -> failwithf "ocamldep returned multiple outputs for single file %s"
            file ()
 
-let ocamldep_sort files =
+let run_ocamldep_sort files =
   let cmd =
     ["ocamldep"; "-sort"]@files |>
     String.concat ~sep:" "

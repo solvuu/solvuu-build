@@ -550,7 +550,7 @@ let build_lib (x:lib) =
     let prod = path_of_lib x ~suffix in
     Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
       let deps =
-        OCaml.ocamldep_sort ml_files |>
+        OCaml.run_ocamldep_sort ml_files |>
         List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
       in
       List.iter deps ~f:(fun x ->
@@ -621,7 +621,7 @@ let build_lib (x:lib) =
     Rule.rule ~deps:[mli] ~prods:[cmi]
       (fun _ build ->
          let _ =
-           OCaml.ocamldep1 ~modules:() ~pathI mli |>
+           OCaml.run_ocamldep1 ~modules:() ~pathI mli |>
            List.filter_map ~f:file_base_of_module |>
            List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
            build |>
@@ -651,7 +651,7 @@ let build_lib (x:lib) =
       Rule.rule ~deps ~prods
         (fun _ build ->
            let _ =
-             OCaml.ocamldep1 ~modules:() ~pathI ml |>
+             OCaml.run_ocamldep1 ~modules:() ~pathI ml |>
              List.filter_map ~f:file_base_of_module |>
              List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
              build |>
