@@ -39,6 +39,7 @@ open Ocamlbuild_plugin
 (******************************************************************************)
 (** {2 Abstraction over ocamlc/ocamlopt} *)
 (******************************************************************************)
+
 (** Arguments common to both ocamlc and ocamlopt. *)
 type 'a ocaml_compiler_args =
   ?a:unit ->
