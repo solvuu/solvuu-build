@@ -17,15 +17,11 @@ clean:
 	$(foreach demo,$(DEMOS),make -C $(demo) clean;)
 
 _build/META:
-	rm -f $@
-	@echo "version = \"$(VERSION)\"" >> $@
-	@echo "archive(byte) = \"$(PROJECT).cma\"" >> $@
-	@echo "archive(native) = \"$(PROJECT).cmxa\"" >> $@
-	@echo "exists_if = \"$(PROJECT).cma\"" >> $@
-	@echo "requires = \"findlib ocamlbuild ocamlgraph\"" >> $@
+	mkdir -p _build
+	ocaml bin/make-helper.ml META $(PROJECT) $(VERSION) > $@
 
 solvuu_build.install:
-	ocaml bin/make_install_file.ml > $@
+	ocaml bin/make-helper.ml install $(PROJECT) > $@
 
 test:
 	$(foreach demo,$(DEMOS),make -C $(demo);)

@@ -1,4 +1,4 @@
-true: warn(A-4-30-33-41-42-44-45-48)
-"lib": include
+true: warn(A-4-33-41-42-44-45-48),annot,bin_annot,debug,short_paths
 true: package(findlib), package(ocamlbuild), package(ocamlgraph)
 <lib/*.cmx> and not "lib/solvuu_build.cmx": for-pack(Solvuu_build)
+"lib": include
