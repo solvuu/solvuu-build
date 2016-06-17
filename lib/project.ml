@@ -57,21 +57,21 @@ let lib
     (match ml_files with
      |None -> l | Some (`Add x) -> x@l | Some (`Replace x) -> x
     )
-    |> List.sort_uniq String.compare
+    |> List.sort_uniq ~cmp:String.compare
   in
   let mli_files =
     List.filter files ~f:(fun x -> check_suffix x ".mli") |> fun l ->
     (match mli_files with
      | None -> l | Some (`Add x) -> x@l | Some (`Replace x) -> x
     )
-    |> List.sort_uniq String.compare
+    |> List.sort_uniq ~cmp:String.compare
   in
   let c_files =
     List.filter files ~f:(fun x -> check_suffix x ".c") |> fun l ->
     (match c_files with
      | None -> l | Some (`Add x) -> x@l | Some (`Replace x) -> x
     )
-    |> List.sort_uniq String.compare
+    |> List.sort_uniq ~cmp:String.compare
   in
   Lib {
     name; internal_deps; findlib_deps; pack_name;
@@ -109,7 +109,7 @@ let internal_deps_all t =
         List.map direct ~f:loop
         |> List.flatten
       in
-      List.sort_uniq compare (direct@further)
+      List.sort_uniq ~cmp:compare (direct@further)
   in
   loop t
 
@@ -125,7 +125,7 @@ let findlib_deps_all t =
         List.map (internal_deps t) ~f:loop
         |> List.flatten
       in
-      List.sort_uniq String.compare (direct@further)
+      List.sort_uniq ~cmp:String.compare (direct@further)
   in
   loop t
 
@@ -158,7 +158,7 @@ let filter_apps t =
 let all_findlib_pkgs t =
   List.map t ~f:findlib_deps
   |> List.flatten
-  |> List.sort_uniq String.compare
+  |> List.sort_uniq ~cmp:String.compare
 
 (******************************************************************************)
 (** {2 Item Module} *)
@@ -255,7 +255,7 @@ let merlin_file items : string list =
     );
   ]
   |> List.concat
-  |> List.sort_uniq String.compare
+  |> List.sort_uniq ~cmp:String.compare
 
 let meta_file ~version libs : Fl_metascanner.pkg_expr =
   let def ?(preds=[]) var value =
@@ -436,7 +436,7 @@ let ocamlinit_file ?(postfix=[]) items =
       List.map ~f:(fun x ->
         sprintf "#directory \"_build/%s\";;" (dirname x.dir)
       )
-      |> List.sort_uniq String.compare
+      |> List.sort_uniq ~cmp:String.compare
     );
     (
       Graph.Topological.sort graph |>
@@ -521,7 +521,7 @@ let build_lib (x:lib) =
   let mli_files = List.map x.mli_files ~f:(fun y -> x.dir/y) in
   let c_files = List.map x.c_files ~f:(fun y -> x.dir/y) in
 
-  let pathI = List.sort_uniq String.compare @@
+  let pathI = List.sort_uniq ~cmp:String.compare @@
     x.dir
     ::(dirname x.dir)
     ::(
@@ -533,7 +533,7 @@ let build_lib (x:lib) =
   let file_base_of_module mod_name : string option =
     let ml_bases = List.map ml_files ~f:(fun x -> chop_suffix x ".ml") in
     let mli_bases = List.map mli_files ~f:(fun x -> chop_suffix x ".mli") in
-    let bases = List.sort_uniq String.compare (ml_bases@mli_bases) in
+    let bases = List.sort_uniq ~cmp:String.compare (ml_bases@mli_bases) in
     List.filter bases ~f:(fun x -> String.capitalize (basename x) = mod_name)
     |> function
     | [] -> None (* Module is presumably from an external library. *)
@@ -695,7 +695,7 @@ let build_app (x:app) =
       | Lib x -> Some (dirname x.dir)
       | App _ -> None
     ) |>
-    List.sort_uniq String.compare
+    List.sort_uniq ~cmp:String.compare
   in
   List.iter [`Byte; `Native] ~f:(fun mode ->
     let ocaml ?o files = OCaml.ocamlfind_ocaml_compiler mode files

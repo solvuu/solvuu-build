@@ -102,9 +102,16 @@ module List = struct
   let diff a b =
     filter a ~f:(fun x -> not (mem x ~set:b))
 
+  (* ListLabels.sort_uniq was introduced in OCaml 4.03.0. Prior
+     versions (since 4.02.0) had only List.sort_uniq without a labeled
+     argument. The implementation below, including turning off warning
+     6, allows us to compile this code on all OCaml >= 4.02.0. *)
+  let sort_uniq ~cmp l =
+    sort_uniq cmp l [@@ocaml.warning "-6"]
+
   let is_uniq ~cmp (l : 'a list) : bool =
     let m = length l in
-    let n = length (sort_uniq cmp l) in
+    let n = length (sort_uniq ~cmp l) in
     m = n
 
   let last l = match List.rev l with

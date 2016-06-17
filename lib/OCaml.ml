@@ -583,7 +583,7 @@ let run_ocamldep ?modules ?(pathI=[]) files =
         String.split deps ~on:' ' |>
         List.map ~f:String.trim |>
         List.filter ~f:(function "" -> false | _ -> true) |>
-        List.sort_uniq String.compare
+        List.sort_uniq ~cmp:String.compare
       in
       target,deps
     | _ -> failwithf "unexpected output from %s, invalid line \"%s\""

@@ -60,10 +60,11 @@ module List : sig
   (** [diff a b] returns all items in [a] that are not in [b]. *)
   val diff : 'a list -> 'a list -> 'a list
 
+  val sort_uniq : cmp:('a -> 'a -> int) -> 'a list -> 'a list
+
   (** [is_uniq cmp l] returns true if every item in list [l] is unique
       according to [cmp]. *)
   val is_uniq : cmp:('a -> 'a -> int) -> 'a list -> bool
-
 
   val last : 'a list -> 'a option
   val last_exn : 'a list -> 'a
