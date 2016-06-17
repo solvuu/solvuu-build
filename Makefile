@@ -13,6 +13,7 @@ byte: $(PROJECT).cma
 
 clean:
 	$(OCAMLBUILD) -clean
+	rm -f $(PROJECT).install
 	$(foreach demo,$(DEMOS),make -C $(demo) clean;)
 
 _build/META:
