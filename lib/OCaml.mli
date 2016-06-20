@@ -307,6 +307,25 @@ val eliomopt : (Pathname.t list -> Command.t) ocamlopt_args eliom_args
 
 
 (******************************************************************************)
+(** {2 eliomdep} *)
+(******************************************************************************)
+type 'a eliomdep_args =
+  ?dir:string ->
+  ?type_dir:string ->
+  ?eliom_inc:string list ->
+  ?package:string list ->
+  ?no_autoload:unit ->
+  ?type_conv:unit ->
+  ?ppopt:string list ->
+  ?predicates:string ->
+  ?verbose:unit ->
+  'a
+
+val eliomdep_client : (Pathname.t list -> Command.t) eliomdep_args ocamldep_args
+val eliomdep_server : (Pathname.t list -> Command.t) eliomdep_args ocamldep_args
+
+
+(******************************************************************************)
 (** {2 js_of_eliom} *)
 (******************************************************************************)
 type 'a js_of_eliom_args =

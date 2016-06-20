@@ -987,6 +987,86 @@ let eliomopt
   @[List.map files ~f:(fun x -> Some (A x))]
   |> specs_to_command
 
+
+(******************************************************************************)
+(** {2 eliomdep} *)
+(******************************************************************************)
+type 'a eliomdep_args =
+  ?dir:string ->
+  ?type_dir:string ->
+  ?eliom_inc:string list ->
+  ?package:string list ->
+  ?no_autoload:unit ->
+  ?type_conv:unit ->
+  ?ppopt:string list ->
+  ?predicates:string ->
+  ?verbose:unit ->
+  'a
+
+let eliomdep_args_specs
+
+    (* eliomdep_args *)
+    ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
+    ?ppopt ?predicates ?verbose
+
+    ()
+  : spec option list list
+  =
+  let string = string ~delim:`Space in
+  let string_list = string_list ~delim:`Space in
+  [
+    string "-dir" dir;
+    string "-type-dir" type_dir;
+    string_list "-eliom-inc" eliom_inc;
+    (match package with
+     | None -> [None]
+     | Some x ->
+       string "-package" (Some (String.concat ~sep:"," x))
+    );
+    unit "-no-autoload" no_autoload;
+    unit "-type-conv" type_conv;
+    string_list "-ppopt" ppopt;
+    string "-predicates" predicates;
+    unit "-verbose" verbose;
+  ]
+
+let eliomdep
+    host
+
+    (* ocamldep_args *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+
+    (* eliomdep_args *)
+    ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
+    ?ppopt ?predicates ?verbose
+
+    files
+  =
+  [[
+    Some (A "eliomdep");
+    (match host with
+     | `Client -> Some (A "-client")
+     | `Server -> Some (A "-server")
+    );
+  ]]
+  @(eliomdep_args_specs
+      ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
+      ?ppopt ?predicates ?verbose ()
+   )
+  @(ocamldep_args_specs
+      ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+      ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+      ?sort ?version ()
+   )
+  @[List.map files ~f:(fun x -> Some (A x))]
+  |> specs_to_command
+
+let eliomdep_client = eliomdep `Client
+let eliomdep_server = eliomdep `Server
+
+
 (******************************************************************************)
 (** {2 js_of_eliom} *)
 (******************************************************************************)
