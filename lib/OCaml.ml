@@ -870,7 +870,7 @@ type 'a eliom_args =
   ?server_types_ext:string ->
   ?ppopt:string ->
   ?predicates:string ->
-  ?eliom_ppx:unit ->
+  ?ppx:unit ->
   'a
 
 let eliom_args_specs
@@ -878,7 +878,7 @@ let eliom_args_specs
     (* eliom_args *)
     ?package ?no_autoload ?type_conv ?infer
     ?dir ?type_dir ?server_types_ext
-    ?ppopt ?predicates ?eliom_ppx
+    ?ppopt ?predicates ?ppx
 
     ()
   =
@@ -896,7 +896,7 @@ let eliom_args_specs
     string "-server-types-ext" server_types_ext;
     string "-ppopt" ppopt;
     string "-predicates" predicates;
-    unit "-ppx" eliom_ppx;
+    unit "-ppx" ppx;
   ]
 
 let eliomc
@@ -904,14 +904,14 @@ let eliomc
     (* eliom_args *)
     ?package ?no_autoload ?type_conv ?infer
     ?dir ?type_dir ?server_types_ext
-    ?ppopt ?predicates ?eliom_ppx
+    ?ppopt ?predicates ?ppx:ppx_eliom
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx:ppx_ocaml ?principal
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
@@ -926,14 +926,14 @@ let eliomc
   @(eliom_args_specs
      ?package ?no_autoload ?type_conv ?infer
      ?dir ?type_dir ?server_types_ext
-     ?ppopt ?predicates ?eliom_ppx ()
+     ?ppopt ?predicates ?ppx:ppx_eliom ()
   )
   @(ocamlc_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
       ?config ?for_pack ?g ?i ?pathI
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx:ppx_ocaml ?principal
       ?rectypes ?runtime_variant ?safe_string ?short_paths
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version
@@ -948,14 +948,14 @@ let eliomopt
     (* eliom_args *)
     ?package ?no_autoload ?type_conv ?infer
     ?dir ?type_dir ?server_types_ext
-    ?ppopt ?predicates ?eliom_ppx
+    ?ppopt ?predicates ?ppx:ppx_eliom
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx:ppx_ocaml ?principal
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
@@ -970,14 +970,14 @@ let eliomopt
   @(eliom_args_specs
      ?package ?no_autoload ?type_conv ?infer
      ?dir ?type_dir ?server_types_ext
-     ?ppopt ?predicates ?eliom_ppx ()
+     ?ppopt ?predicates ?ppx:ppx_eliom ()
   )
   @(ocamlopt_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
       ?config ?for_pack ?g ?i ?pathI
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx:ppx_ocaml ?principal
       ?rectypes ?runtime_variant ?safe_string ?short_paths
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version
@@ -1080,7 +1080,7 @@ type 'a js_of_eliom_args =
   ?jsopt:string ->
   ?ppopt:string ->
   ?predicates:string ->
-  ?eliom_ppx:unit ->
+  ?ppx:unit ->
   ?dont_force_linkall:unit ->
   'a
 
@@ -1089,7 +1089,7 @@ let js_of_eliom_args_specs
     (* js_of_eliom_args *)
     ?package ?no_autoload ?type_conv
     ?dir ?type_dir ?server_types_ext
-    ?jsopt ?ppopt ?predicates ?eliom_ppx
+    ?jsopt ?ppopt ?predicates ?ppx
     ?dont_force_linkall
 
     ()
@@ -1108,7 +1108,7 @@ let js_of_eliom_args_specs
     string "-jsopt" jsopt;
     string "-ppopt" ppopt;
     string "-predicates" predicates;
-    unit "-ppx" eliom_ppx;
+    unit "-ppx" ppx;
     unit "-dont-force-linkall" dont_force_linkall;
   ]
 
@@ -1117,7 +1117,7 @@ let js_of_eliom
     (* js_of_eliom_args *)
     ?package ?no_autoload ?type_conv
     ?dir ?type_dir ?server_types_ext
-    ?jsopt ?ppopt ?predicates ?eliom_ppx
+    ?jsopt ?ppopt ?predicates ?ppx:ppx_eliom
     ?dont_force_linkall
 
     (* js_of_ocaml_args
@@ -1125,21 +1125,21 @@ let js_of_eliom
          is a bug in the js_of_eliom command line API.
     *)
     ?custom_header ?debug ?debug_info ?disable ?enable
-    ?no_inline ?no_runtime ?o:_ ?opt ?pretty ?quiet ?set
+    ?no_inline ?no_runtime ?o:o_js_of_ocaml ?opt ?pretty ?quiet ?set
     ?source_map_inline ?source_map_no_source
     ?source_map_root ?source_map
-    ?version:_ ?extern_fs ?file ?pathI:_ ?ofs
-    ?linkall:_ ?no_cmis ?toplevel
+    ?version:version_js_of_ocaml ?extern_fs ?file ?pathI:pathI_js_of_ocaml ?ofs
+    ?linkall:linkall_js_of_ocaml ?no_cmis ?toplevel
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-    ?config ?for_pack ?g ?i ?pathI
-    ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+    ?config ?for_pack ?g ?i ?pathI:pathI_ocaml
+    ?impl ?intf ?intf_suffix ?labels ?linkall:linkall_ocaml ?make_runtime
     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-    ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+    ?nostdlib ?o:o_ocaml ?open_ ?output_obj ?pack ?pp ?ppx:ppx_ocaml ?principal
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
-    ?unsafe_string ?use_runtime ?v ?verbose ?version
+    ?unsafe_string ?use_runtime ?v ?verbose ?version:version_ocaml
     ?w ?warn_error ?warn_help ?where ?help
 
     (* ocamlc_args *)
@@ -1151,26 +1151,28 @@ let js_of_eliom
   @(js_of_eliom_args_specs
       ?package ?no_autoload ?type_conv
       ?dir ?type_dir ?server_types_ext
-      ?jsopt ?ppopt ?predicates ?eliom_ppx
+      ?jsopt ?ppopt ?predicates ?ppx:ppx_eliom
       ?dont_force_linkall ()
    )
   @(js_of_ocaml_args_specs
       ?custom_header ?debug ?debug_info ?disable ?enable
-      ?no_inline ?no_runtime ?o:None ?opt ?pretty ?quiet ?set
+      ?no_inline ?no_runtime ?o:o_js_of_ocaml ?opt ?pretty ?quiet ?set
       ?source_map_inline ?source_map_no_source
       ?source_map_root ?source_map
-      ?version:None ?extern_fs ?file ?pathI ?ofs
-      ?linkall:None ?no_cmis ?toplevel ()
+      ?version:version_js_of_ocaml ?extern_fs ?file
+      ?pathI:pathI_js_of_ocaml ?ofs
+      ?linkall:linkall_js_of_ocaml ?no_cmis ?toplevel ()
    )
   @(ocamlc_args_specs
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
-      ?config ?for_pack ?g ?i ?pathI
-      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
+      ?config ?for_pack ?g ?i ?pathI:pathI_ocaml
+      ?impl ?intf ?intf_suffix ?labels ?linkall:linkall_ocaml ?make_runtime
       ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
-      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
+      ?nostdlib ?o:o_ocaml ?open_ ?output_obj ?pack ?pp ?ppx:ppx_ocaml
+      ?principal
       ?rectypes ?runtime_variant ?safe_string ?short_paths
       ?strict_sequence ?strict_formats ?thread ?unsafe
-      ?unsafe_string ?use_runtime ?v ?verbose ?version
+      ?unsafe_string ?use_runtime ?v ?verbose ?version:version_ocaml
       ?w ?warn_error ?warn_help ?where ?help
       ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
    )

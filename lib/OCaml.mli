@@ -289,6 +289,12 @@ val js_of_ocaml :
 (******************************************************************************)
 (** {2 eliomc/eliomopt} *)
 (******************************************************************************)
+
+(** Arguments specific to eliomc/eliomopt. Note that -ppx is
+    duplicated here and in ocamlc/ocamlopt. Thus, you can pass [~ppx]
+    twice to {!eliomc} and {!eliomopt}. This mimics the (flawed)
+    command line {{:https://github.com/ocsigen/eliom/issues/273}API of
+    eliomc/eliomopt}. *)
 type 'a eliom_args =
   ?package:string list ->
   ?no_autoload:unit ->
@@ -299,7 +305,7 @@ type 'a eliom_args =
   ?server_types_ext:string ->
   ?ppopt:string ->
   ?predicates:string ->
-  ?eliom_ppx:unit ->
+  ?ppx:unit ->
   'a
 
 val eliomc   : (Pathname.t list -> Command.t) ocamlc_args   eliom_args
@@ -338,7 +344,7 @@ type 'a js_of_eliom_args =
   ?jsopt:string ->
   ?ppopt:string ->
   ?predicates:string ->
-  ?eliom_ppx:unit ->
+  ?ppx:unit ->
   ?dont_force_linkall:unit ->
   'a
 
