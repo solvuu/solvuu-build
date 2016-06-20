@@ -50,6 +50,13 @@ let specs_to_command (specs : spec option list list) : Command.t =
   |> List.filter_map ~f:Fn.id
   |> fun l -> Cmd (S l)
 
+let spec_of_command (x:Command.t) : Command.spec =
+  match x with
+  | Command.Cmd x -> x
+  | Command.Seq _ -> failwith "cannot extract spec from sequence of commands"
+  | Command.Echo _ -> failwith "cannot convert Command.Echo to spec"
+  | Command.Nop -> failwith "cannot convert Command.Nop to spec"
+
 
 (******************************************************************************)
 (** {2 Abstraction over ocamlc/ocamlopt} *)
@@ -630,15 +637,24 @@ let ocamldep
   @[List.map files ~f:(fun x -> Some (A x))]
   |> specs_to_command
 
-let run_ocamldep ?modules ?(pathI=[]) files =
+let run_ocamldep
+
+    (* ocamldep_args *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line:_ ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+
+    files
+  =
+  let one_line = Some () in
   let cmd =
-    [
-      ["ocamldep"; "-one-line"];
-      List.map pathI ~f:(sprintf "-I %s");
-      (match modules with None -> [] | Some () -> ["-modules"]);
-    ] |>
-    List.flatten |> fun l ->
-    String.concat ~sep:" " (l@files)
+    ocamldep
+      ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+      ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+      ?sort ?version
+      files
+    |> spec_of_command
+    |> Command.string_of_command_spec
   in
   Ocamlbuild_pack.My_unix.run_and_read cmd |>
   String.split ~on:'\n' |>
@@ -660,9 +676,25 @@ let run_ocamldep ?modules ?(pathI=[]) files =
   List.filter ~f:(function "",[] -> false  | _ -> true) |>
   List.map ~f:(function x,[""] -> x,[] | x,y -> x,y)
 
-let run_ocamldep1 ?modules ?pathI file =
+let run_ocamldep1
+
+
+    (* ocamldep_args *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line:_ ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+
+    file
+  =
   assert (Sys.file_exists file);
-  run_ocamldep ?modules ?pathI [file] |> function
+  let one_line = Some () in
+
+  run_ocamldep
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+    [file]
+  |> function
   | [] -> failwithf "ocamldep returned no output for existing file %s"
             file ()
   | (x,deps)::[] ->

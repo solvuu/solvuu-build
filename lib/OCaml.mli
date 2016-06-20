@@ -213,12 +213,13 @@ val ocamldep : (Pathname.t list -> Command.t) ocamldep_args
 (** Return an association list mapping each given input file to its
     list of dependencies. Note ocamldep ignores files that don't
     exist. You may want to assert that the given files exist prior to
-    calling this function. *)
+    calling this function.
+
+    To simplify parsing the output, the [?one_line] argument is
+    ignored and interally always set.
+*)
 val run_ocamldep
-  :  ?modules:unit
-  -> ?pathI:string list
-  -> Pathname.t list
-  -> (string * string list) list
+  : (Pathname.t list -> (string * string list) list) ocamldep_args
 
 (** Similar to [run_ocamldep] but more convenient when you want the
     dependencies of a single file. We directly return the dependencies
@@ -226,10 +227,7 @@ val run_ocamldep
     given file doesn't already exist since ocamldep can't compute
     anything in this case. *)
 val run_ocamldep1
-  :  ?modules:unit
-  -> ?pathI:string list
-  -> Pathname.t
-  -> string list
+  : (Pathname.t -> string list) ocamldep_args
 
 (** Sort given files in dependency order, i.e. later files depend on
     earlier ones. Note that ocamldep ignores files that don't exist,
