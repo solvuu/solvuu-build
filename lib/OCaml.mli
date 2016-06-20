@@ -325,6 +325,7 @@ type 'a eliomdep_args =
   ?ppopt:string list ->
   ?predicates:string ->
   ?verbose:unit ->
+  ?ppx:unit ->
   'a
 
 val eliomdep_client : (Pathname.t list -> Command.t) eliomdep_args ocamldep_args

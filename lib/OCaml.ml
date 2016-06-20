@@ -1001,13 +1001,14 @@ type 'a eliomdep_args =
   ?ppopt:string list ->
   ?predicates:string ->
   ?verbose:unit ->
+  ?ppx:unit ->
   'a
 
 let eliomdep_args_specs
 
     (* eliomdep_args *)
     ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
-    ?ppopt ?predicates ?verbose
+    ?ppopt ?predicates ?verbose ?ppx
 
     ()
   : spec option list list
@@ -1028,6 +1029,7 @@ let eliomdep_args_specs
     string_list "-ppopt" ppopt;
     string "-predicates" predicates;
     unit "-verbose" verbose;
+    unit "-ppx" ppx;
   ]
 
 let eliomdep
@@ -1035,12 +1037,12 @@ let eliomdep
 
     (* ocamldep_args *)
     ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
-    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+    ?modules ?native ?one_line ?open_ ?pp ?ppx:ppx_ocamldep ?slash
     ?sort ?version
 
     (* eliomdep_args *)
     ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
-    ?ppopt ?predicates ?verbose
+    ?ppopt ?predicates ?verbose ?ppx:ppx_eliomdep
 
     files
   =
@@ -1053,11 +1055,11 @@ let eliomdep
   ]]
   @(eliomdep_args_specs
       ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
-      ?ppopt ?predicates ?verbose ()
+      ?ppopt ?predicates ?verbose ?ppx:ppx_eliomdep ()
    )
   @(ocamldep_args_specs
       ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
-      ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+      ?modules ?native ?one_line ?open_ ?pp ?ppx:ppx_ocamldep ?slash
       ?sort ?version ()
    )
   @[List.map files ~f:(fun x -> Some (A x))]
