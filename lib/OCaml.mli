@@ -265,7 +265,7 @@ type 'a js_of_ocaml_args =
   'a
 
 val js_of_ocaml :
-  (?js_files:Pathname.t list -> Pathname.t -> Command.t) js_of_ocaml_args
+  (Pathname.t list -> Pathname.t -> Command.t) js_of_ocaml_args
 
 
 (******************************************************************************)

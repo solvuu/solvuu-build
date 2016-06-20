@@ -739,9 +739,9 @@ let js_of_ocaml
     ?source_map_inline ?source_map_no_source
     ?source_map_root ?source_map
     ?version ?extern_fs ?file ?pathI ?ofs
-    ?linkall ?no_cmis ?toplevel ?js_files
+    ?linkall ?no_cmis ?toplevel
 
-    cma
+    js_files cma
   =
   [[Some (A "js_of_ocaml")]]
   @(js_of_ocaml_args_specs
@@ -753,11 +753,7 @@ let js_of_ocaml
      ?linkall ?no_cmis ?toplevel ()
   )
   @[
-    (match js_files with
-     | None -> []
-     | Some l -> List.map l ~f:(fun x -> Some (A x))
-    );
-    [Some (A cma)];
+    List.map (js_files@[cma]) ~f:(fun x -> Some (A x))
   ]
   |> specs_to_command
 
