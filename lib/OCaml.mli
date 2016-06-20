@@ -189,6 +189,26 @@ val ocamlmklib :
 (******************************************************************************)
 (** {2 ocamldep} *)
 (******************************************************************************)
+type 'a ocamldep_args =
+  ?absname:unit ->
+  ?all:unit ->
+  ?pathI:string list ->
+  ?impl:string list ->
+  ?intf:string list ->
+  ?ml_synonym:string ->
+  ?mli_synonym:string ->
+  ?modules:unit ->
+  ?native:unit ->
+  ?one_line:unit ->
+  ?open_:string list ->
+  ?pp:string ->
+  ?ppx:string ->
+  ?slash:unit ->
+  ?sort:unit ->
+  ?version:unit ->
+  'a
+
+val ocamldep : (Pathname.t list -> Command.t) ocamldep_args
 
 (** Return an association list mapping each given input file to its
     list of dependencies. Note ocamldep ignores files that don't

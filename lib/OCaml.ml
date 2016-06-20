@@ -562,6 +562,74 @@ let ocamlmklib
 (******************************************************************************)
 (** {2 ocamldep} *)
 (******************************************************************************)
+type 'a ocamldep_args =
+  ?absname:unit ->
+  ?all:unit ->
+  ?pathI:string list ->
+  ?impl:string list ->
+  ?intf:string list ->
+  ?ml_synonym:string ->
+  ?mli_synonym:string ->
+  ?modules:unit ->
+  ?native:unit ->
+  ?one_line:unit ->
+  ?open_:string list ->
+  ?pp:string ->
+  ?ppx:string ->
+  ?slash:unit ->
+  ?sort:unit ->
+  ?version:unit ->
+  'a
+
+let ocamldep_args_specs
+
+    (* ocamldep_args *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+
+    ()
+  : spec option list list
+  =
+  let string = string ~delim:`Space in
+  let string_list = string_list ~delim:`Space in
+  [
+    unit "-absname" absname;
+    unit "-all" all;
+    string_list "-I" pathI;
+    string_list "-impl" impl;
+    string_list "-intf" intf;
+    string "-ml-synonym" ml_synonym;
+    string "-mli-synonym" mli_synonym;
+    unit "-modules" modules;
+    unit "-native" native;
+    unit "-one-line" one_line;
+    string_list "-open" open_;
+    string "-pp" pp;
+    string "-ppx" ppx;
+    unit "-slash" slash;
+    unit "-sort" sort;
+    unit "-version" version;
+  ]
+
+let ocamldep
+
+    (* ocamldep_args *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+
+    files
+  =
+  [[Some (A "ocamldep")]]
+  @(ocamldep_args_specs
+      ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+      ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+      ?sort ?version ()
+   )
+  @[List.map files ~f:(fun x -> Some (A x))]
+  |> specs_to_command
+
 let run_ocamldep ?modules ?(pathI=[]) files =
   let cmd =
     [
