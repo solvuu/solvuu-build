@@ -120,3 +120,28 @@ module Rule : sig
     unit
 
 end
+
+(******************************************************************************)
+(** Command.spec helper functions *)
+(******************************************************************************)
+module Spec : sig
+  open Ocamlbuild_plugin
+
+  val string :
+    delim:[`Space | `None | `Equal] ->
+    string -> string option -> spec option list
+
+  val string_list :
+    delim:[`Space | `None | `Equal] ->
+    string -> string list option -> spec option list
+
+  val unit : string -> unit option -> spec option list
+
+  val int : string -> int option -> spec option list
+
+  val specs_to_command : spec option list list -> Command.t
+
+  (** Return a spec from given command. Raise exception if not
+      possible. *)
+  val spec_of_command : Command.t -> spec
+end

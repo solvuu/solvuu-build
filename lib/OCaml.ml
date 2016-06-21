@@ -15,48 +15,7 @@
 open Printf
 open Ocamlbuild_plugin
 open Util
-
-(******************************************************************************)
-(** {2 Low Level Functions} *)
-(******************************************************************************)
-let string ~delim (flag:string) (value:string option) =
-  match value with
-  | None -> [None]
-  | Some value ->
-    match delim with
-    | `Space -> [Some (A flag); Some (A value)]
-    | `None -> [Some (A (flag ^ value))]
-    | `Equal -> [Some (A (sprintf "%s=%s" flag value))]
-
-let string_list ~delim (flag:string) (value:string list option) =
-  match value with
-  | None -> [None]
-  | Some l ->
-    List.map l ~f:(fun x ->
-      string ~delim flag (Some x)
-    ) |>
-    List.flatten
-
-let unit (flag:string) (value:unit option) = match value with
-  | None -> [None]
-  | Some () -> [Some (A flag)]
-
-let int (flag:string) (value:int option) = match value with
-  | None -> [None]
-  | Some value -> [Some (A flag); Some (A (string_of_int value))]
-
-let specs_to_command (specs : spec option list list) : Command.t =
-  List.flatten specs
-  |> List.filter_map ~f:Fn.id
-  |> fun l -> Cmd (S l)
-
-let spec_of_command (x:Command.t) : Command.spec =
-  match x with
-  | Command.Cmd x -> x
-  | Command.Seq _ -> failwith "cannot extract spec from sequence of commands"
-  | Command.Echo _ -> failwith "cannot convert Command.Echo to spec"
-  | Command.Nop -> failwith "cannot convert Command.Nop to spec"
-
+open Util.Spec
 
 (******************************************************************************)
 (** {2 Abstraction over ocamlc/ocamlopt} *)
