@@ -92,6 +92,13 @@ type 'a ocaml_compiler_args =
   ?warn_error:string ->
   ?warn_help:unit ->
   ?where:unit ->
+  ?nopervasives:unit ->
+  ?dsource:unit ->
+  ?dparsetree:unit ->
+  ?dtypedtree:unit ->
+  ?drawlambda:unit ->
+  ?dlambda:unit ->
+  ?dinstr:unit ->
   ?help:unit ->
   'a
 

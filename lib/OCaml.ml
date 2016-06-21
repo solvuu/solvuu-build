@@ -112,6 +112,13 @@ type 'a ocaml_compiler_args =
   ?warn_error:string ->
   ?warn_help:unit ->
   ?where:unit ->
+  ?nopervasives:unit ->
+  ?dsource:unit ->
+  ?dparsetree:unit ->
+  ?dtypedtree:unit ->
+  ?drawlambda:unit ->
+  ?dlambda:unit ->
+  ?dinstr:unit ->
   ?help:unit ->
   'a
 
@@ -126,7 +133,10 @@ let ocaml_compiler_args_specs
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     ()
   : spec option list list =
@@ -188,6 +198,13 @@ let ocaml_compiler_args_specs
     string "-warn-error" warn_error;
     unit "-warn-help" warn_help;
     unit "-where" where;
+    unit "-nopervasives" nopervasives;
+    unit "-dsource" dsource;
+    unit "-dparsetree" dparsetree;
+    unit "-dtypedtree" dtypedtree;
+    unit "-drawlambda" drawlambda;
+    unit "-dlambda" dlambda;
+    unit "-dinstr" dinstr;
     unit "-help" help;
   ]
 
@@ -202,7 +219,10 @@ let ocaml_compiler
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     mode files
   =
@@ -216,7 +236,10 @@ let ocaml_compiler
      ?rectypes ?runtime_variant ?safe_string ?short_paths
      ?strict_sequence ?strict_formats ?thread ?unsafe
      ?unsafe_string ?use_runtime ?v ?verbose ?version
-     ?w ?warn_error ?warn_help ?where ?help ()
+     ?w ?warn_error ?warn_help ?where
+     ?nopervasives ?dsource ?dparsetree ?dtypedtree
+     ?drawlambda ?dlambda ?dinstr
+     ?help ()
   )@[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
@@ -244,7 +267,10 @@ let ocamlc_args_specs
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     (* ocamlc_args *)
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread
@@ -263,7 +289,10 @@ let ocamlc_args_specs
      ?rectypes ?runtime_variant ?safe_string ?short_paths
      ?strict_sequence ?strict_formats ?thread ?unsafe
      ?unsafe_string ?use_runtime ?v ?verbose ?version
-     ?w ?warn_error ?warn_help ?where ?help ()
+     ?w ?warn_error ?warn_help ?where
+     ?nopervasives ?dsource ?dparsetree ?dtypedtree
+     ?drawlambda ?dlambda ?dinstr
+     ?help ()
   )@[
     unit "-compat-32" compat_32;
     unit "-custom" custom;
@@ -283,7 +312,10 @@ let ocamlc
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     (* ocamlc_args *)
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread
@@ -300,7 +332,10 @@ let ocamlc
      ?rectypes ?runtime_variant ?safe_string ?short_paths
      ?strict_sequence ?strict_formats ?thread ?unsafe
      ?unsafe_string ?use_runtime ?v ?verbose ?version
-     ?w ?warn_error ?warn_help ?where ?help
+     ?w ?warn_error ?warn_help ?where
+     ?nopervasives ?dsource ?dparsetree ?dtypedtree
+     ?drawlambda ?dlambda ?dinstr
+     ?help
      ?compat_32 ?vmthread ()
   )
   @[List.map files ~f:(fun file -> Some (A file))]
@@ -331,7 +366,10 @@ let ocamlopt_args_specs
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     (* ocamlopt_args *)
     ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
@@ -348,7 +386,10 @@ let ocamlopt_args_specs
      ?rectypes ?runtime_variant ?safe_string ?short_paths
      ?strict_sequence ?strict_formats ?thread ?unsafe
      ?unsafe_string ?use_runtime ?v ?verbose ?version
-     ?w ?warn_error ?warn_help ?where ?help ()
+     ?w ?warn_error ?warn_help ?where
+     ?nopervasives ?dsource ?dparsetree ?dtypedtree
+     ?drawlambda ?dlambda ?dinstr
+     ?help ()
   )@[
     unit "-compact" compact;
     int "-inline" inline;
@@ -373,7 +414,10 @@ let ocamlopt
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     (* ocamlopt_args *)
     ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
@@ -390,7 +434,10 @@ let ocamlopt
      ?rectypes ?runtime_variant ?safe_string ?short_paths
      ?strict_sequence ?strict_formats ?thread ?unsafe
      ?unsafe_string ?use_runtime ?v ?verbose ?version
-     ?w ?warn_error ?warn_help ?where ?help
+     ?w ?warn_error ?warn_help ?where
+     ?nopervasives ?dsource ?dparsetree ?dtypedtree
+     ?drawlambda ?dlambda ?dinstr
+     ?help
      ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared ()
   )@[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
@@ -428,7 +475,10 @@ let ocamlfind_ocaml_compiler
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     mode files
   =
@@ -446,7 +496,10 @@ let ocamlfind_ocaml_compiler
       ?rectypes ?runtime_variant ?safe_string ?short_paths
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version
-      ?w ?warn_error ?warn_help ?where ?help ()
+      ?w ?warn_error ?warn_help ?where
+      ?nopervasives ?dsource ?dparsetree ?dtypedtree
+      ?drawlambda ?dlambda ?dinstr
+      ?help ()
   )
   @(ocamlfind_args_specs ?package ?linkpkg ())
   @[List.map files ~f:(fun file -> Some (A file))]
@@ -466,7 +519,10 @@ let ocamlfind_ocamlc
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     (* ocamlc_args *)
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread
@@ -483,7 +539,10 @@ let ocamlfind_ocamlc
       ?rectypes ?runtime_variant ?safe_string ?short_paths
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version
-      ?w ?warn_error ?warn_help ?where ?help
+      ?w ?warn_error ?warn_help ?where
+      ?nopervasives ?dsource ?dparsetree ?dtypedtree
+      ?drawlambda ?dlambda ?dinstr
+      ?help
       ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
    )
   @(ocamlfind_args_specs ?package ?linkpkg ())
@@ -504,7 +563,10 @@ let ocamlfind_ocamlopt
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     (* ocamlopt_args *)
     ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
@@ -521,7 +583,10 @@ let ocamlfind_ocamlopt
       ?rectypes ?runtime_variant ?safe_string ?short_paths
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version
-      ?w ?warn_error ?warn_help ?where ?help
+      ?w ?warn_error ?warn_help ?where
+      ?nopervasives ?dsource ?dparsetree ?dtypedtree
+      ?drawlambda ?dlambda ?dinstr
+      ?help
       ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared ()
    )
   @(ocamlfind_args_specs ?package ?linkpkg ())
@@ -915,7 +980,10 @@ let eliomc
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     (* ocamlc_args *)
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread
@@ -937,7 +1005,10 @@ let eliomc
       ?rectypes ?runtime_variant ?safe_string ?short_paths
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version
-      ?w ?warn_error ?warn_help ?where ?help
+      ?w ?warn_error ?warn_help ?where
+      ?nopervasives ?dsource ?dparsetree ?dtypedtree
+      ?drawlambda ?dlambda ?dinstr
+      ?help
       ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
    )
   @[List.map files ~f:(fun x -> Some (A x))]
@@ -959,7 +1030,10 @@ let eliomopt
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     (* ocamlopt_args *)
     ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
@@ -981,7 +1055,10 @@ let eliomopt
       ?rectypes ?runtime_variant ?safe_string ?short_paths
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version
-      ?w ?warn_error ?warn_help ?where ?help
+      ?w ?warn_error ?warn_help ?where
+      ?nopervasives ?dsource ?dparsetree ?dtypedtree
+      ?drawlambda ?dlambda ?dinstr
+      ?help
       ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared ()
    )
   @[List.map files ~f:(fun x -> Some (A x))]
@@ -1142,7 +1219,10 @@ let js_of_eliom
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
     ?unsafe_string ?use_runtime ?v ?verbose ?version:version_ocaml
-    ?w ?warn_error ?warn_help ?where ?help
+    ?w ?warn_error ?warn_help ?where
+    ?nopervasives ?dsource ?dparsetree ?dtypedtree
+    ?drawlambda ?dlambda ?dinstr
+    ?help
 
     (* ocamlc_args *)
     ?compat_32 ?custom ?dllib ?dllpath ?vmthread
@@ -1175,7 +1255,10 @@ let js_of_eliom
       ?rectypes ?runtime_variant ?safe_string ?short_paths
       ?strict_sequence ?strict_formats ?thread ?unsafe
       ?unsafe_string ?use_runtime ?v ?verbose ?version:version_ocaml
-      ?w ?warn_error ?warn_help ?where ?help
+      ?w ?warn_error ?warn_help ?where
+      ?nopervasives ?dsource ?dparsetree ?dtypedtree
+      ?drawlambda ?dlambda ?dinstr
+      ?help
       ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
    )
   @[List.map files ~f:(fun x -> Some (A x))]
