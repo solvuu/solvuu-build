@@ -285,7 +285,7 @@ val menhir_rule : ?base:string -> ?dep:string -> unit -> unit
 (******************************************************************************)
 type 'a js_of_ocaml_args =
   ?custom_header:string ->
-  ?debug:unit ->
+  ?debug:string ->
   ?debug_info:unit ->
   ?disable:string ->
   ?enable:string ->

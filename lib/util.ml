@@ -199,9 +199,13 @@ module Spec = struct
     | None -> [None]
     | Some () -> [Some (A flag)]
 
-  let int (flag:string) (value:int option) = match value with
+  let int ~delim (flag:string) (value:int option) = match value with
     | None -> [None]
-    | Some value -> [Some (A flag); Some (A (string_of_int value))]
+    | Some value ->
+      match delim with
+      | `Space -> [Some (A flag); Some (A (string_of_int value))]
+      | `None -> [Some (A (flag ^ (string_of_int value)))]
+      | `Equal -> [Some (A (sprintf "%s=%d" flag value))]
 
   let specs_to_command (specs : spec option list list) : Command.t =
     List.flatten specs

@@ -137,7 +137,9 @@ module Spec : sig
 
   val unit : string -> unit option -> spec option list
 
-  val int : string -> int option -> spec option list
+  val int :
+    delim:[`Space | `None | `Equal] ->
+    string -> int option -> spec option list
 
   val specs_to_command : spec option list list -> Command.t
 

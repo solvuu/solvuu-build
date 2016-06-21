@@ -458,7 +458,7 @@ let ocamlopt_args_specs
      ?help ()
   )@[
     unit "-compact" compact;
-    int "-inline" inline;
+    int ~delim:`Space "-inline" inline;
     (match inline with
      | None -> [None]
      | Some x -> [Some (A "-inline"); Some (A (string_of_int x))]
@@ -904,7 +904,7 @@ let menhir_rule ?base ?(dep="%.mly") () =
 (******************************************************************************)
 type 'a js_of_ocaml_args =
   ?custom_header:string ->
-  ?debug:unit ->
+  ?debug:string ->
   ?debug_info:unit ->
   ?disable:string ->
   ?enable:string ->
@@ -942,36 +942,35 @@ let js_of_ocaml_args_specs
     ()
   : spec option list list
   =
-  let string = string ~delim:`Equal in
   [
-    string "--custom-header" custom_header;
-    unit "--debug" debug;
+    string ~delim:`Equal "--custom-header" custom_header;
+    string ~delim:`Equal "--debug" debug;
     unit "--debug-info" debug_info;
-    string "--disable" disable;
-    string "--enable" enable;
+    string ~delim:`Equal "--disable" disable;
+    string ~delim:`Equal "--enable" enable;
     unit "--no-inline" no_inline;
     unit "--no-runtime" no_runtime;
-    string "-o" o;
-    int "--opt" opt;
+    string ~delim:`Space "-o" o;
+    int ~delim:`Equal "--opt" opt;
     unit "--pretty" pretty;
     unit "--quiet" quiet;
     (match set with
      | None -> [None]
      | Some l ->
        List.map l ~f:(fun (x,y) ->
-         string "--set" (Some (sprintf "%s=%s" x y))
+         string ~delim:`Equal "--set" (Some (sprintf "%s=%s" x y))
        ) |>
        List.flatten
     );
     unit "--source-map-inline" source_map_inline;
     unit "--source-map-no-source" source_map_no_source;
-    string "--source-map-root" source_map_root;
+    string ~delim:`Equal "--source-map-root" source_map_root;
     unit "--source-map" source_map;
     unit "--version" version;
     unit "--extern-fs" extern_fs;
     string_list ~delim:`Equal "--file" file;
     string_list ~delim:`Space "-I" pathI;
-    string "--ofs" ofs;
+    string ~delim:`Equal "--ofs" ofs;
     unit "--linkall" linkall;
     unit "--no-cmis" no_cmis;
     unit "--toplevel" toplevel;
