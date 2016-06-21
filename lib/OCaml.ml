@@ -662,25 +662,8 @@ let ocamldep
   @[List.map files ~f:(fun x -> Some (A x))]
   |> specs_to_command
 
-let run_ocamldep
-
-    (* ocamldep_args *)
-    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
-    ?modules ?native ?one_line:_ ?open_ ?pp ?ppx ?slash
-    ?sort ?version
-
-    files
-  =
-  let one_line = Some () in
-  let cmd =
-    ocamldep
-      ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
-      ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
-      ?sort ?version
-      files
-    |> spec_of_command
-    |> Command.string_of_command_spec
-  in
+let run_and_parse_ocamldep_cmd (cmd:spec) : (string * string list) list =
+  Command.string_of_command_spec cmd |> fun cmd ->
   Ocamlbuild_pack.My_unix.run_and_read cmd |>
   String.split ~on:'\n' |>
   List.filter ~f:(function "" -> false | _ -> true) |>
@@ -701,8 +684,25 @@ let run_ocamldep
   List.filter ~f:(function "",[] -> false  | _ -> true) |>
   List.map ~f:(function x,[""] -> x,[] | x,y -> x,y)
 
-let run_ocamldep1
+let run_ocamldep
 
+    (* ocamldep_args *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line:_ ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+
+    files
+  =
+  let one_line = Some () in
+  ocamldep
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+    files
+  |> spec_of_command
+  |> run_and_parse_ocamldep_cmd
+
+let run_ocamldep1
 
     (* ocamldep_args *)
     ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
@@ -732,6 +732,127 @@ let run_ocamldep1
 let run_ocamldep_sort files =
   let cmd =
     ["ocamldep"; "-sort"]@files |>
+    String.concat ~sep:" "
+  in
+  Ocamlbuild_pack.My_unix.run_and_read cmd |>
+  String.split ~on:' ' |>
+  List.filter ~f:(fun x -> not @@ String.for_all x ~f:Char.is_whitespace)
+
+type 'a ocamlfind_ocamldep_args =
+  ?package:string list ->
+  ?predicates:string ->
+  ?native_filter:unit ->
+  ?bytecode_filter:unit ->
+  ?only_show:unit ->
+  ?verbose:unit ->
+  'a
+
+let ocamlfind_ocamldep_args_specs
+
+    (* ocamlfind_ocamldep_args *)
+    ?package ?predicates ?native_filter ?bytecode_filter
+    ?only_show ?verbose
+
+    ()
+  =
+  let delim = `Space in
+  let string_list = string_list ~delim in
+  let string = string ~delim in
+  [
+    string_list "-package" package;
+    string "-predicates" predicates;
+    unit "-native-filter" native_filter;
+    unit "-bytecode-filter" bytecode_filter;
+    unit "-only-show" only_show;
+    unit "-verbose" verbose;
+  ]
+
+let ocamlfind_ocamldep
+
+    (* ocamlfind_ocamldep_args *)
+    ?package ?predicates ?native_filter ?bytecode_filter
+    ?only_show ?verbose
+
+    (* ocamldep_args *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+
+    files
+  =
+  (ocamlfind_ocamldep_args_specs
+     ?package ?predicates ?native_filter ?bytecode_filter
+     ?only_show ?verbose ()
+  )
+  @(ocamldep_args_specs
+      ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+      ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+      ?sort ?version ()
+   )
+  @[List.map files ~f:(fun x -> Some (A x))]
+  |> specs_to_command
+
+let run_ocamlfind_ocamldep
+
+    (* ocamlfind_ocamldep_args *)
+    ?package ?predicates ?native_filter ?bytecode_filter
+    ?only_show ?verbose
+
+    (* ocamldep_args *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line:_ ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+
+    files
+  =
+  let one_line = Some () in
+  ocamlfind_ocamldep
+    ?package ?predicates ?native_filter ?bytecode_filter
+    ?only_show ?verbose
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+    files
+  |> spec_of_command
+  |> run_and_parse_ocamldep_cmd
+
+
+let run_ocamlfind_ocamldep1
+
+    (* ocamlfind_ocamldep_args *)
+    ?package ?predicates ?native_filter ?bytecode_filter
+    ?only_show ?verbose
+
+    (* ocamldep_args *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line:_ ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+
+    file
+  =
+  assert (Sys.file_exists file);
+  let one_line = Some () in
+
+  run_ocamlfind_ocamldep
+    ?package ?predicates ?native_filter ?bytecode_filter
+    ?only_show ?verbose
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+    ?sort ?version
+    [file]
+  |> function
+  | [] -> failwithf "ocamldep returned no output for existing file %s"
+            file ()
+  | (x,deps)::[] ->
+    if x = file then deps
+    else failwithf "ocamldep returned output for unexpected file %s when \
+                    called on %s" x file ()
+  | _ -> failwithf "ocamldep returned multiple outputs for single file %s"
+           file ()
+
+let run_ocamlfind_ocamldep_sort files =
+  let cmd =
+    ["ocamlfind"; "ocamldep"; "-sort"]@files |>
     String.concat ~sep:" "
   in
   Ocamlbuild_pack.My_unix.run_and_read cmd |>

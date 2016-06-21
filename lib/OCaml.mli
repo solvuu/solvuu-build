@@ -241,6 +241,29 @@ val run_ocamldep1
 val run_ocamldep_sort : Pathname.t list -> Pathname.t list
 
 
+type 'a ocamlfind_ocamldep_args =
+  ?package:string list ->
+  ?predicates:string ->
+  ?native_filter:unit ->
+  ?bytecode_filter:unit ->
+  ?only_show:unit ->
+  ?verbose:unit ->
+  'a
+
+val ocamlfind_ocamldep
+  : (Pathname.t list -> Command.t) ocamldep_args ocamlfind_ocamldep_args
+
+val run_ocamlfind_ocamldep :
+  (
+    Pathname.t list -> (string * string list) list
+  ) ocamldep_args ocamlfind_ocamldep_args
+
+val run_ocamlfind_ocamldep1
+  : (Pathname.t -> string list) ocamldep_args ocamlfind_ocamldep_args
+
+val run_ocamlfind_ocamldep_sort : Pathname.t list -> Pathname.t list
+
+
 (******************************************************************************)
 (** {2 ocamllex/menhir} *)
 (******************************************************************************)
