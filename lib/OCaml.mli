@@ -108,6 +108,18 @@ type 'a ocaml_compiler_args =
 val ocaml_compiler :
   ([`Byte | `Native] -> Pathname.t list -> Command.t) ocaml_compiler_args
 
+(** Extra arguments common to ocamlfind ocamlc/ocamlopt. *)
+type 'a ocamlfind_ocaml_compiler_args =
+  ?package:string list ->
+  ?linkpkg:unit ->
+  'a
+
+(** Abstraction over [ocamlfind ocamlc/ocamlopt]. *)
+val ocamlfind_ocaml_compiler :
+  (
+    [`Byte | `Native] -> Pathname.t list -> Command.t
+  ) ocaml_compiler_args ocamlfind_ocaml_compiler_args
+
 
 (******************************************************************************)
 (** {2 ocamlc} *)
@@ -122,6 +134,9 @@ type 'a ocamlc_args = (
 ) ocaml_compiler_args
 
 val ocamlc : (Pathname.t list -> Command.t) ocamlc_args
+
+val ocamlfind_ocamlc :
+  (Pathname.t list -> Command.t) ocamlc_args ocamlfind_ocaml_compiler_args
 
 
 (******************************************************************************)
@@ -142,25 +157,8 @@ type 'a ocamlopt_args = (
 
 val ocamlopt : (Pathname.t list -> Command.t) ocamlopt_args
 
-
-(******************************************************************************)
-(** {2 ocamlfind} *)
-(******************************************************************************)
-type 'a ocamlfind_args =
-  ?package:string list ->
-  ?linkpkg:unit ->
-  'a
-
-val ocamlfind_ocaml_compiler :
-  (
-    [`Byte | `Native] -> Pathname.t list -> Command.t
-  ) ocaml_compiler_args ocamlfind_args
-
-val ocamlfind_ocamlc :
-  (Pathname.t list -> Command.t) ocamlc_args ocamlfind_args
-
 val ocamlfind_ocamlopt :
-  (Pathname.t list -> Command.t) ocamlopt_args ocamlfind_args
+  (Pathname.t list -> Command.t) ocamlopt_args ocamlfind_ocaml_compiler_args
 
 
 (******************************************************************************)
