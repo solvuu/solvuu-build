@@ -145,6 +145,25 @@ let path_of_lib ~suffix (x:lib) : string =
 let path_of_app ~suffix (x:app) : string =
   sprintf "%s/%s%s" (dirname x.file) x.name suffix
 
+let file_base_of_module x =
+  let ml_bases =
+    List.map x.ml_files ~f:(fun y -> x.dir/y) |>
+    List.map ~f:(fun x -> chop_suffix x ".ml")
+  in
+  let mli_bases =
+    List.map x.mli_files ~f:(fun y -> x.dir/y) |>
+    List.map ~f:(fun x -> chop_suffix x ".mli")
+  in
+  let bases = List.sort_uniq ~cmp:String.compare (ml_bases@mli_bases) in
+  fun mod_name ->
+    List.filter bases ~f:(fun x -> String.capitalize (basename x) = mod_name)
+    |> function
+    | [] -> None (* Module is presumably from an external library. *)
+    | x::[] -> Some x
+    | l -> failwithf "module %s defined by multiple files: %s"
+             mod_name
+             (List.map l ~f:(fun x -> x ^ ".ml[i]") |> String.concat ~sep:",")
+             ()
 
 (******************************************************************************)
 (** {2 List Operations} *)
@@ -530,19 +549,7 @@ let build_lib (x:lib) =
     )
   in
 
-  let file_base_of_module mod_name : string option =
-    let ml_bases = List.map ml_files ~f:(fun x -> chop_suffix x ".ml") in
-    let mli_bases = List.map mli_files ~f:(fun x -> chop_suffix x ".mli") in
-    let bases = List.sort_uniq ~cmp:String.compare (ml_bases@mli_bases) in
-    List.filter bases ~f:(fun x -> String.capitalize (basename x) = mod_name)
-    |> function
-    | [] -> None (* Module is presumably from an external library. *)
-    | x::[] -> Some x
-    | l -> failwithf "module %s defined by multiple files: %s"
-             mod_name
-             (List.map l ~f:(fun x -> x ^ ".ml[i]") |> String.concat ~sep:",")
-             ()
-  in
+  let file_base_of_module : string -> string option = file_base_of_module x in
 
   (* .cmo*/.cmx* -> packed .cmo/.cmx *)
   List.iter [`Byte; `Native] ~f:(fun mode ->

@@ -157,6 +157,22 @@ val path_of_app : suffix:string -> app -> string
     app [x] defines [x.file = "app/myapp.ml"]. Then [path_of_app
     ~suffix:".byte" x] will return "app/myapp.byte". *)
 
+val file_base_of_module : lib -> (string -> string option)
+(** For given lib, return a function that can be used to get the base
+    path for a module. Example, say [lib] is defined with:
+    [lib.ml_files = ["foo.ml"; "bar.ml";]] and [lib.dir = "src"]. Then the
+    returned function [f] will give:
+
+    - [f "Foo" = Some "src/foo"]. There is no suffix on the result, so
+      that you can append whatever suffix you need.
+
+    - [f "foo" = Some "src/foo"]. The module name is automatically
+      capitalized, so you don't have to do this yourself.
+
+    - [f "Car" = None]. No file in lib corresponds to the requested
+      module, so we return None.
+*)
+
 (******************************************************************************)
 (** {2 Static Files} *)
 (******************************************************************************)
