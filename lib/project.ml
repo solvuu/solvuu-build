@@ -39,12 +39,13 @@ and lib = {
   short_paths : unit option;
   thread : unit option;
   w : string option;
+  linkall : unit option
 }
 
 and item = Lib of lib | App of app
 
 let lib
-    ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+    ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
     ?(internal_deps=[]) ?(findlib_deps=[])
     ?ml_files ?mli_files ?c_files ~pkg ~pack_name ~dir name
   =
@@ -76,7 +77,7 @@ let lib
   Lib {
     name; internal_deps; findlib_deps; pack_name;
     dir; ml_files; mli_files; c_files; pkg;
-    annot; bin_annot; g; safe_string; short_paths; thread; w;
+    annot; bin_annot; g; safe_string; short_paths; thread; w; linkall;
   }
 
 let app
@@ -524,16 +525,17 @@ let build_lib (x:lib) =
   let short_paths = x.short_paths in
   let thread = x.thread in
   let w = x.w in
+  let linkall = x.linkall in
   let ocaml ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom mode files =
     match mode with
     | `Byte ->
       OCaml.ocamlfind_ocamlc files
         ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom
-        ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+        ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
     | `Native ->
       OCaml.ocamlfind_ocamlopt files
         ?pack ?o ?a ?c ?pathI ?package ?for_pack
-        ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+        ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
   in
   let package = findlib_deps_all (Lib x) in
   let ml_files = List.map x.ml_files ~f:(fun y -> x.dir/y) in
