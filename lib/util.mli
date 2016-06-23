@@ -69,6 +69,10 @@ module List : sig
   val last : 'a list -> 'a option
   val last_exn : 'a list -> 'a
 
+  module Assoc : sig
+    val find : ('a * 'b) list -> 'a -> 'b option
+  end
+
 end
 
 module Filename : sig

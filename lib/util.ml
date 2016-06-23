@@ -120,6 +120,10 @@ module List = struct
 
   let last_exn l = List.rev l |> List.hd
 
+  module Assoc = struct
+    let find l x = try Some (assoc x l) with Not_found -> None
+  end
+
 end
 
 module Filename = struct
