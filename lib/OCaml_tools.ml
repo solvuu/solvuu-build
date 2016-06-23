@@ -867,7 +867,8 @@ let ocamlfind_ocamldep
 
     files
   =
-  (ocamlfind_ocamldep_args_specs
+  [[Some (A "ocamlfind")]; [Some (A "ocamldep")]]
+  @(ocamlfind_ocamldep_args_specs
      ?package ?predicates ?native_filter ?bytecode_filter
      ?only_show ?verbose ()
   )
