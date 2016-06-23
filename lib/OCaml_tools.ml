@@ -594,7 +594,7 @@ let ocamlmklib
 (******************************************************************************)
 (** {2 ocamldep} *)
 (******************************************************************************)
-type 'a ocamldep_args =
+type 'a ocamldep_args0 =
   ?absname:unit ->
   ?all:unit ->
   ?pathI:string list ->
@@ -609,16 +609,20 @@ type 'a ocamldep_args =
   ?pp:string ->
   ?ppx:string ->
   ?slash:unit ->
-  ?sort:unit ->
-  ?version:unit ->
   'a
 
-let ocamldep_args_specs
+type 'a ocamldep_args =
+  (
+    ?sort:unit ->
+    ?version:unit ->
+    'a
+  ) ocamldep_args0
 
-    (* ocamldep_args *)
+let ocamldep_args0_specs
+
+    (* ocamldep_args0 *)
     ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
     ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
-    ?sort ?version
 
     ()
   : spec option list list
@@ -640,6 +644,25 @@ let ocamldep_args_specs
     string "-pp" pp;
     string "-ppx" ppx;
     unit "-slash" slash;
+  ]
+
+let ocamldep_args_specs
+
+    (* ocamldep_args0 *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+
+    (* ocamldep_args *)
+    ?sort ?version
+
+    ()
+  : spec option list list
+  =
+  (ocamldep_args0_specs
+     ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+     ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash ()
+  )
+  @[
     unit "-sort" sort;
     unit "-version" version;
   ]
@@ -729,12 +752,23 @@ let run_ocamldep1
   | _ -> failwithf "ocamldep returned multiple outputs for single file %s"
            file ()
 
-let run_ocamldep_sort files =
-  let cmd =
-    ["ocamldep"; "-sort"]@files |>
-    String.concat ~sep:" "
+let run_ocamldep_sort
+
+    (* ocamldep_args0 *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+
+    files
+  =
+  let sort = Some () in
+  let cmd = ocamldep
+      ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+      ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+      ?sort files
   in
-  Ocamlbuild_pack.My_unix.run_and_read cmd |>
+  spec_of_command cmd |>
+  Ocamlbuild_plugin.Command.string_of_command_spec |>
+  Ocamlbuild_pack.My_unix.run_and_read |>
   String.split ~on:' ' |>
   List.filter ~f:(fun x -> not @@ String.for_all x ~f:Char.is_whitespace)
 
@@ -850,12 +884,29 @@ let run_ocamlfind_ocamldep1
   | _ -> failwithf "ocamldep returned multiple outputs for single file %s"
            file ()
 
-let run_ocamlfind_ocamldep_sort files =
-  let cmd =
-    ["ocamlfind"; "ocamldep"; "-sort"]@files |>
-    String.concat ~sep:" "
+let run_ocamlfind_ocamldep_sort
+
+    (* ocamlfind_ocamldep_args *)
+    ?package ?predicates ?native_filter ?bytecode_filter
+    ?only_show ?verbose
+
+    (* ocamldep_args0 *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+
+    files
+  =
+  let sort = Some () in
+  let cmd = ocamlfind_ocamldep
+      ?package ?predicates ?native_filter ?bytecode_filter
+      ?only_show ?verbose
+      ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+      ?modules ?native ?one_line ?open_ ?pp ?ppx ?slash
+      ?sort files
   in
-  Ocamlbuild_pack.My_unix.run_and_read cmd |>
+  spec_of_command cmd |>
+  Ocamlbuild_plugin.Command.string_of_command_spec |>
+  Ocamlbuild_pack.My_unix.run_and_read |>
   String.split ~on:' ' |>
   List.filter ~f:(fun x -> not @@ String.for_all x ~f:Char.is_whitespace)
 

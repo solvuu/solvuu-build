@@ -159,7 +159,7 @@ val ocamlmklib :
 (******************************************************************************)
 (** {2 ocamldep} *)
 (******************************************************************************)
-type 'a ocamldep_args =
+type 'a ocamldep_args0 =
   ?absname:unit ->
   ?all:unit ->
   ?pathI:string list ->
@@ -174,9 +174,14 @@ type 'a ocamldep_args =
   ?pp:string ->
   ?ppx:string ->
   ?slash:unit ->
-  ?sort:unit ->
-  ?version:unit ->
   'a
+
+type 'a ocamldep_args =
+  (
+    ?sort:unit ->
+    ?version:unit ->
+    'a
+  ) ocamldep_args0
 
 val ocamldep : (Pathname.t list -> Command.t) ocamldep_args
 
@@ -203,8 +208,7 @@ val run_ocamldep1
     earlier ones. Note that ocamldep ignores files that don't exist,
     so there is no guarantee that the returned list contains all files
     in the input list. *)
-val run_ocamldep_sort : Pathname.t list -> Pathname.t list
-
+val run_ocamldep_sort : (Pathname.t list -> Pathname.t list) ocamldep_args0
 
 type 'a ocamlfind_ocamldep_args =
   ?package:string list ->
@@ -226,7 +230,8 @@ val run_ocamlfind_ocamldep :
 val run_ocamlfind_ocamldep1
   : (Pathname.t -> string list) ocamldep_args ocamlfind_ocamldep_args
 
-val run_ocamlfind_ocamldep_sort : Pathname.t list -> Pathname.t list
+val run_ocamlfind_ocamldep_sort :
+  (Pathname.t list -> Pathname.t list) ocamldep_args0 ocamlfind_ocamldep_args
 
 
 (******************************************************************************)
