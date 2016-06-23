@@ -77,6 +77,15 @@ val ocaml_compiler :
 type 'a ocamlfind_ocaml_compiler_args =
   ?package:string list ->
   ?linkpkg:unit ->
+  ?predicates:string ->
+  ?dontlink:string list ->
+  ?ppopt:string ->
+  ?ppxopt:(string * string) list ->
+  ?dllpath_pkg:string list ->
+  ?dllpath_all:unit ->
+  ?ignore_error:unit ->
+  ?passopt:string list ->
+  ?only_show:unit ->
   'a
 
 (** Abstraction over [ocamlfind ocamlc/ocamlopt]. *)

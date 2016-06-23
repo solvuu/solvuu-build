@@ -206,24 +206,60 @@ let ocaml_compiler
 type 'a ocamlfind_ocaml_compiler_args =
   ?package:string list ->
   ?linkpkg:unit ->
+  ?predicates:string ->
+  ?dontlink:string list ->
+  ?ppopt:string ->
+  ?ppxopt:(string * string) list ->
+  ?dllpath_pkg:string list ->
+  ?dllpath_all:unit ->
+  ?ignore_error:unit ->
+  ?passopt:string list ->
+  ?only_show:unit ->
   'a
 
-let ocamlfind_ocaml_compiler_args_specs ?package ?linkpkg ()
+let ocamlfind_ocaml_compiler_args_specs
+
+    (* ocamlfind_ocaml_compiler_args *)
+    ?package ?linkpkg ?predicates ?dontlink
+    ?ppopt ?ppxopt ?dllpath_pkg ?dllpath_all
+    ?ignore_error ?passopt ?only_show
+
+    ()
   : spec option list list
   =
+  let delim = `Space in
+  let string = string ~delim in
+  let string_list = string_list ~delim in
   [
     (match package with
      | None -> [None]
      | Some x ->
-       string ~delim:`Space "-package" (Some (String.concat ~sep:"," x))
+       string "-package" (Some (String.concat ~sep:"," x))
     );
     unit "-linkpkg" linkpkg;
+    string "-predicates" predicates;
+    string_list "-dontlink" dontlink;
+    string "-ppopt" ppopt;
+    (
+      let ppxopt = match ppxopt with
+        | None -> None
+        | Some l -> Some (List.map l ~f:(fun (x,y) -> sprintf "%s,%s" x y))
+      in
+      string_list "-ppxopt" ppxopt
+    );
+    string_list "-dllpath-pkg" dllpath_pkg;
+    unit "-dllpath-all" dllpath_all;
+    unit "-ignore-error" ignore_error;
+    string_list "-passopt" passopt;
+    unit "-only-show" only_show;
   ]
 
 let ocamlfind_ocaml_compiler
 
     (* ocamlfind_ocaml_compiler_args *)
-    ?package ?linkpkg
+    ?package ?linkpkg ?predicates ?dontlink
+    ?ppopt ?ppxopt ?dllpath_pkg ?dllpath_all
+    ?ignore_error ?passopt ?only_show
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
@@ -260,7 +296,11 @@ let ocamlfind_ocaml_compiler
       ?drawlambda ?dlambda ?dinstr
       ?help ()
   )
-  @(ocamlfind_ocaml_compiler_args_specs ?package ?linkpkg ())
+  @(ocamlfind_ocaml_compiler_args_specs
+      ?package ?linkpkg ?predicates ?dontlink
+      ?ppopt ?ppxopt ?dllpath_pkg ?dllpath_all
+      ?ignore_error ?passopt ?only_show ()
+   )
   @[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
@@ -366,7 +406,9 @@ let ocamlc
 let ocamlfind_ocamlc
 
     (* ocamlfind_ocaml_compiler_args *)
-    ?package ?linkpkg
+    ?package ?linkpkg ?predicates ?dontlink
+    ?ppopt ?ppxopt ?dllpath_pkg ?dllpath_all
+    ?ignore_error ?passopt ?only_show
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
@@ -403,7 +445,11 @@ let ocamlfind_ocamlc
       ?help
       ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
    )
-  @(ocamlfind_ocaml_compiler_args_specs ?package ?linkpkg ())
+  @(ocamlfind_ocaml_compiler_args_specs
+      ?package ?linkpkg ?predicates ?dontlink
+      ?ppopt ?ppxopt ?dllpath_pkg ?dllpath_all
+      ?ignore_error ?passopt ?only_show ()
+   )
   @[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
@@ -512,7 +558,9 @@ let ocamlopt
 let ocamlfind_ocamlopt
 
     (* ocamlfind_ocaml_compiler_args *)
-    ?package ?linkpkg
+    ?package ?linkpkg ?predicates ?dontlink
+    ?ppopt ?ppxopt ?dllpath_pkg ?dllpath_all
+    ?ignore_error ?passopt ?only_show
 
     (* ocaml_compiler_args *)
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
@@ -549,7 +597,12 @@ let ocamlfind_ocamlopt
       ?help
       ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared ()
    )
-  @(ocamlfind_ocaml_compiler_args_specs ?package ?linkpkg ())
+  @(ocamlfind_ocaml_compiler_args_specs
+      ?package ?linkpkg ?predicates ?dontlink
+      ?ppopt ?ppxopt ?dllpath_pkg ?dllpath_all
+      ?ignore_error ?passopt ?only_show
+      ()
+   )
   @[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
