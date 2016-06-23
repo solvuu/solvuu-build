@@ -1,6 +1,21 @@
+(* Developers: functions in this module should be provided in roughly
+   alphabetical order, both in the ml and mli. *)
 open Ocamlbuild_plugin
 open Printf
 open Util
+open Util.Spec
+
+let cp ?f src dst =
+  [
+    [Some (A "cp")];
+    unit "-f" f;
+    [Some (A src)];
+    [Some (A dst)];
+  ] |>
+  specs_to_command
+
+let cp_rule ?f ~dep ~prod =
+  Rule.rule ~deps:[dep] ~prods:[prod] (fun _ _ -> cp ?f dep prod)
 
 let git_last_commit () =
   if Sys.file_exists ".git" then
