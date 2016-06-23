@@ -1,8 +1,9 @@
 open Printf
-open Util
 module Findlib = Solvuu_build_findlib
-open Filename
-let (/) = Filename.concat
+open Tools
+open Util
+open Util.Filename
+let (/) = Util.Filename.concat
 
 type pkg = string
 
@@ -529,11 +530,11 @@ let build_lib (x:lib) =
   let ocaml ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom mode files =
     match mode with
     | `Byte ->
-      OCaml.ocamlfind_ocamlc files
+      ocamlfind_ocamlc files
         ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom
         ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
     | `Native ->
-      OCaml.ocamlfind_ocamlopt files
+      ocamlfind_ocamlopt files
         ?pack ?o ?a ?c ?pathI ?package ?for_pack
         ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
   in
@@ -559,7 +560,7 @@ let build_lib (x:lib) =
     let prod = path_of_lib x ~suffix in
     Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
       let deps =
-        OCaml.run_ocamldep_sort ml_files |>
+        run_ocamldep_sort ml_files |>
         List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
       in
       List.iter deps ~f:(fun x ->
@@ -604,7 +605,7 @@ let build_lib (x:lib) =
             Filename.normalize
           in
           Rule.rule ~deps:(dep::clibs) ~prods:[prod] (fun _ _ ->
-            OCaml.ocamlmklib ~verbose:() ~o [dep]
+            ocamlmklib ~verbose:() ~o [dep]
           )
         );
 
@@ -617,7 +618,7 @@ let build_lib (x:lib) =
             Filename.normalize
           in
           Rule.rule ~deps ~prods:clibs (fun _ _ ->
-            OCaml.ocamlmklib ~verbose:() ~o deps
+            ocamlmklib ~verbose:() ~o deps
           )
         )
       )
@@ -630,7 +631,7 @@ let build_lib (x:lib) =
     Rule.rule ~deps:[mli] ~prods:[cmi]
       (fun _ build ->
          let _ =
-           OCaml.run_ocamldep1 ~modules:() ~pathI mli |>
+           run_ocamldep1 ~modules:() ~pathI mli |>
            List.filter_map ~f:file_base_of_module |>
            List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
            build |>
@@ -660,7 +661,7 @@ let build_lib (x:lib) =
       Rule.rule ~deps ~prods
         (fun _ build ->
            let _ =
-             OCaml.run_ocamldep1 ~modules:() ~pathI ml |>
+             run_ocamldep1 ~modules:() ~pathI ml |>
              List.filter_map ~f:file_base_of_module |>
              List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
              build |>
@@ -678,7 +679,7 @@ let build_lib (x:lib) =
     let c = () in
     Rule.rule ~deps:[c_file] ~prods:[obj] (fun _ _ ->
       Ocamlbuild_plugin.(Seq [
-        OCaml.ocamlc ~c ~pathI ~o:obj [c_file];
+        ocamlc ~c ~pathI ~o:obj [c_file];
 
         (* OCaml compiler appears to ignore the -o option set
            above. Output file always goes into _build, so moving
@@ -707,7 +708,7 @@ let build_app (x:app) =
     List.sort_uniq ~cmp:String.compare
   in
   List.iter [`Byte; `Native] ~f:(fun mode ->
-    let ocaml ?o files = OCaml.ocamlfind_ocaml_compiler mode files
+    let ocaml ?o files = ocamlfind_ocaml_compiler mode files
         ?o
         ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
         ~package ~pathI ~linkpkg:()
@@ -817,20 +818,20 @@ let solvuu1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
   | Ocamlbuild_plugin.After_rules -> (
       Ocamlbuild_plugin.clear_rules();
 
-      M4.m4_rule ()
+      m4_rule ()
         ~_D:[
-          "GIT_COMMIT", Some (match Git.last_commit() with
+          "GIT_COMMIT", Some (match git_last_commit() with
             | None -> "None"
             | Some x -> sprintf "Some \"%s\"" x
           );
           "VERSION", Some version;
         ];
 
-      Atdgen.atdgen_t_rule ~j_std:() ();
-      Atdgen.atdgen_j_rule ~j_std:() ();
+      atdgen_t_rule ~j_std:() ();
+      atdgen_j_rule ~j_std:() ();
 
-      OCaml.menhir_rule ();
-      OCaml.ocamllex_rule ();
+      menhir_rule ();
+      ocamllex_rule ();
 
       List.iter libs ~f:build_lib;
       List.iter apps ~f:build_app;

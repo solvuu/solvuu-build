@@ -1,9 +1,17 @@
+open Ocamlbuild_plugin
 open Printf
 open Util
 
+let git_last_commit () =
+  if Sys.file_exists ".git" then
+    Some (
+      Ocamlbuild_pack.My_unix.run_and_read "git rev-parse HEAD"
+      |> fun x -> String.sub x 0 (String.length x - 1)
+    )
+  else
+    None
+
 let m4 ?(_D=[]) ~infile ~outfile =
-  let open Ocamlbuild_plugin in
-  let open Util in
   [
     [A "m4"];
     (

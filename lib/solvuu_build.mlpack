@@ -1,9 +1,9 @@
 Std
 
-Atdgen
-Git
-M4
-OCaml
+Tools
+OCaml_tools
+Unix_tools
+
 Project
 Solvuu_build_findlib
 Util

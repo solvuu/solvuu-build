@@ -1343,3 +1343,41 @@ let js_of_eliom
    )
   @[List.map files ~f:(fun x -> Some (A x))]
   |> specs_to_command
+
+
+(******************************************************************************)
+(** {2 atdgen} *)
+(******************************************************************************)
+let atdgen ?j ?j_std ?t file =
+  [
+    [Some (A "atdgen")];
+    unit "-j" j;
+    unit "-j-std" j_std;
+    unit "-t" t;
+    [Some (P file)];
+  ] |>
+  specs_to_command
+
+let atdgen_t_rule ?(dep="%.atd") ?j_std () =
+  let open Filename in
+  let base =
+    if check_suffix dep ".atd"
+    then chop_suffix dep ".atd"
+    else failwithf "atdgen_t_rule: invalid ~dep = %s" dep ()
+  in
+  let deps = [dep] in
+  let prods = [sprintf "%s_t.ml" base; sprintf "%s_t.mli" base] in
+  let name = Rule.name ~deps ~prods in
+  rule name ~deps ~prods (fun env _ -> atdgen ~t:() ?j_std (env dep))
+
+let atdgen_j_rule ?(dep="%.atd") ?j_std () =
+  let open Filename in
+  let base =
+    if check_suffix dep ".atd"
+    then chop_suffix dep ".atd"
+    else failwithf "atdgen_j_rule: invalid ~dep = %s" dep ()
+  in
+  let deps = [dep] in
+  let prods = [sprintf "%s_j.ml" base; sprintf "%s_j.mli" base] in
+  let name = Rule.name ~deps ~prods in
+  rule name ~deps ~prods (fun env _ -> atdgen ~j:() ?j_std (env dep))
