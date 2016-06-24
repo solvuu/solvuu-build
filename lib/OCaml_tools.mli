@@ -231,6 +231,9 @@ type 'a ocamlfind_ocamldep_args =
 val ocamlfind_ocamldep
   : (Pathname.t list -> Command.t) ocamldep_args ocamlfind_ocamldep_args
 
+(** In the following [run_ocamlfind_ocamldep*] functions, the
+    [~verbose] option is ignored and internally not set. Otherwise the
+    output contains text that can't be parsed. *)
 val run_ocamlfind_ocamldep :
   (
     Pathname.t list -> (string * string list) list

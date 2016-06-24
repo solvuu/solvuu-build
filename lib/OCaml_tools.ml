@@ -884,7 +884,7 @@ let run_ocamlfind_ocamldep
 
     (* ocamlfind_ocamldep_args *)
     ?package ?predicates ?native_filter ?bytecode_filter
-    ?only_show ?verbose
+    ?only_show ?verbose:_
 
     (* ocamldep_args *)
     ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
@@ -893,7 +893,10 @@ let run_ocamlfind_ocamldep
 
     files
   =
+  (* Set options to make output parseable. *)
   let one_line = Some () in
+  let verbose = None in
+
   ocamlfind_ocamldep
     ?package ?predicates ?native_filter ?bytecode_filter
     ?only_show ?verbose
@@ -909,7 +912,7 @@ let run_ocamlfind_ocamldep1
 
     (* ocamlfind_ocamldep_args *)
     ?package ?predicates ?native_filter ?bytecode_filter
-    ?only_show ?verbose
+    ?only_show ?verbose:_
 
     (* ocamldep_args *)
     ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
@@ -919,7 +922,10 @@ let run_ocamlfind_ocamldep1
     file
   =
   assert (Sys.file_exists file);
+
+  (* Set options to make output parseable. *)
   let one_line = Some () in
+  let verbose = None in
 
   run_ocamlfind_ocamldep
     ?package ?predicates ?native_filter ?bytecode_filter
@@ -942,7 +948,7 @@ let run_ocamlfind_ocamldep_sort
 
     (* ocamlfind_ocamldep_args *)
     ?package ?predicates ?native_filter ?bytecode_filter
-    ?only_show ?verbose
+    ?only_show ?verbose:_
 
     (* ocamldep_args0 *)
     ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
@@ -950,7 +956,10 @@ let run_ocamlfind_ocamldep_sort
 
     files
   =
+  (* Set options to make output parseable. *)
   let sort = Some () in
+  let verbose = None in
+
   let cmd = ocamlfind_ocamldep
       ?package ?predicates ?native_filter ?bytecode_filter
       ?only_show ?verbose
