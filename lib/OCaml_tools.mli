@@ -338,8 +338,25 @@ type 'a eliomdep_args =
   ?ppx:unit ->
   'a
 
-val eliomdep_client : (Pathname.t list -> Command.t) eliomdep_args ocamldep_args
-val eliomdep_server : (Pathname.t list -> Command.t) eliomdep_args ocamldep_args
+val eliomdep :
+  (
+    [`Client | `Server] -> Pathname.t list -> Command.t
+  ) ocamldep_args eliomdep_args
+
+(** If [~fix320] is set, modify output to workaround [eliomdep] issue
+    {:{https://github.com/ocsigen/eliom/issues/320}320}. *)
+val run_eliomdep :
+  (
+    ?fix320:unit ->
+    [`Client | `Server] ->
+    Pathname.t list ->
+    (string * string list) list
+  ) ocamldep_args eliomdep_args
+
+val run_eliomdep_sort :
+  (
+    [`Client | `Server] -> Pathname.t list -> Pathname.t list
+  ) ocamldep_args0 eliomdep_args
 
 
 (******************************************************************************)

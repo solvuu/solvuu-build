@@ -1304,18 +1304,17 @@ let eliomdep_args_specs
   ]
 
 let eliomdep
-    host
+
+    (* eliomdep_args *)
+    ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
+    ?ppopt ?predicates ?verbose ?ppx:ppx_eliomdep
 
     (* ocamldep_args *)
     ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
     ?modules ?native ?one_line ?open_ ?pp ?ppx:ppx_ocamldep ?slash
     ?sort ?version
 
-    (* eliomdep_args *)
-    ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
-    ?ppopt ?predicates ?verbose ?ppx:ppx_eliomdep
-
-    files
+    host files
   =
   [[
     Some (A "eliomdep");
@@ -1336,8 +1335,91 @@ let eliomdep
   @[List.map files ~f:(fun x -> Some (A x))]
   |> specs_to_command
 
-let eliomdep_client = eliomdep `Client
-let eliomdep_server = eliomdep `Server
+let run_eliomdep
+
+    (* eliomdep_args *)
+    ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
+    ?ppopt ?predicates ?verbose:_ ?ppx:ppx_eliomdep
+
+    (* ocamldep_args *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line:_ ?open_ ?pp ?ppx:ppx_ocamldep ?slash
+    ?sort ?version
+
+    ?fix320 host files
+  =
+  (* Set options to make output parseable. *)
+  let one_line = Some () in
+  let verbose = None in
+
+  (* Workaround https://github.com/ocsigen/eliom/issues/320 *)
+  let fix_path x =
+    let dir = match dir with
+      | Some x -> x
+      | None -> match host with `Client -> "_client" | `Server -> "_server"
+    in
+    let type_dir = match type_dir with
+      | Some x -> x
+      | None -> "_server"
+    in
+    match String.split x ~on:'/' with
+    | [] -> assert false
+    | _::[] -> x
+    | dir0::_::_ ->
+      if dir0 = dir || dir0 = type_dir then
+        (* path okay, return it unmodified *)
+        x
+      else if Filename.check_suffix x ".type_mli" then
+        (* haven't actually seen output that would lead to this case,
+           but considering it anyway *)
+        (type_dir/x)
+      else
+        (dir/x)
+  in
+
+  eliomdep host
+    ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
+    ?ppopt ?predicates ?verbose ?ppx:ppx_eliomdep
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx:ppx_ocamldep ?slash
+    ?sort ?version
+    files
+  |> spec_of_command
+  |> run_and_parse_ocamldep_cmd |> fun l ->
+  match fix320 with
+  | None -> l
+  | Some () -> List.map l ~f:(fun (x,l) -> fix_path x, List.map l ~f:fix_path)
+
+let run_eliomdep_sort
+
+    (* eliomdep_args *)
+    ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
+    ?ppopt ?predicates ?verbose:_ ?ppx:ppx_eliomdep
+
+    (* ocamldep_args0 *)
+    ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+    ?modules ?native ?one_line ?open_ ?pp ?ppx:ppx_ocamldep ?slash
+
+    host files
+  =
+  let sort = Some () in
+
+  (* Set options to make output parseable. *)
+  let verbose = None in
+
+  let cmd = eliomdep
+      ?dir ?type_dir ?eliom_inc ?package ?no_autoload ?type_conv
+      ?ppopt ?predicates ?verbose ?ppx:ppx_eliomdep
+      ?absname ?all ?pathI ?impl ?intf ?ml_synonym ?mli_synonym
+      ?modules ?native ?one_line ?open_ ?pp ?ppx:ppx_ocamldep ?slash
+      ?sort
+      host files
+  in
+  spec_of_command cmd |>
+  Ocamlbuild_plugin.Command.string_of_command_spec |>
+  Ocamlbuild_pack.My_unix.run_and_read |>
+  String.split ~on:' ' |>
+  List.filter ~f:(fun x -> not @@ String.for_all x ~f:Char.is_whitespace)
 
 
 (******************************************************************************)
