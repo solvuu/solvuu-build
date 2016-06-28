@@ -82,6 +82,11 @@ module String = struct
   let equal = ( = )
   let split = Core.String.split
 
+  let is_prefix x ~prefix =
+    let n = String.length prefix in
+    try ignore (String.sub x 0 n); true
+    with Invalid_argument _ -> false
+
   module Map = struct
     include Map.Make(String)
 

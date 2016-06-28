@@ -43,6 +43,8 @@ module String : sig
   val equal : string -> string -> bool
   val split : string -> on:char -> string list
 
+  val is_prefix : string -> prefix:string -> bool
+
   module Map : sig
     include module type of Map.Make(String)
     val to_list : 'a t -> (string * 'a) list
