@@ -43,7 +43,19 @@ module String : sig
   val equal : string -> string -> bool
   val split : string -> on:char -> string list
 
+  val is_suffix : t -> suffix:t -> bool
   val is_prefix : string -> prefix:string -> bool
+
+  val drop_suffix : t -> int -> t
+  val drop_prefix : t -> int -> t
+
+  val chop_suffix_exn : t -> suffix:t -> t
+  val chop_prefix_exn : t -> prefix:t -> t
+  val chop_suffix : t -> suffix:t -> t option
+  val chop_prefix : t -> prefix:t -> t option
+
+  val suffix : t -> int -> t
+  val prefix : t -> int -> t
 
   module Map : sig
     include module type of Map.Make(String)

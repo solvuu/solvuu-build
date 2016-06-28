@@ -22,6 +22,10 @@ module Core = struct
     let filter_map l ~f = List.rev (rev_filter_map l ~f)
   end
 
+  module Char = struct
+    let equal = (=)
+  end
+
   module String = struct
     module String = BytesLabels
 
@@ -56,6 +60,82 @@ module Core = struct
       loop [] len (len - 1)
 
     let split str ~on = split_gen str ~on:(`char on) ;;
+
+    let is_suffix_gen =
+      let rec loop s ~suffix ~char_equal idx_suff idx =
+        idx_suff < 0
+        || ((char_equal suffix.[idx_suff] s.[idx])
+            && loop s ~suffix ~char_equal (idx_suff - 1) (idx - 1))
+      in
+      fun s ~suffix ~char_equal ->
+        let len = String.length s in
+        let len_suffix = String.length suffix in
+        len >= len_suffix
+        && loop s ~suffix ~char_equal (len_suffix - 1) (len - 1)
+    ;;
+
+    let is_prefix_gen =
+      let rec loop s ~prefix ~char_equal i =
+        i < 0
+        || ((char_equal prefix.[i] s.[i])
+            && loop s ~prefix ~char_equal (i - 1))
+      in
+      fun s ~prefix ~char_equal ->
+        let prefix_len = String.length prefix in
+        String.length s >= prefix_len
+        && loop s ~prefix ~char_equal (prefix_len - 1)
+    ;;
+
+    let is_suffix s ~suffix = is_suffix_gen s ~suffix ~char_equal:Char.equal
+    let is_prefix s ~prefix = is_prefix_gen s ~prefix ~char_equal:Char.equal
+
+    let wrap_sub_n t n ~name ~pos ~len ~on_error =
+      if n < 0 then
+        invalid_arg (name ^ " expecting nonnegative argument")
+      else
+        try
+          String.sub t ~pos ~len
+        with _ ->
+          on_error
+
+    let drop_prefix t n =
+      wrap_sub_n ~name:"drop_prefix" t n ~pos:n
+        ~len:(String.length t - n) ~on_error:""
+    let drop_suffix t n =
+      wrap_sub_n ~name:"drop_suffix" t n ~pos:0
+        ~len:(String.length t - n) ~on_error:""
+    let prefix t n =
+      wrap_sub_n ~name:"prefix" t n ~pos:0 ~len:n ~on_error:t
+    let suffix t n =
+      wrap_sub_n ~name:"suffix" t n ~pos:(String.length t - n)
+        ~len:n ~on_error:t
+
+    let chop_prefix s ~prefix =
+      if is_prefix s ~prefix then
+        Some (drop_prefix s (String.length prefix))
+      else
+        None
+
+    let chop_prefix_exn s ~prefix =
+      match chop_prefix s ~prefix with
+      | Some str -> str
+      | None ->
+        raise (Invalid_argument
+                 (Printf.sprintf "chop_prefix_exn %S %S" s prefix))
+
+    let chop_suffix s ~suffix =
+      if is_suffix s ~suffix then
+        Some (drop_suffix s (String.length suffix))
+      else
+        None
+
+    let chop_suffix_exn s ~suffix =
+      match chop_suffix s ~suffix with
+      | Some str -> str
+      | None ->
+        raise (Invalid_argument
+                 (Printf.sprintf "chop_suffix_exn %S %S" s suffix))
+
   end
 end
 
@@ -82,10 +162,16 @@ module String = struct
   let equal = ( = )
   let split = Core.String.split
 
-  let is_prefix x ~prefix =
-    let n = String.length prefix in
-    try ignore (String.sub x 0 n); true
-    with Invalid_argument _ -> false
+  let is_suffix = Core.String.is_suffix
+  let is_prefix = Core.String.is_prefix
+  let drop_suffix = Core.String.drop_suffix
+  let drop_prefix = Core.String.drop_prefix
+  let chop_suffix_exn = Core.String.chop_suffix_exn
+  let chop_prefix_exn = Core.String.chop_prefix_exn
+  let chop_suffix = Core.String.chop_suffix
+  let chop_prefix = Core.String.chop_prefix
+  let suffix = Core.String.suffix
+  let prefix = Core.String.prefix
 
   module Map = struct
     include Map.Make(String)
