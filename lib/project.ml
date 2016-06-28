@@ -764,9 +764,14 @@ let build_static_file path content =
 (******************************************************************************)
 (** {2 Plugins} *)
 (******************************************************************************)
-let basic1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
+let basic1
+    ?(additional_rules=[]) ?(ocamlinit_postfix=[])
+    ~project_name ~version items
+  =
   (* Compute graph to check for cycles and other errors. *)
   ignore (Graph.of_list items);
+
+  List.iter additional_rules ~f:(fun f -> f());
 
   let libs = filter_libs items in
   let apps = filter_apps items in
@@ -788,7 +793,10 @@ let basic1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
     )
   | _ -> ()
 
-let solvuu1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
+let solvuu1
+    ?(additional_rules=[]) ?(ocamlinit_postfix=[])
+    ~project_name ~version items
+  =
   (* Compute graph to check for cycles and other errors. *)
   ignore (Graph.of_list items);
 
@@ -817,6 +825,8 @@ let solvuu1 ?(ocamlinit_postfix=[]) ~project_name ~version items =
     )
   | Ocamlbuild_plugin.After_rules -> (
       Ocamlbuild_plugin.clear_rules();
+
+      List.iter additional_rules ~f:(fun f -> f());
 
       m4_rule ()
         ~_D:[

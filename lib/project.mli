@@ -201,6 +201,7 @@ val build_static_file : string -> content -> unit
 (** {2 Plugins} *)
 (******************************************************************************)
 val basic1 :
+  ?additional_rules:((unit -> unit) list) ->
   ?ocamlinit_postfix:string list ->
   project_name:string ->
   version:string ->
@@ -208,6 +209,7 @@ val basic1 :
   unit
 
 val solvuu1 :
+  ?additional_rules:((unit -> unit) list) ->
   ?ocamlinit_postfix:string list ->
   project_name:string ->
   version:string ->
