@@ -787,7 +787,10 @@ let run_ocamldep1
 
     file
   =
-  assert (Sys.file_exists file);
+  if not (Sys.file_exists file) then
+    failwithf "run_ocamldep1: %s does not exist" file ()
+  ;
+
   let one_line = Some () in
 
   run_ocamldep
