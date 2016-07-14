@@ -142,6 +142,9 @@ let dep_opts_sat x optional_deps =
   )
 
 let path_of_lib ~suffix (x:lib) : string =
+  sprintf "%s/%s%s" (dirname x.dir) x.name suffix
+
+let path_of_pack ~suffix (x:lib) : string =
   sprintf "%s/%s%s" (dirname x.dir) x.pack_name suffix
 
 let path_of_app ~suffix (x:app) : string =
@@ -557,7 +560,7 @@ let build_lib (x:lib) =
   (* .cmo*/.cmx* -> packed .cmo/.cmx *)
   List.iter [`Byte; `Native] ~f:(fun mode ->
     let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
-    let prod = path_of_lib x ~suffix in
+    let prod = path_of_pack x ~suffix in
     Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
       let deps =
         run_ocamldep_sort ml_files |>
@@ -574,7 +577,7 @@ let build_lib (x:lib) =
   );
 
   ((* .cmo/.cmx,.o -> .cma/.cmxa *)
-    let ml_obj mode = path_of_lib x
+    let ml_obj mode = path_of_pack x
         ~suffix:(match mode with `Byte -> ".cmo" | `Native -> ".cmx")
     in
     let ml_lib mode = path_of_lib x

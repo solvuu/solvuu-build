@@ -153,6 +153,13 @@ val path_of_lib : suffix:string -> lib -> string
     "src/". Thus, [path_of_lib ~suffix:".cma" x] will return
     "src/mylib.cma". *)
 
+val path_of_pack : suffix:string -> lib -> string
+(** Return path to packed module file with given suffix. Files are siblings of
+    the lib's [dir]. For example, given a lib [x] with [x.dir =
+    "src/mylib"], we choose to install files in the directory
+    "src/". Thus, [path_of_lib ~suffix:".cmo" x] will return
+    "src/mylib.cmo". *)
+
 val path_of_app : suffix:string -> app -> string
 (** Return path to app file with given suffix. Files are in the same
     directory as the app's implementation [file]. For example, assume
