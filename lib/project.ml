@@ -379,15 +379,29 @@ let install_file items : string list =
       ::(
         filter_libs items |>
         List.map ~f:(fun (x:lib) ->
-          [
-            "a"; "annot";"cma";"cmi";"cmo";"cmt";"cmti";"cmx";"cmxa";
-            "cmxs";"dll";"o"
-          ] |>
+          [".a"; ".cma"; ".cmxa"; ".cmxs"; ".dll"; ".o"] |>
           List.map ~f:(fun suffix ->
-            let file = sprintf "%s.%s" x.name suffix in
-            let src = sprintf "?_build/%s/%s" (dirname x.dir) file in
+            let src = "?_build"/(path_of_lib ~suffix x) in
+            let base = basename src in
             let dst =
-              (Findlib.to_path x.pkg |> List.tl)@[file] |>
+              (Findlib.to_path x.pkg |> List.tl)@[base] |>
+              String.concat ~sep:"/" |>
+              fun x -> Some x
+            in
+            src,dst
+          )
+        ) |>
+        List.flatten
+      )
+      ::(
+        filter_libs items |>
+        List.map ~f:(fun (x:lib) ->
+          [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] |>
+          List.map ~f:(fun suffix ->
+            let src = "?_build"/(path_of_pack ~suffix x) in
+            let base = basename src in
+            let dst =
+              (Findlib.to_path x.pkg |> List.tl)@[base] |>
               String.concat ~sep:"/" |>
               fun x -> Some x
             in
