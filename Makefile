@@ -1,4 +1,5 @@
-PROJECT=solvuu_build
+PROJECT=solvuu-build
+PACK=solvuu_build
 VERSION=dev
 OCAMLBUILD=ocamlbuild -use-ocamlfind
 DEMOS=$(sort $(dir $(wildcard demo/*/)))
@@ -20,8 +21,8 @@ _build/META:
 	mkdir -p _build
 	ocaml bin/make-helper.ml META $(PROJECT) $(VERSION) > $@
 
-solvuu_build.install:
-	ocaml bin/make-helper.ml install $(PROJECT) > $@
+solvuu-build.install:
+	ocaml bin/make-helper.ml install $(PROJECT) $(PACK) > $@
 
 test:
 	$(foreach demo,$(DEMOS),make -C $(demo);)

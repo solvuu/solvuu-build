@@ -253,7 +253,7 @@ type content = string list
 
 let merlin_file items : string list =
   [
-    ["B +threads"; "PKG solvuu_build"];
+    ["B +threads"; "PKG solvuu-build"];
 
     (* libs *)
     List.map (filter_libs items) ~f:(fun x ->
@@ -462,7 +462,7 @@ let ocamlinit_file ?(postfix=[]) items =
       "";
     ];
     (
-      let pkgs = "solvuu_build"::(all_findlib_pkgs items) in
+      let pkgs = "solvuu-build"::(all_findlib_pkgs items) in
       [sprintf "#require \"%s\";;"(String.concat ~sep:" " pkgs); ""]
     );
     [

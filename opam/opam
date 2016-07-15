@@ -2,9 +2,9 @@ opam-version: "1.2"
 version: "dev"
 maintainer: "Ashish Agarwal <ashish@solvuu.com>"
 authors: "Solvuu"
-homepage: "https://github.com/solvuu/solvuu_build"
-bug-reports: "https://github.com/solvuu/solvuu_build/issues"
-dev-repo: "https://github.com/solvuu/solvuu_build.git"
+homepage: "https://github.com/solvuu/solvuu-build"
+bug-reports: "https://github.com/solvuu/solvuu-build/issues"
+dev-repo: "https://github.com/solvuu/solvuu-build.git"
 license: "ISC"
 tags: ["org:solvuu"]
 
@@ -15,7 +15,7 @@ build: [
 
 install: [
   [make "_build/META"]
-  [make "solvuu_build.install"]
+  [make "solvuu-build.install"]
 ]
 
 remove: []

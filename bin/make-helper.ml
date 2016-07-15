@@ -6,7 +6,7 @@ module List = struct
 end
 
 (** Print .install file to stdout. *)
-let make_install_file ~project_name : unit =
+let make_install_file ~project_name ~pack_name : unit =
   let module_files =
     Sys.readdir "lib" |> Array.to_list |>
     List.filter ~f:(fun x -> Filename.check_suffix x ".ml") |>
@@ -17,17 +17,20 @@ let make_install_file ~project_name : unit =
     ) |>
     List.flatten
   in
+  let pack_files =
+    ["o";"obj";"cmi";"cmo";"cmt";"cmx"] |>
+    List.map ~f:(fun suffix ->
+      sprintf "?_build/lib/%s.%s" pack_name suffix
+    )
+  in
   let lib_files =
-    [
-      "a";"lib";"o";"obj";"so";"dll";
-      "cma";"cmi";"cmo";"cmt";"cmx";"cmxa";"cmxs";
-    ]
-    |> List.map ~f:(fun suffix ->
+    ["a";"cma";"cmxa";"cmxs"] |>
+    List.map ~f:(fun suffix ->
       sprintf "?_build/lib/%s.%s" project_name suffix
     )
   in
   let all_files =
-    ["lib/solvuu.mk";"_build/META"]@lib_files@module_files
+    ["lib/solvuu.mk";"_build/META"]@lib_files@pack_files@module_files
   in
   let lines =
     ["lib: ["]
@@ -48,8 +51,8 @@ let make_META_file ~project_name ~version =
 
 ;;
 let () = match Sys.argv with
-  | [|_; "install"; project_name|] ->
-    make_install_file ~project_name
+  | [|_; "install"; project_name; pack_name|] ->
+    make_install_file ~project_name ~pack_name
   | [|_; "META"; project_name; version|] ->
     make_META_file ~project_name ~version
   | _ ->
