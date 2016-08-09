@@ -788,14 +788,14 @@ let basic1
   (* Compute graph to check for cycles and other errors. *)
   ignore (Graph.of_list items);
 
-  List.iter additional_rules ~f:(fun f -> f());
-
   let libs = filter_libs items in
   let apps = filter_apps items in
 
   Ocamlbuild_plugin.dispatch @@ function
   | Ocamlbuild_plugin.After_rules -> (
       Ocamlbuild_plugin.clear_rules();
+
+      List.iter additional_rules ~f:(fun f -> f());
 
       List.iter libs ~f:build_lib;
       List.iter apps ~f:build_app;
