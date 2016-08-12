@@ -477,7 +477,10 @@ let ocamlinit_file ?(postfix=[]) items =
       Graph.Topological.sort graph |>
       filter_libs |>
       List.map ~f:(fun x ->
-        sprintf "#directory \"_build/%s\";;" (dirname x.dir)
+        sprintf "#directory \"_build/%s\";;%s" (dirname x.dir)
+          (match x.style with
+           | `Pack _ -> ""
+           | `Basic -> sprintf "\n#directory \"_build/%s\";;" x.dir)
       )
       |> List.sort_uniq ~cmp:String.compare
     );
