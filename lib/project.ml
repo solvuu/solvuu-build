@@ -147,6 +147,9 @@ let path_of_lib ~suffix (x:lib) : string =
 let path_of_packed_lib ~pack_name ~suffix (x:lib) : string =
   sprintf "%s/%s%s" (dirname x.dir) pack_name suffix
 
+let path_of_basic_lib_file ~suffix (x:lib) file : string =
+  sprintf "%s/%s%s" x.dir file suffix
+
 let path_of_app ~suffix (x:app) : string =
   sprintf "%s/%s%s" (dirname x.file) x.name suffix
 
@@ -396,22 +399,38 @@ let install_file items : string list =
       ::(
         filter_libs items |>
         List.map ~f:(fun (x:lib) ->
-          let to_path =
             match x.style with
-            | `Basic          -> path_of_lib x
-            | `Pack pack_name -> path_of_packed_lib ~pack_name x
-          in
-          [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] |>
-          List.map ~f:(fun suffix ->
-            let src = "?_build"/(to_path ~suffix) in
-            let base = basename src in
-            let dst =
-              (Findlib.to_path x.pkg |> List.tl)@[base] |>
-              String.concat ~sep:"/" |>
-              fun x -> Some x
-            in
-            src,dst
-          ) ) )
+            | `Basic          ->
+                let to_path = path_of_basic_lib_file x in
+                [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] |>
+                List.map ~f:(fun suffix ->
+                  (List.map ~f:(String.chop_suffix_exn ~suffix:".ml") x.ml_files)
+                  @ (List.map ~f:(String.chop_suffix_exn ~suffix:".mli") x.mli_files) |>
+                  List.sort_uniq ~cmp:String.compare |>
+                  List.map ~f:(fun module_name ->
+                    let src = "?_build"/(to_path ~suffix module_name) in
+                    let base = basename src in
+                    let dst =
+                      (Findlib.to_path x.pkg |> List.tl)@[base] |>
+                      String.concat ~sep:"/" |>
+                      fun x -> Some x
+                    in
+                    src,dst
+                  ) )
+                |> List.flatten
+            | `Pack pack_name ->
+                let to_path = path_of_packed_lib ~pack_name x in
+                [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] |>
+                List.map ~f:(fun suffix ->
+                  let src = "?_build"/(to_path ~suffix) in
+                  let base = basename src in
+                  let dst =
+                    (Findlib.to_path x.pkg |> List.tl)@[base] |>
+                    String.concat ~sep:"/" |>
+                    fun x -> Some x
+                  in
+                  src,dst
+                ) ) )
       |> List.flatten )
   in
 
