@@ -26,7 +26,7 @@ and lib = {
   name : string;
   internal_deps : item list;
   findlib_deps : pkg list;
-  pack_name : string;
+  style : [ `Basic | `Pack of string];
   dir : string;
   ml_files : string list;
   mli_files : string list;
@@ -48,7 +48,7 @@ and item = Lib of lib | App of app
 let lib
     ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
     ?(internal_deps=[]) ?(findlib_deps=[])
-    ?ml_files ?mli_files ?c_files ~pkg ~pack_name ~dir name
+    ?ml_files ?mli_files ?c_files ~pkg ~style ~dir name
   =
   let files =
     try Sys.readdir dir |> Array.to_list
@@ -76,7 +76,7 @@ let lib
     |> List.sort_uniq ~cmp:String.compare
   in
   Lib {
-    name; internal_deps; findlib_deps; pack_name;
+    name; internal_deps; findlib_deps; style;
     dir; ml_files; mli_files; c_files; pkg;
     annot; bin_annot; g; safe_string; short_paths; thread; w; linkall;
   }
@@ -144,8 +144,8 @@ let dep_opts_sat x optional_deps =
 let path_of_lib ~suffix (x:lib) : string =
   sprintf "%s/%s%s" (dirname x.dir) x.name suffix
 
-let path_of_pack ~suffix (x:lib) : string =
-  sprintf "%s/%s%s" (dirname x.dir) x.pack_name suffix
+let path_of_packed_lib ~pack_name ~suffix (x:lib) : string =
+  sprintf "%s/%s%s" (dirname x.dir) pack_name suffix
 
 let path_of_app ~suffix (x:app) : string =
   sprintf "%s/%s%s" (dirname x.file) x.name suffix
@@ -396,9 +396,14 @@ let install_file items : string list =
       ::(
         filter_libs items |>
         List.map ~f:(fun (x:lib) ->
+          let to_path =
+            match x.style with
+            | `Basic          -> path_of_lib x
+            | `Pack pack_name -> path_of_packed_lib ~pack_name x
+          in
           [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] |>
           List.map ~f:(fun suffix ->
-            let src = "?_build"/(path_of_pack ~suffix x) in
+            let src = "?_build"/(to_path ~suffix) in
             let base = basename src in
             let dst =
               (Findlib.to_path x.pkg |> List.tl)@[base] |>
@@ -572,26 +577,29 @@ let build_lib (x:lib) =
   let file_base_of_module : string -> string option = file_base_of_module x in
 
   (* .cmo*/.cmx* -> packed .cmo/.cmx *)
-  List.iter [`Byte; `Native] ~f:(fun mode ->
-    let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
-    let prod = path_of_pack x ~suffix in
-    Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
-      let deps =
-        run_ocamldep_sort ml_files |>
-        List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
-      in
-      List.iter deps ~f:(fun x ->
-        match build [[x]] with
-        | [Ocamlbuild_plugin.Outcome.Good _] -> ()
-        | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
-        | _ -> assert false
-      );
-      ocaml mode ~pack:() ~o:prod deps
-    )
-  );
+  (match x.style with
+  | `Basic          -> () (* Handle the dynamic cmo dependency when building the cma. *)
+  | `Pack pack_name ->
+    List.iter [`Byte; `Native] ~f:(fun mode ->
+      let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
+      let prod = path_of_packed_lib ~pack_name x ~suffix in
+      Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
+        let deps =
+          run_ocamldep_sort ml_files |>
+          List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
+        in
+        List.iter deps ~f:(fun x ->
+          match build [[x]] with
+          | [Ocamlbuild_plugin.Outcome.Good _] -> ()
+          | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
+          | _ -> assert false
+        );
+        ocaml mode ~pack:() ~o:prod deps
+      )
+  ));
 
   ((* .cmo/.cmx,.o -> .cma/.cmxa *)
-    let ml_obj mode = path_of_pack x
+    let ml_packed_obj pack_name mode = path_of_packed_lib ~pack_name x
         ~suffix:(match mode with `Byte -> ".cmo" | `Native -> ".cmx")
     in
     let ml_lib mode = path_of_lib x
@@ -600,10 +608,27 @@ let build_lib (x:lib) =
     match c_files with
     | [] -> ( (* No C files. Call ocamlc/ocamlopt directly. *)
         List.iter [`Byte; `Native] ~f:(fun mode ->
-          let dep = ml_obj mode in
           let prod = ml_lib mode in
-          Rule.rule ~deps:[dep] ~prods:[prod]
-            (fun _ _ -> ocaml mode ~a:() ~o:prod [dep])
+          match x.style with
+          | `Pack pack_name ->
+              let deps = [ ml_packed_obj pack_name mode] in
+              Rule.rule ~deps ~prods:[prod]
+              (fun _ _ ->
+                ocaml mode ~a:() ~o:prod deps)
+          | `Basic          ->  (* Ensure all cmo files exist *)
+              let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
+              Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
+                let deps =
+                  run_ocamldep_sort ml_files |>
+                  List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
+                in
+                List.iter deps ~f:(fun x ->
+                  match build [[x]] with
+                  | [Ocamlbuild_plugin.Outcome.Good _] -> ()
+                  | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
+                  | _ -> assert false
+                );
+                ocaml mode ~a:() ~o:prod deps)
         )
       )
     | _ -> ( (* There is C code. Call ocamlmklib. *)
@@ -615,18 +640,25 @@ let build_lib (x:lib) =
         in
 
         List.iter [`Byte;`Native] ~f:(fun mode ->
-          let dep = ml_obj mode in
+          let deps =
+            match x.style with
+            | `Pack pack_name -> [ ml_packed_obj pack_name mode]
+            | `Basic          ->
+                let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
+                (* Does order matter here? *)
+                List.map ml_files ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
+          in
           let prod = ml_lib mode in
           let o =
             sprintf "%s/%s" (dirname x.dir) x.name |>
             Filename.normalize
           in
-          Rule.rule ~deps:(dep::clibs) ~prods:[prod] (fun _ _ ->
-            ocamlmklib ~verbose:() ~o [dep]
+          Rule.rule ~deps:(deps@clibs) ~prods:[prod] (fun _ _ ->
+            ocamlmklib ~verbose:() ~o deps
           )
         );
 
-        (
+        ((* .c -> .o *)
           let deps = List.map c_files ~f:(fun c_file ->
             sprintf "%s.o" (chop_suffix c_file ".c") )
           in
@@ -666,7 +698,6 @@ let build_lib (x:lib) =
     let mli_exists = List.mem ~set:mli_files mli in
 
     let c = () in
-    let for_pack = String.capitalize x.pack_name in
 
     (* .ml -> .cmo/.cmx and .cmi if no corresponding .mli *)
     List.iter [`Byte; `Native] ~f:(fun mode ->
@@ -684,7 +715,12 @@ let build_lib (x:lib) =
              build |>
              assert_all_outcomes
            in
-           ocaml mode ~c ~pathI ~package ~for_pack ~o:obj [ml]
+           match x.style with
+           | `Basic ->
+              ocaml mode ~c ~pathI ~package ~o:obj [ml]
+           | `Pack pack_name ->
+              let for_pack = String.capitalize pack_name in
+              ocaml mode ~c ~pathI ~package ~for_pack ~o:obj [ml]
         )
     )
   );

@@ -8,11 +8,12 @@ let version = "dev"
 let thread = ()
 
 let make_lib ?findlib_deps ?internal_deps lib_name =
-  Project.lib (sprintf "%s_%s" project_name lib_name)
+  let wrap_name = sprintf "%s_%s" project_name lib_name in
+  Project.lib wrap_name
     ~thread
     ?findlib_deps ?internal_deps
     ~dir:(sprintf "lib/%s" lib_name)
-    ~pack_name:(sprintf "%s_%s" project_name lib_name)
+    ~style:(`Pack wrap_name)
     ~pkg:(sprintf "%s.%s" project_name lib_name)
 
 let make_app = Project.app ~thread

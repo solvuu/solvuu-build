@@ -6,7 +6,7 @@ let version = "dev"
 
 let lib : Project.item = Project.lib project_name
   ~dir:"lib"
-  ~pack_name:project_name
+  ~style:(`Pack project_name)
   ~pkg:project_name
 
 let app : Project.item = Project.app "my-app"
