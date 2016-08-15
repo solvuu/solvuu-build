@@ -83,7 +83,8 @@ and lib = {
   short_paths : unit option;
   thread : unit option;
   w : string option;
-  linkall : unit option
+  linkall : unit option;
+  shared : unit option;
 }
 
 and item = Lib of lib | App of app
@@ -106,6 +107,7 @@ val lib
   -> ?thread:unit
   -> ?w:string
   -> ?linkall:unit
+  -> ?shared:unit
   -> ?internal_deps:item list
   -> ?findlib_deps:pkg list
   -> ?ml_files:[`Add of string list | `Replace of string list]

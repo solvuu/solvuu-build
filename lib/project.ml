@@ -40,13 +40,15 @@ and lib = {
   short_paths : unit option;
   thread : unit option;
   w : string option;
-  linkall : unit option
+  linkall : unit option;
+  shared : unit option;
 }
 
 and item = Lib of lib | App of app
 
 let lib
     ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
+    ?shared
     ?(internal_deps=[]) ?(findlib_deps=[])
     ?ml_files ?mli_files ?c_files ~pkg ~style ~dir name
   =
@@ -79,6 +81,7 @@ let lib
     name; internal_deps; findlib_deps; style;
     dir; ml_files; mli_files; c_files; pkg;
     annot; bin_annot; g; safe_string; short_paths; thread; w; linkall;
+    shared;
   }
 
 let app
@@ -298,8 +301,14 @@ let meta_file ~version libs : Fl_metascanner.pkg_expr =
       def "directory"
         (Findlib.to_path x.pkg |> List.tl |> String.concat ~sep:"/");
       def "version" version;
-      def ~preds:[`Pred "byte"] "archive" (sprintf "%s.cma" x.name);
-      def ~preds:[`Pred "native"] "archive" (sprintf "%s.cmxa" x.name);
+      def ~preds:[`Pred "byte"] "archive"
+        (sprintf "%s.cma" x.name);
+      def ~preds:[`Pred "byte"; `Pred "plugin"] "archive"
+        (sprintf "%s.cma" x.name);
+      def ~preds:[`Pred "native"] "archive"
+        (sprintf "%s.cmxa" x.name);
+      def ~preds:[`Pred "native"; `Pred "plugin"] "archive"
+        (sprintf "%s.cmxs" x.name);
       def "requires" (
         (findlib_deps_all (Lib x))
         @(
@@ -571,17 +580,31 @@ let build_lib (x:lib) =
   let thread = x.thread in
   let w = x.w in
   let linkall = x.linkall in
-  let ocaml ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom mode files =
+
+  let ocamlc ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom files =
+    ocamlfind_ocamlc files
+      ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom
+      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
+  in
+
+  let ocamlopt ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack files =
+    ocamlfind_ocamlopt files
+      ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack
+      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
+  in
+
+  (* Abstraction of ocamlc/ocamlopt above. Use above if any options
+     specific to just ocamlc or ocamlopt are required. This function is
+     for when the flags are identical regardless of byte or native
+     compilation. *)
+  let ocaml ?pack ?o ?a ?c ?pathI ?package ?for_pack mode files =
     match mode with
     | `Byte ->
-      ocamlfind_ocamlc files
-        ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom
-        ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
+      ocamlc ?pack ?o ?a ?c ?pathI ?package ?for_pack files
     | `Native ->
-      ocamlfind_ocamlopt files
-        ?pack ?o ?a ?c ?pathI ?package ?for_pack
-        ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
+      ocamlopt ?pack ?o ?a ?c ?pathI ?package ?for_pack files
   in
+
   let package = findlib_deps_all (Lib x) in
   let ml_files = List.map x.ml_files ~f:(fun y -> x.dir/y) in
   let mli_files = List.map x.mli_files ~f:(fun y -> x.dir/y) in
@@ -620,24 +643,34 @@ let build_lib (x:lib) =
       )
   ));
 
-  ((* .cmo/.cmx,.o -> .cma/.cmxa *)
+  ((* .cmo/.cmx,.o -> .cma/.cmxa/.cmxs *)
     let ml_packed_obj pack_name mode = path_of_packed_lib ~pack_name x
         ~suffix:(match mode with `Byte -> ".cmo" | `Native -> ".cmx")
     in
     let ml_lib mode = path_of_lib x
         ~suffix:(match mode with `Byte -> ".cma" | `Native -> ".cmxa")
     in
+    let plugin = path_of_lib x ~suffix:".cmxs" in
     match c_files with
     | [] -> ( (* No C files. Call ocamlc/ocamlopt directly. *)
         List.iter [`Byte; `Native] ~f:(fun mode ->
           let prod = ml_lib mode in
           match x.style with
-          | `Pack pack_name ->
+          | `Pack pack_name -> (
               let deps = [ ml_packed_obj pack_name mode] in
               Rule.rule ~deps ~prods:[prod]
               (fun _ _ ->
                 ocaml mode ~a:() ~o:prod deps)
-          | `Basic          ->  (* Ensure all cmo files exist *)
+              ;
+              (match mode with
+               | `Byte -> ()
+               | `Native ->
+                 Rule.rule ~deps ~prods:[plugin] (fun _ _ ->
+                   ocamlopt ~shared:() ~o:plugin deps
+                 )
+              )
+            )
+          | `Basic          -> ( (* Ensure all cmo files exist *)
               let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
               Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
                 let deps =
@@ -650,7 +683,27 @@ let build_lib (x:lib) =
                   | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
                   | _ -> assert false
                 );
-                ocaml mode ~a:() ~o:prod deps)
+                ocaml mode ~a:() ~o:prod deps
+              )
+              ;
+              (match mode with
+               | `Byte -> ()
+               | `Native ->
+                 Rule.rule ~deps:ml_files ~prods:[plugin] (fun _ build ->
+                   let deps =
+                     run_ocamldep_sort ml_files |>
+                     List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
+                   in
+                   List.iter deps ~f:(fun x ->
+                     match build [[x]] with
+                     | [Ocamlbuild_plugin.Outcome.Good _] -> ()
+                     | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
+                     | _ -> assert false
+                   );
+                   ocamlopt ~shared:() ~o:plugin deps
+                 )
+              )
+            )
         )
       )
     | _ -> ( (* There is C code. Call ocamlmklib. *)
