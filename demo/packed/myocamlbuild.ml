@@ -9,14 +9,10 @@ let lib : Project.item = Project.lib project_name
   ~style:(`Pack project_name)
   ~pkg:project_name
 
-let app : Project.item = Project.app "my-app"
-  ~file:"app/my_app.ml"
-  ~internal_deps:[lib]
-
 let ocamlinit_postfix = [
   sprintf "open %s" (String.capitalize project_name);
 ]
 
 ;;
-let () = Project.basic1 ~project_name ~version [lib;app]
-    ~ocamlinit_postfix
+let () =
+  Project.basic1 ~project_name ~version [lib] ~ocamlinit_postfix
