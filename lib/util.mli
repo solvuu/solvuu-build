@@ -83,6 +83,8 @@ module List : sig
   val last : 'a list -> 'a option
   val last_exn : 'a list -> 'a
 
+  val intersperse : 'a list -> sep:'a -> 'a list
+
   module Assoc : sig
     val find : ('a * 'b) list -> 'a -> 'b option
   end

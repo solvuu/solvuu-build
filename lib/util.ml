@@ -20,6 +20,12 @@ module Core = struct
       loop l []
 
     let filter_map l ~f = List.rev (rev_filter_map l ~f)
+
+    let intersperse t ~sep =
+      match t with
+      | [] -> []
+      | x :: xs -> x :: List.fold_right (fun y acc -> sep :: y :: acc) xs []
+
   end
 
   module Char = struct
@@ -210,6 +216,8 @@ module List = struct
     | x::_ -> Some x
 
   let last_exn l = List.rev l |> List.hd
+
+  let intersperse = Core.List.intersperse
 
   module Assoc = struct
     let find l x = try Some (assoc x l) with Not_found -> None
