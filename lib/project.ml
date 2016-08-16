@@ -585,6 +585,15 @@ let build_ml_files_sorted mode build ml_files =
   in
   obj_files
 
+(* Build cmi files for all dependencies of given [file]. *)
+let build_deps_cmi_files build pathI file_base_of_module file =
+  run_ocamldep1 ~modules:() ~pathI file |>
+  List.filter_map ~f:file_base_of_module |>
+  List.map ~f:(fun x -> [x^".cmi"]) |>
+  build |>
+  assert_all_outcomes |>
+  ignore
+
 let build_lib (x:lib) =
   let annot = x.annot in
   let bin_annot = x.bin_annot in
@@ -737,13 +746,7 @@ let build_lib (x:lib) =
     let cmi = sprintf "%s.cmi" base in
     Rule.rule ~deps:[mli] ~prods:[cmi]
       (fun _ build ->
-         let _ =
-           run_ocamldep1 ~modules:() ~pathI mli |>
-           List.filter_map ~f:file_base_of_module |>
-           List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
-           build |>
-           assert_all_outcomes
-         in
+         build_deps_cmi_files build pathI file_base_of_module mli;
          ocaml `Byte ~c:() ~pathI ~package ~o:cmi [mli]
       )
   );
@@ -766,13 +769,7 @@ let build_lib (x:lib) =
       let prods = if mli_exists then [obj] else [obj;cmi] in
       Rule.rule ~deps ~prods
         (fun _ build ->
-           let _ =
-             run_ocamldep1 ~modules:() ~pathI ml |>
-             List.filter_map ~f:file_base_of_module |>
-             List.map ~f:(fun x -> [sprintf "%s.cmi" x]) |>
-             build |>
-             assert_all_outcomes
-           in
+           build_deps_cmi_files build pathI file_base_of_module ml;
            match x.style with
            | `Basic ->
               ocaml mode ~c ~pathI ~package ~o:obj [ml]
