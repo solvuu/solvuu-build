@@ -563,6 +563,24 @@ let makefile ~project_name items : string list =
 (******************************************************************************)
 (** {2 Rules} *)
 (******************************************************************************)
+
+(* Compile all given ml files in dependency order. Return list of
+   generated object files, also in dependency order. *)
+let build_ml_files_sorted mode build ml_files =
+  let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
+  let obj_files =
+    run_ocamldep_sort ml_files |>
+    List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
+  in
+  let () = List.iter obj_files ~f:(fun x ->
+    match build [[x]] with
+    | [Ocamlbuild_plugin.Outcome.Good _] -> ()
+    | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
+    | _ -> assert false
+  )
+  in
+  obj_files
+
 let build_lib (x:lib) =
   let annot = x.annot in
   let bin_annot = x.bin_annot in
@@ -621,16 +639,7 @@ let build_lib (x:lib) =
       let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
       let prod = path_of_pack x ~suffix in
       Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
-        let deps =
-          run_ocamldep_sort ml_files |>
-          List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
-        in
-        List.iter deps ~f:(fun x ->
-          match build [[x]] with
-          | [Ocamlbuild_plugin.Outcome.Good _] -> ()
-          | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
-          | _ -> assert false
-        );
+        let deps = build_ml_files_sorted mode build ml_files in
         ocaml mode ~pack:() ~o:prod deps
       )
   ));
@@ -663,18 +672,8 @@ let build_lib (x:lib) =
               )
             )
           | `Basic          -> ( (* Ensure all cmo files exist *)
-              let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
               Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
-                let deps =
-                  run_ocamldep_sort ml_files |>
-                  List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
-                in
-                List.iter deps ~f:(fun x ->
-                  match build [[x]] with
-                  | [Ocamlbuild_plugin.Outcome.Good _] -> ()
-                  | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
-                  | _ -> assert false
-                );
+                let deps = build_ml_files_sorted mode build ml_files in
                 ocaml mode ~a:() ~o:prod deps
               )
               ;
@@ -682,16 +681,7 @@ let build_lib (x:lib) =
                | `Byte -> ()
                | `Native ->
                  Rule.rule ~deps:ml_files ~prods:[plugin] (fun _ build ->
-                   let deps =
-                     run_ocamldep_sort ml_files |>
-                     List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
-                   in
-                   List.iter deps ~f:(fun x ->
-                     match build [[x]] with
-                     | [Ocamlbuild_plugin.Outcome.Good _] -> ()
-                     | [Ocamlbuild_plugin.Outcome.Bad exn] -> raise exn
-                     | _ -> assert false
-                   );
+                   let deps = build_ml_files_sorted mode build ml_files in
                    ocamlopt ~shared:() ~o:plugin deps
                  )
               )
