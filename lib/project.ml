@@ -642,39 +642,40 @@ let build_lib (x:lib) =
 
   let file_base_of_module : string -> string option = file_base_of_module x in
 
-  (* .cmo*/.cmx* -> packed .cmo/.cmx *)
-  (match x.style with
-  | `Basic          -> () (* Handle the dynamic cmo dependency when building the cma. *)
-  | `Pack _ ->
-    List.iter [`Byte; `Native] ~f:(fun mode ->
-      let prod = path_of_pack x ~suffix:(obj_suffix mode) in
-      Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
-        let deps = build_ml_files_sorted mode build ml_files in
-        ocaml mode ~pack:() ~o:prod deps
+  ((* .cmo*/.cmx* -> packed .cmo/.cmx *)
+    match x.style with
+    | `Basic          -> () (* Handle the dynamic cmo dependency when building the cma. *)
+    | `Pack _ ->
+      List.iter [`Byte; `Native] ~f:(fun mode ->
+        let prod = path_of_pack x ~suffix:(obj_suffix mode) in
+        Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
+          let deps = build_ml_files_sorted mode build ml_files in
+          ocaml mode ~pack:() ~o:prod deps
+        )
       )
-  ));
+  );
 
   ((* .cmx,.o -> .cmxs *)
     match x.build_plugin with
     | false -> ()
     | true ->
-    let plugin = path_of_lib x ~suffix:".cmxs" in
-    match c_files with
-    | [] -> ( (* No C files. Call ocamlc/ocamlopt directly. *)
-        match x.style with
-        | `Pack _ ->
-          let deps = [path_of_pack x ~suffix:(obj_suffix `Native)] in
-          Rule.rule ~deps ~prods:[plugin] (fun _ _ ->
-            ocamlopt ~shared:() ~o:plugin deps
-          )
-        | `Basic ->
-          Rule.rule ~deps:ml_files ~prods:[plugin] (fun _ build ->
-            let deps = build_ml_files_sorted `Native build ml_files in
-            ocamlopt ~shared:() ~o:plugin deps
-          )
-      )
-    | _ -> (* There is C code. FIXME: figure out what to do here. *)
-      ()
+      let plugin = path_of_lib x ~suffix:".cmxs" in
+      match c_files with
+      | [] -> ( (* No C files. Call ocamlc/ocamlopt directly. *)
+          match x.style with
+          | `Pack _ ->
+            let deps = [path_of_pack x ~suffix:(obj_suffix `Native)] in
+            Rule.rule ~deps ~prods:[plugin] (fun _ _ ->
+              ocamlopt ~shared:() ~o:plugin deps
+            )
+          | `Basic ->
+            Rule.rule ~deps:ml_files ~prods:[plugin] (fun _ build ->
+              let deps = build_ml_files_sorted `Native build ml_files in
+              ocamlopt ~shared:() ~o:plugin deps
+            )
+        )
+      | _ -> (* There is C code. FIXME: figure out what to do here. *)
+        ()
   );
 
   ((* .cmo/.cmx,.o -> .cma/.cmxa *)
@@ -688,8 +689,7 @@ let build_lib (x:lib) =
           | `Pack _ -> (
               let deps = [ ml_packed_obj mode] in
               Rule.rule ~deps ~prods:[prod]
-              (fun _ _ ->
-                ocaml mode ~a:() ~o:prod deps)
+                (fun _ _ -> ocaml mode ~a:() ~o:prod deps)
             )
           | `Basic          -> ( (* Ensure all cmo files exist *)
               Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
@@ -712,9 +712,9 @@ let build_lib (x:lib) =
             match x.style with
             | `Pack _ -> [ ml_packed_obj mode]
             | `Basic          ->
-                let suffix = obj_suffix mode in
-                (* Does order matter here? *)
-                List.map ml_files ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
+              let suffix = obj_suffix mode in
+              (* Does order matter here? *)
+              List.map ml_files ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
           in
           let prod = ml_lib mode in
           let o =
