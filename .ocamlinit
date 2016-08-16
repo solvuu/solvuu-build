@@ -7,6 +7,6 @@ let () =
 #thread;;
 #require "ocamlbuild ocamlgraph";;
 #directory "_build/lib";;
-#load "solvuu_build.cma";;
+#load "solvuu-build.cma";;
 open Solvuu_build;;
 open Solvuu_build.Util;;
