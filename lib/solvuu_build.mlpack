@@ -1,9 +1,6 @@
 Std
 
-Tools
-OCaml_tools
-Unix_tools
-
 Project
 Solvuu_build_findlib
+Tools
 Util

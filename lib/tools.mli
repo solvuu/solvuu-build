@@ -1,4 +1,44 @@
-(** OCaml and related tools. See {!Tools} for general documentation. *)
+(** Command line tools. We provided convenient constructors for
+    command line calls as needed by ocamlbuild. Each function
+    corresponds to a Unix command of the same (or similar) name with
+    flags mapped to labeled arguments.
+
+    Most functions return a value of type [Command.t], which is what
+    you need to define ocamlbuild rules. Sometimes we provide a
+    function to register a rule directly. For example, {!ocamllex}
+    constructs a command and {!ocamllex_rule} registers a
+    corresponding rule that takes care of defining the dependency and
+    target for you. Finally, sometimes you want to run a tool right
+    away, as opposed to registering it to be run later. We provide
+    some convenience functions for this too, e.g. {!run_ocamldep}
+    immediately runs ocamldep, captures its output, and returns the
+    parsed result.
+
+    Command line flags are mapped to labeled arguments with the exact
+    same name whenever possible, e.g. ocamlc's [-c] flag is represented
+    by a [~c] argument to the {!ocamlc} function provided
+    here. Sometimes this is not possible and we resolve the mapping as
+    follows:
+
+    - The flag is an OCaml keyword, in which case we suffix with an
+      underscore. For example, ocamlc takes an [-open] flag, which is
+      mapped to an [~open_] argument here.
+
+    - The flag begins with a capital letter, in which case we choose
+      an alternate name that represents the meaning of the flag. A
+      commonly occuring case of this is the [-I] flag, which we map to
+      [~pathI]. Other cases are documented where they occur.
+
+    Command line tools sometimes allow a flag to be passed multiple
+    times. We represent this by making the type of the corresponding
+    argument a list. For example, ocamlc's [-open] argument takes a
+    string value, and this can be given any number of times. Thus the
+    [~open_] argument is of type [string list].
+
+    The majority of the functions provided here correspond to OCaml
+    tools, but see the very end for other common Unix tools, e.g. [cp]
+    and [git].
+*)
 open Ocamlbuild_plugin
 
 (******************************************************************************)
@@ -394,3 +434,28 @@ val atdgen_t_rule : ?dep:string -> ?j_std:unit -> unit -> unit
     have a ".atd" suffix. Default [dep] is "%.atd". Files produced
     will be "%_j.ml" and "%_j.mli". *)
 val atdgen_j_rule : ?dep:string -> ?j_std:unit -> unit -> unit
+
+
+(******************************************************************************)
+(** Other Unix tools. *)
+(******************************************************************************)
+val cp : ?f:unit -> Pathname.t -> Pathname.t -> Command.t
+val cp_rule : ?f:unit -> dep:Pathname.t -> prod:Pathname.t -> unit
+
+(** Return most recent git commit ID if possible. Assumes there is a
+    .git directory in the current working directory. *)
+val git_last_commit : unit -> string option
+
+val m4 :
+  ?_D:(string * string option) list ->
+  infile:Pathname.t ->
+  outfile:Pathname.t ->
+  Command.t
+
+(** Defaults: [prod = "%.ml"] and [dep = prod ^ ".m4"]. *)
+val m4_rule :
+  ?_D:(string * string option) list ->
+  ?dep:string ->
+  ?prod:string ->
+  unit ->
+  unit
