@@ -75,6 +75,7 @@ and lib = {
   mli_files : string list;
   c_files : string list;
   pkg : Solvuu_build_findlib.pkg;
+  build_plugin : bool;
 
   annot : unit option;
   bin_annot : unit option;
@@ -84,7 +85,6 @@ and lib = {
   thread : unit option;
   w : string option;
   linkall : unit option;
-  shared : unit option;
 }
 
 and item = Lib of lib | App of app
@@ -97,6 +97,8 @@ and item = Lib of lib | App of app
       [`Add] to these, e.g. when you will be declaring rules to
       generate ml or mli files, or entirely [`Replace] the lists with
       ones you provide. All paths should be relative to [dir].
+
+    - [build_plugin]: Default is true, which means compile cmxs files.
 *)
 val lib
   :  ?annot:unit
@@ -107,12 +109,12 @@ val lib
   -> ?thread:unit
   -> ?w:string
   -> ?linkall:unit
-  -> ?shared:unit
   -> ?internal_deps:item list
   -> ?findlib_deps:pkg list
   -> ?ml_files:[`Add of string list | `Replace of string list]
   -> ?mli_files:[`Add of string list | `Replace of string list]
   -> ?c_files:[`Add of string list | `Replace of string list]
+  -> ?build_plugin:bool
   -> pkg : Solvuu_build_findlib.pkg
   -> style : [ `Basic | `Pack of string ]
   -> dir:string

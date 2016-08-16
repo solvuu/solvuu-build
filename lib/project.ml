@@ -32,6 +32,7 @@ and lib = {
   mli_files : string list;
   c_files : string list;
   pkg : Solvuu_build_findlib.pkg;
+  build_plugin : bool;
 
   annot : unit option;
   bin_annot : unit option;
@@ -41,16 +42,14 @@ and lib = {
   thread : unit option;
   w : string option;
   linkall : unit option;
-  shared : unit option;
 }
 
 and item = Lib of lib | App of app
 
 let lib
     ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
-    ?shared
     ?(internal_deps=[]) ?(findlib_deps=[])
-    ?ml_files ?mli_files ?c_files ~pkg ~style ~dir name
+    ?ml_files ?mli_files ?c_files ?(build_plugin=true) ~pkg ~style ~dir name
   =
   let all_files =
     try Sys.readdir dir |> Array.to_list
@@ -70,9 +69,8 @@ let lib
   let c_files = select_files ".c" ?add_replace:c_files in
   Lib {
     name; internal_deps; findlib_deps; style;
-    dir; ml_files; mli_files; c_files; pkg;
+    dir; ml_files; mli_files; c_files; pkg; build_plugin;
     annot; bin_annot; g; safe_string; short_paths; thread; w; linkall;
-    shared;
   }
 
 let app
@@ -657,6 +655,9 @@ let build_lib (x:lib) =
   ));
 
   ((* .cmx,.o -> .cmxs *)
+    match x.build_plugin with
+    | false -> ()
+    | true ->
     let plugin = path_of_lib x ~suffix:".cmxs" in
     match c_files with
     | [] -> ( (* No C files. Call ocamlc/ocamlopt directly. *)
