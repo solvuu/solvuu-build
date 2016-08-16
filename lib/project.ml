@@ -647,10 +647,29 @@ let build_lib (x:lib) =
       )
   ));
 
-  ((* .cmo/.cmx,.o -> .cma/.cmxa/.cmxs *)
+  ((* .cmx,.o -> .cmxs *)
+    let plugin = path_of_lib x ~suffix:".cmxs" in
+    match c_files with
+    | [] -> ( (* No C files. Call ocamlc/ocamlopt directly. *)
+        match x.style with
+        | `Pack _ ->
+          let deps = [path_of_pack x ~suffix:(obj_suffix `Native)] in
+          Rule.rule ~deps ~prods:[plugin] (fun _ _ ->
+            ocamlopt ~shared:() ~o:plugin deps
+          )
+        | `Basic ->
+          Rule.rule ~deps:ml_files ~prods:[plugin] (fun _ build ->
+            let deps = build_ml_files_sorted `Native build ml_files in
+            ocamlopt ~shared:() ~o:plugin deps
+          )
+      )
+    | _ -> (* There is C code. FIXME: figure out what to do here. *)
+      ()
+  );
+
+  ((* .cmo/.cmx,.o -> .cma/.cmxa *)
     let ml_packed_obj mode = path_of_pack x ~suffix:(obj_suffix mode) in
     let ml_lib mode = path_of_lib x ~suffix:(lib_suffix mode) in
-    let plugin = path_of_lib x ~suffix:".cmxs" in
     match c_files with
     | [] -> ( (* No C files. Call ocamlc/ocamlopt directly. *)
         List.iter [`Byte; `Native] ~f:(fun mode ->
@@ -661,28 +680,11 @@ let build_lib (x:lib) =
               Rule.rule ~deps ~prods:[prod]
               (fun _ _ ->
                 ocaml mode ~a:() ~o:prod deps)
-              ;
-              (match mode with
-               | `Byte -> ()
-               | `Native ->
-                 Rule.rule ~deps ~prods:[plugin] (fun _ _ ->
-                   ocamlopt ~shared:() ~o:plugin deps
-                 )
-              )
             )
           | `Basic          -> ( (* Ensure all cmo files exist *)
               Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
                 let deps = build_ml_files_sorted mode build ml_files in
                 ocaml mode ~a:() ~o:prod deps
-              )
-              ;
-              (match mode with
-               | `Byte -> ()
-               | `Native ->
-                 Rule.rule ~deps:ml_files ~prods:[plugin] (fun _ build ->
-                   let deps = build_ml_files_sorted mode build ml_files in
-                   ocamlopt ~shared:() ~o:plugin deps
-                 )
               )
             )
         )
