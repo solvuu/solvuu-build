@@ -181,6 +181,10 @@ let module_paths ~style_matters lib =
     | `Basic -> module_paths_orig
     | `Pack _ -> [path_of_pack ~suffix:"" lib]
 
+let obj_suffix = function `Byte -> ".cmo" | `Native -> ".cmx"
+let lib_suffix = function `Byte -> ".cma" | `Native -> ".cmxa"
+let exe_suffix = function `Byte -> ".byte" | `Native -> ".native"
+
 (******************************************************************************)
 (** {2 List Operations} *)
 (******************************************************************************)
@@ -456,8 +460,8 @@ let install_file items : string list =
   let bin = section "bin" (
     filter_apps items |>
     List.map ~f:(fun (x:app) ->
-      List.map [".byte"; ".native"] ~f:(fun suffix ->
-        let src = "?_build"/(path_of_app x ~suffix) in
+      List.map [`Byte; `Native] ~f:(fun mode ->
+        let src = "?_build"/(path_of_app x ~suffix:(exe_suffix mode)) in
         let dst = Some x.name in
         src,dst
       )
@@ -522,10 +526,10 @@ let makefile ~project_name items : string list =
   let native =
     List.concat [
       List.map all_libs ~f:(fun x ->
-        sprintf "%s/%s.cmxa" (dirname x.dir) x.name);
+        sprintf "%s/%s%s" (dirname x.dir) x.name (lib_suffix `Native));
       List.map all_libs ~f:(fun x ->
         sprintf "%s/%s.cmxs" (dirname x.dir) x.name);
-      List.map all_apps ~f:(path_of_app ~suffix:".native");
+      List.map all_apps ~f:(path_of_app ~suffix:(exe_suffix `Native));
     ]
     |> String.concat ~sep:" "
     |> sprintf "native: %s"
@@ -533,8 +537,8 @@ let makefile ~project_name items : string list =
   let byte =
     List.concat [
       List.map all_libs ~f:(fun x ->
-        sprintf "%s/%s.cma" (dirname x.dir) x.name);
-      List.map all_apps ~f:(path_of_app ~suffix:".byte");
+        sprintf "%s/%s%s" (dirname x.dir) x.name (lib_suffix `Byte));
+      List.map all_apps ~f:(path_of_app ~suffix:(exe_suffix `Byte));
     ]
     |> String.concat ~sep:" "
     |> sprintf "byte: %s"
@@ -567,7 +571,7 @@ let makefile ~project_name items : string list =
 (* Compile all given ml files in dependency order. Return list of
    generated object files, also in dependency order. *)
 let build_ml_files_sorted mode build ml_files =
-  let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
+  let suffix = obj_suffix mode in
   let obj_files =
     run_ocamldep_sort ml_files |>
     List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
@@ -636,8 +640,7 @@ let build_lib (x:lib) =
   | `Basic          -> () (* Handle the dynamic cmo dependency when building the cma. *)
   | `Pack _ ->
     List.iter [`Byte; `Native] ~f:(fun mode ->
-      let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
-      let prod = path_of_pack x ~suffix in
+      let prod = path_of_pack x ~suffix:(obj_suffix mode) in
       Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
         let deps = build_ml_files_sorted mode build ml_files in
         ocaml mode ~pack:() ~o:prod deps
@@ -645,12 +648,8 @@ let build_lib (x:lib) =
   ));
 
   ((* .cmo/.cmx,.o -> .cma/.cmxa/.cmxs *)
-    let ml_packed_obj mode = path_of_pack x
-        ~suffix:(match mode with `Byte -> ".cmo" | `Native -> ".cmx")
-    in
-    let ml_lib mode = path_of_lib x
-        ~suffix:(match mode with `Byte -> ".cma" | `Native -> ".cmxa")
-    in
+    let ml_packed_obj mode = path_of_pack x ~suffix:(obj_suffix mode) in
+    let ml_lib mode = path_of_lib x ~suffix:(lib_suffix mode) in
     let plugin = path_of_lib x ~suffix:".cmxs" in
     match c_files with
     | [] -> ( (* No C files. Call ocamlc/ocamlopt directly. *)
@@ -701,7 +700,7 @@ let build_lib (x:lib) =
             match x.style with
             | `Pack _ -> [ ml_packed_obj mode]
             | `Basic          ->
-                let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
+                let suffix = obj_suffix mode in
                 (* Does order matter here? *)
                 List.map ml_files ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
           in
@@ -823,14 +822,8 @@ let build_app (x:app) =
         ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
         ~package ~pathI ~linkpkg:()
     in
-    let path_of_lib (x:lib) = match mode with
-      | `Byte -> path_of_lib ~suffix:".cma" x
-      | `Native -> path_of_lib ~suffix:".cmxa" x
-    in
-    let path_of_app (x:app) = match mode with
-      | `Byte -> path_of_app ~suffix:".byte" x
-      | `Native -> path_of_app ~suffix:".native" x
-    in
+    let path_of_lib (x:lib) = path_of_lib x ~suffix:(lib_suffix mode) in
+    let path_of_app (x:app) = path_of_app x ~suffix:(exe_suffix mode) in
     let files =
       (
         internal_deps_all (App x) |>
