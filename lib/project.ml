@@ -762,9 +762,7 @@ let build_lib (x:lib) =
 
     (* .ml -> .cmo/.cmx and .cmi if no corresponding .mli *)
     List.iter [`Byte; `Native] ~f:(fun mode ->
-      let obj = sprintf "%s.%s" base
-          (match mode with `Byte -> "cmo" | `Native -> "cmx")
-      in
+      let obj = base ^ (obj_suffix mode) in
       let deps = if mli_exists then [ml;cmi] else [ml] in
       let prods = if mli_exists then [obj] else [obj;cmi] in
       Rule.rule ~deps ~prods
