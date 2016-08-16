@@ -519,47 +519,72 @@ let ocamlinit_file ?(postfix=[]) items =
   |> List.concat
 
 let makefile ~project_name items : string list =
-  let all_libs = filter_libs items in
-  let all_apps = filter_apps items in
-  let native =
-    List.concat [
-      List.map all_libs ~f:(fun x ->
-        sprintf "%s/%s%s" (dirname x.dir) x.name (lib_suffix `Native));
-      List.map all_libs ~f:(fun x ->
-        sprintf "%s/%s.cmxs" (dirname x.dir) x.name);
-      List.map all_apps ~f:(path_of_app ~suffix:(exe_suffix `Native));
-    ]
-    |> String.concat ~sep:" "
-    |> sprintf "native: %s"
-  in
-  let byte =
-    List.concat [
-      List.map all_libs ~f:(fun x ->
-        sprintf "%s/%s%s" (dirname x.dir) x.name (lib_suffix `Byte));
-      List.map all_apps ~f:(path_of_app ~suffix:(exe_suffix `Byte));
-    ]
-    |> String.concat ~sep:" "
-    |> sprintf "byte: %s"
-  in
-  let static = [
-    "default: .merlin .ocamlinit byte";
-
-    "%.cma %.cmxa %.cmxs %.native %.byte %.mlpack:";
-    "\t$(OCAMLBUILD) $@";
-
-    "META:";
-    "\t$(OCAMLBUILD) $@";
-
-    sprintf ".merlin %s.install .ocamlinit:" project_name;
-    "\t$(OCAMLBUILD) $@ && ln -s _build/$@ $@";
-
-    "clean:";
-    "\t$(OCAMLBUILD) -clean";
-
-    ".PHONY: default native byte clean";
+  let default = ["default: .merlin .ocamlinit byte"] in
+  let ln file = [
+    sprintf "%s: _build/%s" file file;
+    "\tln -fs $< $@";
   ]
   in
-  static@[native ; byte]
+  let libs mode =
+    filter_libs items |>
+    List.map ~f:(fun x -> "_build"/(path_of_lib x ~suffix:(lib_suffix mode)))
+  in
+  let apps mode =
+    filter_apps items |>
+    List.map ~f:(fun x -> "_build"/(path_of_app x ~suffix:(exe_suffix mode)))
+  in
+  let plugins =
+    filter_libs items |>
+    List.filter_map ~f:(fun x ->
+      match x.build_plugin with
+      | false -> None
+      | true -> Some ("_build"/(path_of_lib x ~suffix:".cmxs"))
+    )
+  in
+  let byte =
+    [libs `Byte; apps `Byte] |>
+    List.concat |>
+    String.concat ~sep:" " |>
+    sprintf "byte: %s"
+  in
+  let native =
+    [libs `Native; plugins; apps `Native] |>
+    List.concat |>
+    String.concat ~sep:" " |>
+    sprintf "native: %s"
+  in
+  let outsource_to_ocamlbuild = [
+    "_build/%: FORCE";
+    "\t$(OCAMLBUILD) $(patsubst _build/%,%,$@)";
+  ]
+  in
+  let meta = [
+    "META: # Deprecated. Do `make _build/META` instead.";
+    "\tmake _build/META";
+  ]
+  in
+  let clean = [
+    "clean:";
+    "\trm -rf _build";
+    sprintf "\trm -f .merlin .ocamlinit %s.install" project_name;
+  ]
+  in
+  let phony = [".PHONY: default byte native clean"] in
+  [
+    default;
+    outsource_to_ocamlbuild;
+    ln ".merlin";
+    ln ".ocamlinit";
+    ln @@ sprintf "%s.install" project_name;
+    [byte];
+    [native];
+    meta;
+    clean;
+    phony;
+    ["FORCE:"];
+  ] |>
+  List.intersperse ~sep:[""] |>
+  List.flatten
 
 
 (******************************************************************************)
