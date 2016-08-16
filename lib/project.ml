@@ -138,8 +138,10 @@ let dep_opts_sat x optional_deps =
 let path_of_lib ~suffix (x:lib) : string =
   sprintf "%s/%s%s" (dirname x.dir) x.name suffix
 
-let path_of_packed_lib ~pack_name ~suffix (x:lib) : string =
-  sprintf "%s/%s%s" (dirname x.dir) pack_name suffix
+let path_of_pack ~suffix (x:lib) : string =
+  match x.style with
+  | `Basic -> failwithf "path_of_pack undefined for un-packed lib %s" x.name ()
+  | `Pack pack_name -> sprintf "%s/%s%s" (dirname x.dir) pack_name suffix
 
 let path_of_app ~suffix (x:app) : string =
   sprintf "%s/%s%s" (dirname x.file) x.name suffix
@@ -177,8 +179,7 @@ let module_paths ~style_matters lib =
   | false -> module_paths_orig
   | true -> match lib.style with
     | `Basic -> module_paths_orig
-    | `Pack pack_name ->
-      [path_of_packed_lib ~pack_name ~suffix:"" lib]
+    | `Pack _ -> [path_of_pack ~suffix:"" lib]
 
 (******************************************************************************)
 (** {2 List Operations} *)
@@ -615,10 +616,10 @@ let build_lib (x:lib) =
   (* .cmo*/.cmx* -> packed .cmo/.cmx *)
   (match x.style with
   | `Basic          -> () (* Handle the dynamic cmo dependency when building the cma. *)
-  | `Pack pack_name ->
+  | `Pack _ ->
     List.iter [`Byte; `Native] ~f:(fun mode ->
       let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
-      let prod = path_of_packed_lib ~pack_name x ~suffix in
+      let prod = path_of_pack x ~suffix in
       Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
         let deps =
           run_ocamldep_sort ml_files |>
@@ -635,7 +636,7 @@ let build_lib (x:lib) =
   ));
 
   ((* .cmo/.cmx,.o -> .cma/.cmxa/.cmxs *)
-    let ml_packed_obj pack_name mode = path_of_packed_lib ~pack_name x
+    let ml_packed_obj mode = path_of_pack x
         ~suffix:(match mode with `Byte -> ".cmo" | `Native -> ".cmx")
     in
     let ml_lib mode = path_of_lib x
@@ -647,8 +648,8 @@ let build_lib (x:lib) =
         List.iter [`Byte; `Native] ~f:(fun mode ->
           let prod = ml_lib mode in
           match x.style with
-          | `Pack pack_name -> (
-              let deps = [ ml_packed_obj pack_name mode] in
+          | `Pack _ -> (
+              let deps = [ ml_packed_obj mode] in
               Rule.rule ~deps ~prods:[prod]
               (fun _ _ ->
                 ocaml mode ~a:() ~o:prod deps)
@@ -708,7 +709,7 @@ let build_lib (x:lib) =
         List.iter [`Byte;`Native] ~f:(fun mode ->
           let deps =
             match x.style with
-            | `Pack pack_name -> [ ml_packed_obj pack_name mode]
+            | `Pack _ -> [ ml_packed_obj mode]
             | `Basic          ->
                 let suffix = match mode with `Byte -> ".cmo" | `Native -> ".cmx" in
                 (* Does order matter here? *)
