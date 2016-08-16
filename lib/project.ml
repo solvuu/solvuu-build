@@ -52,31 +52,22 @@ let lib
     ?(internal_deps=[]) ?(findlib_deps=[])
     ?ml_files ?mli_files ?c_files ~pkg ~style ~dir name
   =
-  let files =
+  let all_files =
     try Sys.readdir dir |> Array.to_list
     with _ -> []
   in
-  let ml_files =
-    List.filter files ~f:(fun x -> check_suffix x ".ml") |> fun l ->
-    (match ml_files with
-     |None -> l | Some (`Add x) -> x@l | Some (`Replace x) -> x
-    )
-    |> List.sort_uniq ~cmp:String.compare
+  let select_files ?add_replace suffix =
+    List.filter all_files ~f:(fun x -> check_suffix x suffix) |> fun l ->
+    (match add_replace with
+     | None -> l
+     | Some (`Add x) -> x@l
+     | Some (`Replace x) -> x
+    ) |>
+    List.sort_uniq ~cmp:String.compare
   in
-  let mli_files =
-    List.filter files ~f:(fun x -> check_suffix x ".mli") |> fun l ->
-    (match mli_files with
-     | None -> l | Some (`Add x) -> x@l | Some (`Replace x) -> x
-    )
-    |> List.sort_uniq ~cmp:String.compare
-  in
-  let c_files =
-    List.filter files ~f:(fun x -> check_suffix x ".c") |> fun l ->
-    (match c_files with
-     | None -> l | Some (`Add x) -> x@l | Some (`Replace x) -> x
-    )
-    |> List.sort_uniq ~cmp:String.compare
-  in
+  let ml_files = select_files ".ml" ?add_replace:ml_files in
+  let mli_files = select_files ".mli" ?add_replace:mli_files in
+  let c_files = select_files ".c" ?add_replace:c_files in
   Lib {
     name; internal_deps; findlib_deps; style;
     dir; ml_files; mli_files; c_files; pkg;
