@@ -177,6 +177,19 @@ val file_base_of_module : lib -> (string -> string option)
       module, so we return None.
 *)
 
+val module_paths : style_matters:bool -> lib -> string list
+(** Return module paths for the modules of given lib. A {i module
+    path} is the path to a file implementing a module without any
+    suffix. For example, if [lib.ml_files] includes "src/foo.ml", then
+    "src/foo" will be in the returned list.
+
+    If [style_matters] is [false], the returned list is based directly
+    on [lib.ml_files] and [lib.mli_files]. Setting [style_matters] to
+    [true] means the real final modules comprising the library are
+    returned. For example, a library that is [Pack]ed actually
+    consists of only a single module.
+*)
+
 (******************************************************************************)
 (** {2 Static Files} *)
 (******************************************************************************)

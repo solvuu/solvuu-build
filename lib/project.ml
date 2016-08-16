@@ -141,9 +141,6 @@ let path_of_lib ~suffix (x:lib) : string =
 let path_of_packed_lib ~pack_name ~suffix (x:lib) : string =
   sprintf "%s/%s%s" (dirname x.dir) pack_name suffix
 
-let path_of_basic_lib_file ~suffix (x:lib) file : string =
-  sprintf "%s/%s%s" x.dir file suffix
-
 let path_of_app ~suffix (x:app) : string =
   sprintf "%s/%s%s" (dirname x.file) x.name suffix
 
@@ -166,6 +163,22 @@ let file_base_of_module x =
              mod_name
              (List.map l ~f:(fun x -> x ^ ".ml[i]") |> String.concat ~sep:",")
              ()
+
+(* Must consider mli files too, not just ml files. Though it is a
+   rarely used feature, technically OCaml does allow inferring an
+   implementation from only a signature. *)
+let module_paths ~style_matters lib =
+  let module_paths_orig =
+    (lib.ml_files@lib.mli_files) |>
+    List.sort_uniq ~cmp:String.compare |>
+    List.map ~f:(fun x -> lib.dir/(Filename.chop_extension x))
+  in
+  match style_matters with
+  | false -> module_paths_orig
+  | true -> match lib.style with
+    | `Basic -> module_paths_orig
+    | `Pack pack_name ->
+      [path_of_packed_lib ~pack_name ~suffix:"" lib]
 
 (******************************************************************************)
 (** {2 List Operations} *)
@@ -399,39 +412,25 @@ let install_file items : string list =
       ::(
         filter_libs items |>
         List.map ~f:(fun (x:lib) ->
-            match x.style with
-            | `Basic          ->
-                let to_path = path_of_basic_lib_file x in
-                [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] |>
-                List.map ~f:(fun suffix ->
-                  (List.map ~f:(String.chop_suffix_exn ~suffix:".ml") x.ml_files)
-                  @ (List.map ~f:(String.chop_suffix_exn ~suffix:".mli") x.mli_files) |>
-                  List.sort_uniq ~cmp:String.compare |>
-                  List.map ~f:(fun module_name ->
-                    let src = "?_build"/(to_path ~suffix module_name) in
-                    let base = basename src in
-                    let dst =
-                      (Findlib.to_path x.pkg |> List.tl)@[base] |>
-                      String.concat ~sep:"/" |>
-                      fun x -> Some x
-                    in
-                    src,dst
-                  ) )
-                |> List.flatten
-            | `Pack pack_name ->
-                let to_path = path_of_packed_lib ~pack_name x in
-                [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] |>
-                List.map ~f:(fun suffix ->
-                  let src = "?_build"/(to_path ~suffix) in
-                  let base = basename src in
-                  let dst =
-                    (Findlib.to_path x.pkg |> List.tl)@[base] |>
-                    String.concat ~sep:"/" |>
-                    fun x -> Some x
-                  in
-                  src,dst
-                ) ) )
-      |> List.flatten )
+          let module_paths = module_paths ~style_matters:true x in
+          let suffixes = [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] in
+          List.map suffixes ~f:(fun suffix ->
+            List.map module_paths ~f:(fun module_path ->
+              let src = "?_build"/(module_path ^ suffix) in
+              let base = basename src in
+              let dst =
+                (Findlib.to_path x.pkg |> List.tl)@[base] |>
+                String.concat ~sep:"/" |>
+                fun x -> Some x
+              in
+              src,dst
+            )
+          )
+          |> List.flatten
+        )
+      )
+      |> List.flatten
+    )
   in
 
   let stublibs = section "stublibs" (
