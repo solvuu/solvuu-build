@@ -644,7 +644,7 @@ let build_lib (x:lib) =
 
   ((* .cmo*/.cmx* -> packed .cmo/.cmx *)
     match x.style with
-    | `Basic          -> () (* Handle the dynamic cmo dependency when building the cma. *)
+    | `Basic -> ()
     | `Pack _ ->
       List.iter [`Byte; `Native] ~f:(fun mode ->
         let prod = path_of_pack x ~suffix:(obj_suffix mode) in
