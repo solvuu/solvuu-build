@@ -361,76 +361,81 @@ let install_file items : string list =
       let items =
         List.map items ~f:(fun (src,dst) ->
           let src = Filename.normalize src in
-          let dst = match dst with
-            | None -> None
-            | Some x -> Some (Filename.normalize x)
-          in
           match dst with
           | None -> sprintf "  \"%s\"" src
-          | Some dst -> sprintf "  \"%s\" {\"%s\"}" src dst
+          | Some dst ->
+            let dst = Filename.normalize dst in
+            sprintf "  \"%s\" {\"%s\"}" src dst
         )
       in
       Some ((sprintf "%s: [" name)::items@["]"])
   in
 
-  let lib =
-    section "lib" (
-      ["_build/META",None]
-      ::(
-        filter_libs items |>
-        List.filter_map ~f:(fun (x:lib) ->
-          match x.c_files with
-          | [] -> None
-          | _ ->
-            let file = sprintf "lib%s.a" x.name in
-            let src = sprintf "?_build/%s/%s" (dirname x.dir) file in
-            let dst =
-              (Findlib.to_path x.pkg |> List.tl)@[file] |>
-              String.concat ~sep:"/" |>
-              fun x -> Some x
-            in
-            Some (src,dst)
-        )
-      )
-      ::(
-        filter_libs items |>
-        List.map ~f:(fun (x:lib) ->
-          [".a"; ".cma"; ".cmxa"; ".cmxs"; ".dll"; ".o"] |>
-          List.map ~f:(fun suffix ->
-            let src = "?_build"/(path_of_lib ~suffix x) in
-            let base = basename src in
-            let dst =
-              (Findlib.to_path x.pkg |> List.tl)@[base] |>
-              String.concat ~sep:"/" |>
-              fun x -> Some x
-            in
-            src,dst
-          )
-        ) |>
-        List.flatten
-      )
-      ::(
-        filter_libs items |>
-        List.map ~f:(fun (x:lib) ->
-          let module_paths = module_paths ~style_matters:true x in
-          let suffixes = [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] in
-          List.map suffixes ~f:(fun suffix ->
-            List.map module_paths ~f:(fun module_path ->
-              let src = "?_build"/(module_path ^ suffix) in
-              let base = basename src in
-              let dst =
-                (Findlib.to_path x.pkg |> List.tl)@[base] |>
-                String.concat ~sep:"/" |>
-                fun x -> Some x
-              in
-              src,dst
-            )
-          )
-          |> List.flatten
-        )
-      )
-      |> List.flatten
+  (* Directory to install most lib files in for given dir. *)
+  let install_dir x =
+    Findlib.to_path x.pkg |>
+    List.tl |>
+    List.fold_left ~init:"" ~f:Filename.concat
+  in
+
+  (* META file for lib section. *)
+  let meta : (string * string option) list =
+    ["_build/META",None]
+  in
+
+  (* C lib files for lib section. *)
+  let clibs : (string * string option) list =
+    filter_libs items |>
+    List.filter_map ~f:(fun (x:lib) ->
+      let install_dir = install_dir x in
+      match x.c_files with
+      | [] -> None
+      | _ ->
+        let file = sprintf "lib%s.a" x.name in
+        let src = sprintf "?_build/%s/%s" (dirname x.dir) file in
+        let dst = Some (install_dir/file) in
+        Some (src,dst)
     )
+  in
+
+  (* OCaml lib files for lib section. *)
+  let libs : (string * string option) list =
+    filter_libs items |>
+    List.map ~f:(fun (x:lib) ->
+      let install_dir = install_dir x in
+      [".a"; ".cma"; ".cmxa"; ".cmxs"; ".dll"; ".o"] |>
+      List.map ~f:(fun suffix ->
+        let src = "?_build"/(path_of_lib ~suffix x) in
+        let base = basename src in
+        let dst = Some (install_dir/base) in
+        src,dst
+      )
+    ) |>
+    List.flatten
+  in
+
+  (* Files related to modules for lib section. *)
+  let module_files : (string * string option) list =
+    filter_libs items |>
+    List.map ~f:(fun (x:lib) ->
+      let install_dir = install_dir x in
+      let module_paths = module_paths ~style_matters:true x in
+      let suffixes = [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] in
+      List.map suffixes ~f:(fun suffix ->
+        List.map module_paths ~f:(fun module_path ->
+          let src = "?_build"/(module_path ^ suffix) in
+          let base = basename src in
+          let dst = Some (install_dir/base) in
+          src,dst
+        )
+      ) |>
+      List.flatten
+    ) |>
+    List.flatten
+  in
+
+  let lib =
+    section "lib" (meta@clibs@libs@module_files)
   in
 
   let stublibs = section "stublibs" (
@@ -450,12 +455,8 @@ let install_file items : string list =
   let bin = section "bin" (
     filter_apps items |>
     List.map ~f:(fun (x:app) ->
-      List.map ["byte"; "native"] ~f:(fun suffix ->
-        let src = sprintf "?_build/%s/%s.%s"
-            (dirname x.file)
-            x.name
-            suffix
-        in
+      List.map [".byte"; ".native"] ~f:(fun suffix ->
+        let src = "?_build"/(path_of_app x ~suffix) in
         let dst = Some x.name in
         src,dst
       )
