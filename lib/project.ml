@@ -593,10 +593,10 @@ let makefile ~project_name items : string list =
 
 (* Compile all given ml files in dependency order. Return list of
    generated object files, also in dependency order. *)
-let build_ml_files_sorted mode build ml_files =
+let build_ml_files_sorted mode build ~package ml_files =
   let suffix = obj_suffix mode in
   let obj_files =
-    run_ocamldep_sort ml_files |>
+    run_ocamlfind_ocamldep_sort ~package ml_files |>
     List.map ~f:(replace_suffix_exn ~old:".ml" ~new_:suffix)
   in
   let () = List.iter obj_files ~f:(fun x ->
@@ -609,8 +609,8 @@ let build_ml_files_sorted mode build ml_files =
   obj_files
 
 (* Build cmi files for all dependencies of given [file]. *)
-let build_deps_cmi_files build pathI file_base_of_module file =
-  run_ocamldep1 ~modules:() ~pathI file |>
+let build_deps_cmi_files build ~pathI ~package file_base_of_module file =
+  run_ocamlfind_ocamldep1 ~modules:() ~pathI ~package file |>
   List.filter_map ~f:file_base_of_module |>
   List.map ~f:(fun x -> [x^".cmi"]) |>
   build |>
@@ -674,7 +674,7 @@ let build_lib (x:lib) =
       List.iter [`Byte; `Native] ~f:(fun mode ->
         let prod = path_of_pack x ~suffix:(obj_suffix mode) in
         Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
-          let deps = build_ml_files_sorted mode build ml_files in
+          let deps = build_ml_files_sorted mode build ~package ml_files in
           ocaml mode ~pack:() ~o:prod deps
         )
       )
@@ -695,7 +695,9 @@ let build_lib (x:lib) =
             )
           | `Basic ->
             Rule.rule ~deps:ml_files ~prods:[plugin] (fun _ build ->
-              let deps = build_ml_files_sorted `Native build ml_files in
+              let deps =
+                build_ml_files_sorted `Native build ~package ml_files
+              in
               ocamlopt ~shared:() ~o:plugin deps
             )
         )
@@ -718,7 +720,7 @@ let build_lib (x:lib) =
             )
           | `Basic          -> ( (* Ensure all cmo files exist *)
               Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
-                let deps = build_ml_files_sorted mode build ml_files in
+                let deps = build_ml_files_sorted mode build ~package ml_files in
                 ocaml mode ~a:() ~o:prod deps
               )
             )
@@ -772,7 +774,7 @@ let build_lib (x:lib) =
     let cmi = sprintf "%s.cmi" base in
     Rule.rule ~deps:[mli] ~prods:[cmi]
       (fun _ build ->
-         build_deps_cmi_files build pathI file_base_of_module mli;
+         build_deps_cmi_files build ~pathI ~package file_base_of_module mli;
          ocaml `Byte ~c:() ~pathI ~package ~o:cmi [mli]
       )
   );
@@ -793,7 +795,7 @@ let build_lib (x:lib) =
       let prods = if mli_exists then [obj] else [obj;cmi] in
       Rule.rule ~deps ~prods
         (fun _ build ->
-           build_deps_cmi_files build pathI file_base_of_module ml;
+           build_deps_cmi_files build ~pathI ~package file_base_of_module ml;
            match x.style with
            | `Basic ->
               ocaml mode ~c ~pathI ~package ~o:obj [ml]
