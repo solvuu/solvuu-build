@@ -111,7 +111,7 @@ examples where solvuu-build is being used:
 
 - API should be functional as much as possible.
 
-- Every default decision should be overrideable. We do not fully
+- Should be possible to override every default. We do not fully
   succeed. Several decisions are currently hardcoded, and in some
   cases it isn't obvious how to make the decision configurable. Or
   rather, making it configurable ends up removing all benefits;
