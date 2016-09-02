@@ -36,7 +36,8 @@ let mylib = Project.lib project_name
 let () = Project.basic1 ~project_name ~version [mylib]
 ```
 
-Type `make`.
+Type `make`. If anything goes wrong, you might launch utop and do
+`#use myocamlbuild.ml` to debug.
 
 In the call to `Project.lib` above, the unlabeled argument is the name
 of the library, which dictates the basename of `.cma` and `.cmxa`
