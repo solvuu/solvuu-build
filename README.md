@@ -206,7 +206,7 @@ avoid ocamlbuild's default rules:
 - True dynamic dependencies. We are limited by our use of ocamlbuild's
   rule engine, which kind of supports dynamic rules by passing a
   `build` function to the action of your rule. You can call `build`
-  within your own action, i.e. thus compute other targets at build
+  within your own action, and thus compute other targets at build
   time and dynamically call `build` to build them. This is nice and
   ends up working. However, you never truly generate a rule; you just
   run code that ends up doing stuff. The better solution would be for
