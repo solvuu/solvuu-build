@@ -99,7 +99,12 @@ examples where solvuu-build is being used:
 
 - An ocsigen based website. No public project yet available, and the
   support for Ocsigen projects in solvuu-build is also not yet
-  public. It will be added soon.
+  public. It will be added soon. An early but out-dated start is
+  [here](https://github.com/agarwal/eliom-site-build).
+
+- Also: [Coclobas](https://github.com/hammerlab/coclobas),
+  [Future](https://github.com/solvuu/future),
+  [Phat](https://github.com/solvuu/phat).
 
 
 ## Design Goals
