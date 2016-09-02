@@ -16,7 +16,7 @@ Makefile with the single line
 include $(shell opam config var solvuu-build:lib)/solvuu.mk
 ```
 
-Write some ocaml code in one or more files, and place them in a
+Write some OCaml code in one or more files, and place them in a
 sub-directory called `lib` (or another name of your choice).
 
 Create a file called `myocamlbuild.ml` at your repo's root with the
