@@ -110,6 +110,9 @@ Some real world examples where solvuu-build is being used:
 
 
 ## Design Goals
+Out motivation for this project was to stop thinking about building
+code, so we can focus on writing code. Here's what we think is
+required for that to happen:
 
 - Entire build should be expressed in a single file.
 
