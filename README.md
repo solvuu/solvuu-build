@@ -1,17 +1,202 @@
 # Solvuu's build system.
 
-## Install
-Do `opam install solvuu-build`.
+`solvuu-build` makes it easy for you to build OCaml projects. You
+express your build in a single OCaml file. Simple projects require
+only a few lines of code and then a call to `make` will do lots of
+useful things: compile the OCaml code of course but also generate
+.merlin, .ocamlinit, Makefile files and more. Since the build
+configuration is in OCaml, you have the full power of OCaml to add
+complex (or simple) build rules if needed.
 
-## Instructions
-This project provides:
+## Quickstart
+Install by doing `opam install solvuu-build`. In your repo, create a
+Makefile with the single line
 
-  * An ocamlbuild plugin  
-    Use it by starting your project's `myocamlbuild.ml` file with
-    `open Solvuu_build`.
+```make
+include $(shell opam config var solvuu-build:lib)/solvuu.mk
+```
 
-  * solvuu.mk  
-    A standard makefile, which assumes you are using the above
-    ocamlbuild plugin. Your project's Makefile usually will need only
-    the single line `include $(shell opam config var
-    solvuu-build:lib)/solvuu.mk`.
+Write some ocaml code in one or more files, and place them in a
+sub-directory called `lib` (or another name of your choice).
+
+Create a file called `myocamlbuild.ml` at your repo's root with the
+following content:
+
+```ocaml
+open Solvuu_build.Std
+
+let project_name = "my_project"
+let version = "dev"
+
+let mylib = Project.lib project_name
+  ~dir:"lib"
+  ~style:`Basic
+  ~pkg:project_name
+
+let () = Project.basic1 ~project_name ~version [mylib]
+```
+
+Type `make`.
+
+In the call to `Project.lib` above, we specified the directory (repo
+root relative) in which your library's files reside. By default all
+`.ml`, `.mli`, and `.c` files therein will be compiled into your
+library. The [pkg] argument is the findlib package name you want to
+assign to this library. Finally, the style is set to `Basic`. Also
+supported is `Pack` and there is an open feature request to support
+_module aliases as a namespace_. Compilation can be customized via
+several optional arguments, such as `safe_string`.
+
+Here's what you get:
+
+- `.cmo`, `.cmi`, `.cma`, etc: Files output by `ocamlc`. By default,
+  only byte code compilation is done to save time during
+  development. Run `make native` to also get the corresponding
+  `ocamlopt` output.
+
+- `.ocamlinit`: An ocamlinit file for use during development. It
+  automatically loads the necessary findlib dependencies (none in our
+  simple example above) and your compiled `.cma`. Thus, doing `utop`
+  from your repo root let's you immediately use your own code.
+
+- `.merlin`: A merlin file that correctly includes all the source and
+  build directories, and findlib dependencies. This is generated
+  first, so even if you have a compilation error in your OCaml code,
+  you can start benefiting from merlin right away in your editor.
+
+- `_build/project.mk`: You might be wondering how all the above
+  happens with just a call to `make`. A makefile is auto-generated and
+  the single line of code you wrote in your Makefile ends up including
+  this one. Note in particular the rule targeting `_build/%`. You can
+  thus ask to build any artefact under _build with a simple `make
+  _build/lib/foo.cmo` for example. The corresponding call to
+  ocamlbuild is more verbose.
+
+- `_build/META`: A findlib META file. It correctly handles
+  dependencies and multi-library projects. Not built by default. Run
+  `make _build/META` to generate it.
+
+- `<project_name>.install`: A .install file as needed by OPAM. Not
+  built by default. Run `make <project_name>.install` to generate it.
+
+See the `demos` directory for other small examples. Some real world
+examples where solvuu-build is being used:
+
+- [biocaml](https://github.com/biocaml/biocaml/): Multiple libraries
+  and multiple executable apps. One of the libraries contains a C
+  file. Libraries include Async and Lwt variations, and they are
+  compiled only if `async` or `lwt` are installed, respectively. It
+  uses `m4` to automatically insert the git commit ID and project
+  version into an `about.ml` file, which is compiled into the library.
+
+- [cufp.org](https://github.com/CUFP/cufp.org): A library and app are
+  compiled. The logic of doing the static site generation is encoded
+  in the Makefile. These rules could all have been in
+  `myocamlbuild.ml`, but this project demonstrates that sometimes Make
+  is still better. Use both in combination.
+
+- An ocsigen based website. No public project yet available, and the
+  support for Ocsigen projects in solvuu-build is also not yet
+  public. It will be added soon.
+
+
+## Design Goals
+
+- Entire build should be expressed in a single file.
+
+- The language the build is expressed in should be OCaml.
+
+- Nothing should happen by default. You should have to call at least
+  one function to register any rules.
+
+- API should be functional as much as possible.
+
+- Every default decision should be overrideable. We do not fully
+  succeed. Several decisions are currently hardcoded, and in some
+  cases it isn't obvious how to make the decision configurable. Or
+  rather, making it configurable ends up removing all benefits;
+  basically the API would end up being "call the OCaml command line
+  tools yourself".
+
+- Complicated things should be possible. Many OCaml projects also have
+  to do non-OCaml things. Examples: pre-process your file through
+  cppo, convert an .md file to .html, download a file from the
+  internet, run ocamldep and capture and parse its output during
+  build, and much more. All of this should be possible. Actually, we
+  hesitate to call these _complicated_ things. They're conceptually
+  trivial, but for some reason very difficult to do within most build
+  systems.
+
+Technically `solvuu-build` is an ocamlbuild plugin. However, it avoids
+ocamlbuild's builtin rules by calling
+`Ocamlbuild_plugin.clear_rules()` as its first step. Ocamlbuild is
+used only for its rule engine, not for any of the other features most
+people associate it with. Here is a list of reasons we preferred to
+avoid ocamlbuild's default rules:
+
+- They are all registered by default. So even if your project has no
+  parser in it, a rule for compiling mly files is registered. This
+  invariably leads to esoteric error messages about how ocamlbuild
+  knows of no rule to generate an mly file, when actually your error
+  is something entirely diffeent.
+
+- The rules are almost never what you need, which ocamlbuild
+  recognizes. You certainly have your own choice for the -w warnings
+  flag or whether or not to use -safe-string. Ocamlbuild's solution to
+  this is to make all the rules it registers be rather
+  complicated. They don't just make calls to the OCaml tools. Rather
+  they all check whether an _tags file and various other side
+  effecting functions have been called in your myocamlbuild.ml
+  file. Based on a bunch of mutable state, each rule creates the
+  specific underlying command that finally gets called. In other
+  words, the default rules are actually parameterized (good) using a
+  very complicated mechanism (bad). Solvuu-build uses a different
+  technique to parameterize the rules that get registered,
+  functions. Various functions are provided that when called will
+  register one or more rules. We can make these functions take an
+  arbitrarily rich amount of arguments, and it is clear how to call
+  them because you already know OCaml. The only reason not to do it
+  this way is if you want to avoid users having to call an OCaml
+  function to configure their build, but we consider it a feature to
+  use OCaml instead of other ad hoc syntax.
+
+- Build configuration is split across multiple files. Any non-trivial
+  project ends up having myocamlbuild.ml, _tags, cllib for each
+  library and more.
+
+- Much of the configuration can be done in myocamlbuild.ml, which
+  ostensibly meets our goal of using OCaml as the configuration
+  language. However, the API isn't really what we think of as
+  OCaml. It is entirely imperative in nature.
+
+- The implementation is essentially impossible to understand. The code
+  uses mutable state everywhere and is largely undocumented.
+
+- All paths are intrinsically relative to the `_build` directory, but
+  some files are supposed to be generated outside _build
+  (e.g. .merlin) and sometimes there is no benefit to copying or
+  symlinking your source code into _build. This shouldn't be forced on
+  you. It is also a bad UI; typing `ocamlbuild foo.cmo` actually
+  builds `_build/foo.cmo`.
+
+
+## Known Limitations
+
+- Files for a single library cannot be spread across multiple
+  directories. This might be unreasonable for very large projects, but
+  most projects anyway adhere to this.
+
+- Build paths are hardcoded. For example, if your library `foo`'s
+  files are in a directory `lib`, then the cma file for that library
+  will be built at `_build/foo.cma`. Some people would prefer to have
+  it at `_build/lib/foo.cma`, but you cannot change this.
+
+- True dynamic dependencies. We are limited by our use of ocamlbuild's
+  rule engine, which kind of supports dynamic rules by passing a
+  `build` function to the action of your rule. You can call `build`
+  within your own action, i.e. thus compute other targets at build
+  time and dynamically call `build` to build them. This is nice and
+  ends up working. However, you never truly generate a rule; you just
+  run code that ends up doing stuff. The better solution would be for
+  rules to form a monad, as in
+  [Jenga](https://github.com/janestreet/jenga).
