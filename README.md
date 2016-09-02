@@ -163,7 +163,7 @@ avoid ocamlbuild's default rules:
   specific underlying command that finally gets called. In other
   words, the default rules are actually parameterized (good) using a
   very complicated mechanism (bad). Solvuu-build uses a different
-  technique to parameterize the rules that get registered,
+  technique to parameterize the rules that get registered:
   functions. Various functions are provided that when called will
   register one or more rules. We can make these functions take an
   arbitrarily rich amount of arguments, and it is clear how to call
