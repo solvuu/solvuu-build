@@ -81,8 +81,10 @@ Here's what you get:
 - `<project_name>.install`: A .install file as needed by OPAM. Not
   built by default. Run `make <project_name>.install` to generate it.
 
-See the `demos` directory for other small examples. Some real world
-examples where solvuu-build is being used:
+See the `demos` directory for other small examples.
+
+## Users
+Some real world examples where solvuu-build is being used:
 
 - [biocaml](https://github.com/biocaml/biocaml/): Multiple libraries
   and multiple executable apps. One of the libraries contains a C
