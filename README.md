@@ -41,7 +41,7 @@ Type `make`.
 In the call to `Project.lib` above, we specified the directory (repo
 root relative) in which your library's files reside. By default all
 `.ml`, `.mli`, and `.c` files therein will be compiled into your
-library. The [pkg] argument is the findlib package name you want to
+library. The `pkg` argument is the findlib package name you want to
 assign to this library. Finally, the style is set to `Basic`. Also
 supported is `Pack` and there is an open feature request to support
 _module aliases as a namespace_. Compilation can be customized via
