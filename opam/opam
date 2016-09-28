@@ -1,5 +1,4 @@
 opam-version: "1.2"
-version: "dev"
 maintainer: "Ashish Agarwal <ashish@solvuu.com>"
 authors: "Solvuu"
 homepage: "https://github.com/solvuu/solvuu-build"
@@ -11,14 +10,9 @@ tags: ["org:solvuu"]
 build: [
   [make "byte"]
   [make "native"]
-]
-
-install: [
   [make "_build/META"]
-  [make "solvuu-build.install"]
+  [make "%{name}%.install"]
 ]
-
-remove: []
 
 depends: [
   "ocamlfind"
