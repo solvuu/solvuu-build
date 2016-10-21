@@ -196,6 +196,12 @@ val module_paths : style_matters:bool -> lib -> string list
     consists of only a single module.
 *)
 
+val internal_deps_files : [`Byte | `Native] -> item -> string list
+(** Return list of file paths corresponding to the internal
+    dependencies of given item, for either byte or native mode.
+*)
+
+
 (******************************************************************************)
 (** {2 Static Files} *)
 (******************************************************************************)

@@ -183,6 +183,13 @@ let obj_suffix = function `Byte -> ".cmo" | `Native -> ".cmx"
 let lib_suffix = function `Byte -> ".cma" | `Native -> ".cmxa"
 let exe_suffix = function `Byte -> ".byte" | `Native -> ".native"
 
+let internal_deps_files mode x =
+  internal_deps x |>
+  List.map ~f:(function
+    | Lib x -> path_of_lib x ~suffix:(lib_suffix mode)
+    | App x -> path_of_app x ~suffix:(exe_suffix mode)
+  )
+
 (******************************************************************************)
 (** {2 List Operations} *)
 (******************************************************************************)
@@ -772,7 +779,8 @@ let build_lib (x:lib) =
   List.iter mli_files ~f:(fun mli ->
     let base = chop_suffix mli ".mli" in
     let cmi = sprintf "%s.cmi" base in
-    Rule.rule ~deps:[mli] ~prods:[cmi]
+    let internal_deps = internal_deps_files `Byte (Lib x) in
+    Rule.rule ~deps:(mli::internal_deps) ~prods:[cmi]
       (fun _ build ->
          build_deps_cmi_files build ~pathI ~package file_base_of_module mli;
          ocaml `Byte ~c:() ~pathI ~package ~o:cmi [mli]
@@ -791,7 +799,12 @@ let build_lib (x:lib) =
     (* .ml -> .cmo/.cmx and .cmi if no corresponding .mli *)
     List.iter [`Byte; `Native] ~f:(fun mode ->
       let obj = base ^ (obj_suffix mode) in
-      let deps = if mli_exists then [ml;cmi] else [ml] in
+      let internal_deps = internal_deps_files mode (Lib x) in
+      let deps =
+        if mli_exists
+        then ml::cmi::internal_deps
+        else ml::internal_deps
+      in
       let prods = if mli_exists then [obj] else [obj;cmi] in
       Rule.rule ~deps ~prods
         (fun _ build ->
