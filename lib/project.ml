@@ -301,7 +301,7 @@ let merlin_file items : string list =
   |> List.concat
   |> List.sort_uniq ~cmp:String.compare
 
-let meta_file ~version libs : Fl_metascanner.pkg_expr =
+let meta_file ~version libs : Fl_metascanner.pkg_expr option =
   let def ?(preds=[]) var value =
       {
         Fl_metascanner.def_var = var;
@@ -337,12 +337,6 @@ let meta_file ~version libs : Fl_metascanner.pkg_expr =
   in
   let pkgs = List.map libs ~f:(fun x -> x.pkg) in
   let graph = Findlib.Graph.of_list pkgs in
-  let root = match Findlib.Graph.roots graph with
-    | x::[] -> x
-    | [] -> failwith "findlib packages have no root"
-    | l -> failwithf "cannot create META file for findlib packages with \
-                      multiple roots: %s" (String.concat ~sep:"," l) ()
-  in
   let pkg_defs (pkg:Findlib.pkg) =
     try pkg_defs_of_lib @@ List.find libs ~f:(fun x -> x.pkg = pkg)
     with _ -> []
@@ -357,7 +351,23 @@ let meta_file ~version libs : Fl_metascanner.pkg_expr =
         )
     }
   in
-  pkg_expr root
+  match libs with
+  | [] -> None
+  | _ ->
+    match Findlib.Graph.roots graph with
+    | root::[] -> Some (pkg_expr root)
+    | [] -> assert false (* non-empty graph can't have no roots *)
+    | l -> failwithf "cannot create META file for findlib packages with \
+                      multiple roots: %s" (String.concat ~sep:"," l) ()
+
+(** Return true if a META file should be built, i.e. if the number of
+    libraries in the project is non-zero. Returns true iff [meta_file]
+    returns [Some _], and false iff [meta_file] returns [None]. We
+    don't use [meta_file] to implement this only because it slighly
+    more convenient to have this function take [items] rather than
+    [libs]. *)
+let build_meta_file items =
+  List.length (filter_libs items) <> 0
 
 let install_file items : string list =
 
@@ -390,7 +400,9 @@ let install_file items : string list =
 
   (* META file for lib section. *)
   let meta : (string * string option) list =
-    ["_build/META",None]
+    if build_meta_file items
+    then ["_build/META",None]
+    else []
   in
 
   (* C lib files for lib section. *)
@@ -565,10 +577,14 @@ let makefile ~project_name items : string list =
     "\t$(OCAMLBUILD) $(patsubst _build/%,%,$@)";
   ]
   in
-  let meta = [
-    "META: # Deprecated. Do `make _build/META` instead.";
-    "\tmake _build/META";
-  ]
+  let meta =
+    if build_meta_file items then
+      [
+        "META: # Deprecated. Do `make _build/META` instead.";
+        "\tmake _build/META";
+      ]
+    else
+      []
   in
   let clean = [
     "clean:";
@@ -928,7 +944,12 @@ let basic1
       build_static_file ".ocamlinit"
         (ocamlinit_file ~postfix:ocamlinit_postfix items);
       build_static_file "project.mk" (makefile ~project_name items);
-      Findlib.build_meta_file (meta_file ~version libs);
+
+      (match meta_file ~version libs with
+       | Some x -> Findlib.build_meta_file x
+       | None -> ()
+      );
+
       build_static_file (sprintf "%s.install" project_name)
         (install_file items);
     )
@@ -991,7 +1012,12 @@ let solvuu1
       build_static_file ".ocamlinit"
         (ocamlinit_file ~postfix:ocamlinit_postfix items);
       build_static_file "project.mk" (makefile ~project_name items);
-      Findlib.build_meta_file (meta_file ~version libs);
+
+      (match meta_file ~version libs with
+       | Some x -> Findlib.build_meta_file x
+       | None -> ()
+      );
+
       build_static_file (sprintf "%s.install" project_name)
         (install_file items);
     )

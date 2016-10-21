@@ -209,7 +209,12 @@ type content = string list
 (** Content of a file represented as a list of lines. *)
 
 val merlin_file : item list -> content
-val meta_file : version:string -> lib list -> Fl_metascanner.pkg_expr
+
+val meta_file : version:string -> lib list -> Fl_metascanner.pkg_expr option
+(** Return a findlib META file for given libs, where [version] should
+    be the version of your project. Return None if given list is
+    empty. *)
+
 val install_file : item list -> content
 val ocamlinit_file : ?postfix:string list -> item list -> content
 val makefile : project_name:string -> item list -> content
