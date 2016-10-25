@@ -8,5 +8,5 @@ let () =
 #require "ocamlbuild ocamlgraph";;
 #directory "_build/lib";;
 #load "solvuu-build.cma";;
-open Solvuu_build;;
+open Solvuu_build.Std;;
 open Solvuu_build.Util;;
