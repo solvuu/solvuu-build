@@ -647,6 +647,10 @@ let build_deps_cmi_files build ~pathI ~package file_base_of_module file =
   ignore
 
 let build_lib (x:lib) =
+
+  (****************************************************************************)
+  (* Parameters *)
+  (****************************************************************************)
   let annot = x.annot in
   let bin_annot = x.bin_annot in
   let g = x.g in
@@ -656,6 +660,9 @@ let build_lib (x:lib) =
   let w = x.w in
   let linkall = x.linkall in
 
+  (****************************************************************************)
+  (* Partially apply several functions *)
+  (****************************************************************************)
   let ocamlc ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom files =
     ocamlfind_ocamlc files
       ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom
@@ -695,6 +702,70 @@ let build_lib (x:lib) =
   in
 
   let file_base_of_module : string -> string option = file_base_of_module x in
+
+  (****************************************************************************)
+  (* Register rules *)
+  (****************************************************************************)
+  (* .mli -> .cmi *)
+  List.iter mli_files ~f:(fun mli ->
+    let base = chop_suffix mli ".mli" in
+    let cmi = sprintf "%s.cmi" base in
+    let internal_deps = internal_deps_files `Byte (Lib x) in
+    Rule.rule ~deps:(mli::internal_deps) ~prods:[cmi]
+      (fun _ build ->
+         build_deps_cmi_files build ~pathI ~package file_base_of_module mli;
+         ocaml `Byte ~c:() ~pathI ~package ~o:cmi [mli]
+      )
+  );
+
+  (* .ml -> ... *)
+  List.iter ml_files ~f:(fun ml ->
+    let base = chop_suffix ml ".ml" in
+    let mli = sprintf "%s.mli" base in
+    let cmi = sprintf "%s.cmi" base in
+    let mli_exists = List.mem ~set:mli_files mli in
+
+    let c = () in
+
+    (* .ml -> .cmo/.cmx and .cmi if no corresponding .mli *)
+    List.iter [`Byte; `Native] ~f:(fun mode ->
+      let obj = base ^ (obj_suffix mode) in
+      let internal_deps = internal_deps_files mode (Lib x) in
+      let deps =
+        if mli_exists
+        then ml::cmi::internal_deps
+        else ml::internal_deps
+      in
+      let prods = if mli_exists then [obj] else [obj;cmi] in
+      Rule.rule ~deps ~prods
+        (fun _ build ->
+           build_deps_cmi_files build ~pathI ~package file_base_of_module ml;
+           match x.style with
+           | `Basic ->
+             ocaml mode ~c ~pathI ~package ~o:obj [ml]
+           | `Pack pack_name ->
+              let for_pack = String.capitalize pack_name in
+              ocaml mode ~c ~pathI ~package ~for_pack ~o:obj [ml]
+        )
+    )
+  );
+
+  (* .c -> .o *)
+  List.iter c_files ~f:(fun c_file ->
+    let base = chop_suffix c_file ".c" in
+    let obj = sprintf "%s.o" base in
+    let c = () in
+    Rule.rule ~deps:[c_file] ~prods:[obj] (fun _ _ ->
+      Ocamlbuild_plugin.(Seq [
+        ocamlc ~c ~pathI ~o:obj [c_file];
+
+        (* OCaml compiler appears to ignore the -o option set
+           above. Output file always goes into _build, so moving
+           manually. *)
+        Cmd (S [A"mv"; A"-f"; A(basename obj); A obj]);
+      ])
+    )
+  );
 
   ((* .cmo*/.cmx* -> packed .cmo/.cmx *)
     match x.style with
@@ -795,67 +866,6 @@ let build_lib (x:lib) =
           )
         )
       )
-  );
-
-  (* .mli -> .cmi *)
-  List.iter mli_files ~f:(fun mli ->
-    let base = chop_suffix mli ".mli" in
-    let cmi = sprintf "%s.cmi" base in
-    let internal_deps = internal_deps_files `Byte (Lib x) in
-    Rule.rule ~deps:(mli::internal_deps) ~prods:[cmi]
-      (fun _ build ->
-         build_deps_cmi_files build ~pathI ~package file_base_of_module mli;
-         ocaml `Byte ~c:() ~pathI ~package ~o:cmi [mli]
-      )
-  );
-
-  (* .ml -> ... *)
-  List.iter ml_files ~f:(fun ml ->
-    let base = chop_suffix ml ".ml" in
-    let mli = sprintf "%s.mli" base in
-    let cmi = sprintf "%s.cmi" base in
-    let mli_exists = List.mem ~set:mli_files mli in
-
-    let c = () in
-
-    (* .ml -> .cmo/.cmx and .cmi if no corresponding .mli *)
-    List.iter [`Byte; `Native] ~f:(fun mode ->
-      let obj = base ^ (obj_suffix mode) in
-      let internal_deps = internal_deps_files mode (Lib x) in
-      let deps =
-        if mli_exists
-        then ml::cmi::internal_deps
-        else ml::internal_deps
-      in
-      let prods = if mli_exists then [obj] else [obj;cmi] in
-      Rule.rule ~deps ~prods
-        (fun _ build ->
-           build_deps_cmi_files build ~pathI ~package file_base_of_module ml;
-           match x.style with
-           | `Basic ->
-              ocaml mode ~c ~pathI ~package ~o:obj [ml]
-           | `Pack pack_name ->
-              let for_pack = String.capitalize pack_name in
-              ocaml mode ~c ~pathI ~package ~for_pack ~o:obj [ml]
-        )
-    )
-  );
-
-  (* .c -> .o *)
-  List.iter c_files ~f:(fun c_file ->
-    let base = chop_suffix c_file ".c" in
-    let obj = sprintf "%s.o" base in
-    let c = () in
-    Rule.rule ~deps:[c_file] ~prods:[obj] (fun _ _ ->
-      Ocamlbuild_plugin.(Seq [
-        ocamlc ~c ~pathI ~o:obj [c_file];
-
-        (* OCaml compiler appears to ignore the -o option set
-           above. Output file always goes into _build, so moving
-           manually. *)
-        Cmd (S [A"mv"; A"-f"; A(basename obj); A obj]);
-      ])
-    )
   )
 ;;
 
