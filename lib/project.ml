@@ -83,8 +83,10 @@ let app
     annot; bin_annot; g; safe_string; short_paths; thread; w;
   }
 
-let name = function Lib x -> x.name | App x -> x.name
 
+(******************************************************************************)
+(** {2 Dependency Operations} *)
+(******************************************************************************)
 let internal_deps = function
   | Lib x -> x.internal_deps | App x -> x.internal_deps
 
@@ -123,8 +125,25 @@ let findlib_deps_all t =
   in
   loop t
 
+let all_findlib_pkgs t =
+  List.map t ~f:findlib_deps
+  |> List.flatten
+  |> List.sort_uniq ~cmp:String.compare
+
+
+(******************************************************************************)
+(** {2 Low-level Functions} *)
+(******************************************************************************)
+let name = function Lib x -> x.name | App x -> x.name
+
 let is_lib = function Lib _ -> true | App _ -> false
 let is_app = function App _ -> true | Lib _ -> false
+
+let filter_libs t =
+  List.filter_map t ~f:(function Lib x -> Some x | App _ -> None)
+
+let filter_apps t =
+  List.filter_map t ~f:(function App x -> Some x | Lib _ -> None)
 
 let dep_opts_sat x optional_deps =
   let all_deps = findlib_deps_all x in
@@ -190,19 +209,6 @@ let internal_deps_files mode x =
     | App x -> path_of_app x ~suffix:(exe_suffix mode)
   )
 
-(******************************************************************************)
-(** {2 List Operations} *)
-(******************************************************************************)
-let filter_libs t =
-  List.filter_map t ~f:(function Lib x -> Some x | App _ -> None)
-
-let filter_apps t =
-  List.filter_map t ~f:(function App x -> Some x | Lib _ -> None)
-
-let all_findlib_pkgs t =
-  List.map t ~f:findlib_deps
-  |> List.flatten
-  |> List.sort_uniq ~cmp:String.compare
 
 (******************************************************************************)
 (** {2 Item Module} *)
@@ -228,7 +234,7 @@ module Item = struct
 end
 
 (******************************************************************************)
-(** {2 Graph Operations} *)
+(** {2 Graph and Dependency Operations} *)
 (******************************************************************************)
 module Graph = struct
   include Graph.Persistent.Digraph.Concrete(Item)

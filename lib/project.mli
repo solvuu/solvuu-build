@@ -135,15 +135,118 @@ val app
   -> string
   -> item
 
-val name : item -> string
+(******************************************************************************)
+(** {2 Static Files} *)
+(******************************************************************************)
+type content = string list
+(** Content of a file represented as a list of lines. *)
+
+val merlin_file : item list -> content
+
+val meta_file : version:string -> lib list -> Fl_metascanner.pkg_expr option
+(** Return a findlib META file for given libs, where [version] should
+    be the version of your project. Return None if given list is
+    empty. *)
+
+val install_file : item list -> content
+val ocamlinit_file : ?postfix:string list -> item list -> content
+val makefile : project_name:string -> item list -> content
+
+
+(******************************************************************************)
+(** {2 Rules} *)
+(******************************************************************************)
+val build_lib : lib -> unit
+val build_app : app -> unit
+
+(** [static_file path content] registers a rule to create a file at
+    [path] with given [content]. *)
+val build_static_file : string -> content -> unit
+
+
+(******************************************************************************)
+(** {2 Plugins} *)
+(******************************************************************************)
+val basic1 :
+  ?additional_rules:((unit -> unit) list) ->
+  ?ocamlinit_postfix:string list ->
+  project_name:string ->
+  version:string ->
+  item list ->
+  unit
+
+val solvuu1 :
+  ?additional_rules:((unit -> unit) list) ->
+  ?ocamlinit_postfix:string list ->
+  project_name:string ->
+  version:string ->
+  item list ->
+  unit
+
+
+(******************************************************************************)
+(** {2 Dependency Operations} *)
+(******************************************************************************)
 val internal_deps : item -> item list
 val findlib_deps : item -> pkg list
 
 val internal_deps_all : item -> item list
 val findlib_deps_all : item -> pkg list
 
+(** Return all findlib packages mentioned in all given items. *)
+val all_findlib_pkgs : item list -> pkg list
+
+
+(******************************************************************************)
+(** {2 Item Module} *)
+(******************************************************************************)
+module Item : sig
+  type t = item
+  val compare : t -> t -> int
+  val equal : t -> t -> bool
+  val hash : t -> int
+
+  type typ = [`Lib | `App]
+  val typ : t -> typ
+  val typ_to_string : typ -> string
+end
+
+
+(******************************************************************************)
+(** {2 Graph Operations} *)
+(******************************************************************************)
+module Graph : sig
+  include module type of Graph.Persistent.Digraph.Concrete(Item)
+
+  module Dfs : module type of Graph.Traverse.Dfs(
+    Graph.Persistent.Digraph.Concrete(Item)
+  )
+
+  module Topological : sig
+    include module type of Graph.Topological.Make(
+      Graph.Persistent.Digraph.Concrete(Item)
+    )
+
+    (** Return a topologically sorted vertex list of given graph. *)
+    val sort : t -> V.t list
+  end
+
+  (** Construct a graph from a list of items. Raise exception if there
+      are cycles or any other errors. *)
+  val of_list : Item.t list -> t
+end
+
+
+(******************************************************************************)
+(** {2 Low-level Functions} *)
+(******************************************************************************)
+val name : item -> string
+
 val is_lib : item -> bool
 val is_app : item -> bool
+
+val filter_libs : item list -> lib list
+val filter_apps : item list -> app list
 
 val dep_opts_sat : item -> Solvuu_build_findlib.pkg list -> bool
 (** [dep_opt_sat x pkgs] returns true if the optional dependencies
@@ -200,99 +303,3 @@ val internal_deps_files : [`Byte | `Native] -> item -> string list
 (** Return list of file paths corresponding to the internal
     dependencies of given item, for either byte or native mode.
 *)
-
-
-(******************************************************************************)
-(** {2 Static Files} *)
-(******************************************************************************)
-type content = string list
-(** Content of a file represented as a list of lines. *)
-
-val merlin_file : item list -> content
-
-val meta_file : version:string -> lib list -> Fl_metascanner.pkg_expr option
-(** Return a findlib META file for given libs, where [version] should
-    be the version of your project. Return None if given list is
-    empty. *)
-
-val install_file : item list -> content
-val ocamlinit_file : ?postfix:string list -> item list -> content
-val makefile : project_name:string -> item list -> content
-
-(******************************************************************************)
-(** {2 Rules} *)
-(******************************************************************************)
-val build_lib : lib -> unit
-val build_app : app -> unit
-
-(** [static_file path content] registers a rule to create a file at
-    [path] with given [content]. *)
-val build_static_file : string -> content -> unit
-
-(******************************************************************************)
-(** {2 Plugins} *)
-(******************************************************************************)
-val basic1 :
-  ?additional_rules:((unit -> unit) list) ->
-  ?ocamlinit_postfix:string list ->
-  project_name:string ->
-  version:string ->
-  item list ->
-  unit
-
-val solvuu1 :
-  ?additional_rules:((unit -> unit) list) ->
-  ?ocamlinit_postfix:string list ->
-  project_name:string ->
-  version:string ->
-  item list ->
-  unit
-
-
-(******************************************************************************)
-(** {2 List Operations} *)
-(******************************************************************************)
-
-(** Return all findlib packages mentioned in all given items. *)
-val all_findlib_pkgs : item list -> pkg list
-
-val filter_libs : item list -> lib list
-val filter_apps : item list -> app list
-
-(******************************************************************************)
-(** {2 Item Module} *)
-(******************************************************************************)
-module Item : sig
-  type t = item
-  val compare : t -> t -> int
-  val equal : t -> t -> bool
-  val hash : t -> int
-
-  type typ = [`Lib | `App]
-  val typ : t -> typ
-  val typ_to_string : typ -> string
-end
-
-(******************************************************************************)
-(** {2 Graph Operations} *)
-(******************************************************************************)
-module Graph : sig
-  include module type of Graph.Persistent.Digraph.Concrete(Item)
-
-  module Dfs : module type of Graph.Traverse.Dfs(
-    Graph.Persistent.Digraph.Concrete(Item)
-  )
-
-  module Topological : sig
-    include module type of Graph.Topological.Make(
-      Graph.Persistent.Digraph.Concrete(Item)
-    )
-
-    (** Return a topologically sorted vertex list of given graph. *)
-    val sort : t -> V.t list
-  end
-
-  (** Construct a graph from a list of items. Raise exception if there
-      are cycles or any other errors. *)
-  val of_list : Item.t list -> t
-end
