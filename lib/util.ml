@@ -1,5 +1,4 @@
 open Printf
-let (/) = Ocamlbuild_plugin.(/)
 
 let failwithf fmt = ksprintf (fun s () -> failwith s) fmt
 
@@ -332,24 +331,3 @@ let assert_all_outcomes l =
   in
   loop [] l |>
   List.rev
-
-let readdir dir : string list =
-  match Sys.file_exists dir && Sys.is_directory dir with
-  | false -> []
-  | true -> (Sys.readdir dir |> Array.to_list)
-
-let c_units_of_dir dir : string list =
-  readdir dir
-  |> List.filter ~f:(fun p -> Filename.check_suffix p ".c")
-  |> List.map ~f:Filename.chop_extension
-
-let h_files_of_dir dir : string list =
-  readdir dir
-  |> List.filter ~f:(fun p -> Filename.check_suffix p ".h")
-
-let clib_file dir lib =
-  let path = dir / lib in
-  match c_units_of_dir path with
-  | [] -> None
-  | xs ->
-    Some (List.map xs ~f:(fun x -> lib ^ "/" ^ x ^ ".o"))

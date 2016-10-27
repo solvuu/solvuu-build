@@ -1,21 +1,5 @@
 val failwithf : ('r, unit, string, unit -> 'a) format4 -> 'r
 
-(** [readdir dir] returns the contents of [dir]. Returns empty list if
-    [dir] doesn't exist or is not a directory. *)
-val readdir : string -> string list
-
-(** Return ".c" files in given dir, with the ".c" extension chopped
-    off. *)
-val c_units_of_dir : string -> string list
-
-(** Return ".h" files in given dir, with the ".h" extension
-    preserved. *)
-val h_files_of_dir : string -> string list
-
-(** [clib_file dir lib] returns lines if the clib file corresponding
-    to any .c files in [dir], if any. *)
-val clib_file : string -> string -> string list option
-
 (** Raise exception if any item in given list is [exn], else return
     the list of all good pathnames. Note the input argument is the
     output type of Ocamlbuild's [builder]. *)
