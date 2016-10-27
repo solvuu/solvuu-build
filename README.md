@@ -107,7 +107,7 @@ Some real world examples where solvuu-build is being used:
 
 
 ## Design Goals
-Out motivation for this project was to stop thinking about building
+Our motivation for this project was to stop thinking about building
 code, so we can focus on writing code. Here's what we think is
 required for that to happen:
 
@@ -122,13 +122,12 @@ required for that to happen:
 
 - Should be possible to override every default. We do not fully
   succeed. Several decisions are currently hardcoded, and in some
-  cases it isn't obvious how to make the decision configurable. Or
-  rather, making it configurable ends up removing all benefits;
-  basically the API would end up being "call the OCaml command line
+  cases it isn't obvious how to make the decisions configurable. Or
+  rather, making them all configurable would remove all benefits;
+  the API would end up being "call the OCaml command line
   tools yourself".
 
-- Complicated things should be possible. Many OCaml projects also have
-  to do non-OCaml things. Examples: pre-process your file through
+- Complicated things should be possible. Examples: pre-process your file through
   cppo, convert an .md file to .html, download a file from the
   internet, run ocamldep and capture and parse its output during
   build, and much more. All of this should be possible. Actually, we
@@ -144,18 +143,18 @@ people associate it with. Here is a list of reasons we preferred to
 avoid ocamlbuild's default rules:
 
 - They are all registered by default. So even if your project has no
-  parser in it, a rule for compiling mly files is registered. This
+  parser in it, a rule for compiling `mly` files is registered. This
   invariably leads to esoteric error messages about how ocamlbuild
-  knows of no rule to generate an mly file, when actually your error
-  is something entirely diffeent.
+  knows of no rule to generate `foo.mly`, when actually your error
+  is something entirely different.
 
 - The rules are almost never what you need, which ocamlbuild
-  recognizes. You certainly have your own choice for the -w warnings
-  flag or whether or not to use -safe-string. Ocamlbuild's solution to
+  recognizes. You certainly have your own choice for the `-w` warnings
+  flag or whether or not to use `-safe-string`. Ocamlbuild's solution to
   this is to make all the rules it registers be rather
   complicated. They don't just make calls to the OCaml tools. Rather
-  they all check whether an _tags file and various other side
-  effecting functions have been called in your myocamlbuild.ml
+  they all check whether an `_tags` file and various other side
+  effecting functions have been called in your `myocamlbuild.ml`
   file. Based on a bunch of mutable state, each rule creates the
   specific underlying command that finally gets called. In other
   words, the default rules are actually parameterized (good) using a
@@ -170,10 +169,10 @@ avoid ocamlbuild's default rules:
   use OCaml instead of other ad hoc syntax.
 
 - Build configuration is split across multiple files. Any non-trivial
-  project ends up having myocamlbuild.ml, _tags, cllib for each
-  library and more.
+  project ends up having `myocamlbuild.ml`, `_tags`, and multiple `.cllib`
+  and `.mllib` files.
 
-- Much of the configuration can be done in myocamlbuild.ml, which
+- Much of the configuration can be done in `myocamlbuild.ml`, which
   ostensibly meets our goal of using OCaml as the configuration
   language. However, the API isn't really what we think of as
   OCaml. It is entirely imperative in nature.
@@ -182,10 +181,10 @@ avoid ocamlbuild's default rules:
   uses mutable state everywhere and is largely undocumented.
 
 - All paths are intrinsically relative to the `_build` directory, but
-  some files are supposed to be generated outside _build
-  (e.g. .merlin) and sometimes there is no benefit to copying or
-  symlinking your source code into _build. This shouldn't be forced on
-  you. It is also a bad UI; typing `ocamlbuild foo.cmo` actually
+  some files are supposed to be generated outside `_build`
+  (e.g. `.merlin`) and sometimes there is no benefit to copying or
+  symlinking your source code into `_build`. This shouldn't be forced on
+  you. It is also not the best UI; typing `ocamlbuild foo.cmo` actually
   builds `_build/foo.cmo`.
 
 
@@ -196,8 +195,8 @@ avoid ocamlbuild's default rules:
   most projects anyway adhere to this.
 
 - Build paths are hardcoded. For example, if your library `foo`'s
-  files are in a directory `lib`, then the cma file for that library
-  will be built at `_build/foo.cma`. Some people would prefer to have
+  files are in a directory `lib`, then the `cma` file for that library
+  will be built at `_build/foo.cma`. Some people might prefer to have
   it at `_build/lib/foo.cma`, but you cannot change this.
 
 - True dynamic dependencies. We are limited by our use of ocamlbuild's
@@ -209,6 +208,12 @@ avoid ocamlbuild's default rules:
   run code that ends up doing stuff. The better solution would be for
   rules to form a monad, as in
   [Jenga](https://github.com/janestreet/jenga).
+
+  As an example of why this matters, note that we are forced to
+  mis-state the true dependencies of a packed `cmo`. We say the
+  dependencies are all the `ml` files, but really they are all the
+  `cmo` files produced by the `ml` files. The output of ocamlbuild's
+  `-documentation` feature is thus misleading.
 
 
 ## Eliom
@@ -277,3 +282,9 @@ clean:
 ```
 
 Now type `make _build/_client/myweb.js` and `make _build/_server/myweb.cma`.
+
+The `Eliom` module is less mature than `Project`. You don't get all
+the extra nice things `Project` provides, such `.ocamlinit`,
+`.merlin`, etc. Also, note that `Eliom` doesn't play well with
+`Project`. At present, any given project should use only one or the
+other, but this shouldn't be too hard to resolve.
