@@ -758,7 +758,16 @@ let run_and_parse_ocamldep_cmd (cmd:spec) : (string * string list) list =
              cmd line ()
   ) |>
   List.filter ~f:(function "",[] -> false  | _ -> true) |>
-  List.map ~f:(function x,[""] -> x,[] | x,y -> x,y)
+  List.map ~f:(function x,[""] -> x,[] | x,y -> x,y) |>
+  List.fold_left ~init:String.Map.empty ~f:(fun map (x,y) ->
+    let y_new =
+      match String.Map.mem x map with
+      | false -> y
+      | true -> (String.Map.find x map)@y
+    in
+    String.Map.add x y_new map
+  ) |>
+  String.Map.to_list
 
 let run_ocamldep
 
