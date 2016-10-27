@@ -99,10 +99,7 @@ Some real world examples where solvuu-build is being used:
   `myocamlbuild.ml`, but this project demonstrates that sometimes Make
   is still better. Use both in combination.
 
-- An ocsigen based website. No public project yet available, and the
-  support for Ocsigen projects in solvuu-build is also not yet
-  public. It will be added soon. An early but out-dated start is
-  [here](https://github.com/agarwal/eliom-site-build).
+- An [Eliom](#eliom) based website. No public project yet available.
 
 - Also: [Coclobas](https://github.com/hammerlab/coclobas),
   [Future](https://github.com/solvuu/future),
@@ -212,3 +209,71 @@ avoid ocamlbuild's default rules:
   run code that ends up doing stuff. The better solution would be for
   rules to form a monad, as in
   [Jenga](https://github.com/janestreet/jenga).
+
+
+## Eliom
+
+[Ocsigen](http://ocsigen.org/) provides a suite of libraries for web
+programming. Most, such as [lwt](http://ocsigen.org/lwt/) and
+[tyxml](http://ocsigen.org/tyxml/), can be used without any special
+support. You simply add these to your list of findlib dependencies
+when using the `Project` module. However,
+[eliom](http://ocsigen.org/eliom/) works rather differently. Your
+source files are compiled twice, once each for the server and client
+side. We provide the `Eliom` module to support this.
+
+Assume your source code is in a sub-directory "src" with files a.ml,
+a.mli, b.eliom, b.eliomi, and c.ml. Further, assume module A is for
+the server side only, but modules B and C are for both the client and
+server side. Then, here's a complete `myocamlbuild.ml` file to compile
+both native and byte code server libraries, and a JavaScript client
+library.
+
+```ocaml
+open Solvuu_build.Std
+
+let ml_files = function
+  | `Server -> ["a.ml"; "b.eliom"; "c.ml"]
+  | `Client -> [        "b.eliom"; "c.ml"]
+
+let mli_files = function
+  | `Server -> ["a.mli"; "b.eliomi"]
+  | `Client -> [         "b.eliomi"]
+
+let findlib_deps = function
+  | `Server -> ["eliom.server"; "eliom.ppx.server"; "js_of_ocaml.ppx"; "core"]
+  | `Client -> ["eliom.client"; "eliom.ppx.client"; "js_of_ocaml.ppx"]
+
+let mylib =
+  Eliom.lib "myweb"
+    ~style:(`Pack "myweb")
+    ~dir:"src"
+    ~findlib_deps
+    ~ml_files
+    ~mli_files
+    ~short_paths:()
+    ~w:"A-4-33-41-42-44-45-48"
+
+let () = Ocamlbuild_plugin.dispatch @@ function
+| Ocamlbuild_plugin.After_rules -> (
+    Ocamlbuild_plugin.clear_rules();
+    Eliom.build_lib mylib;
+  )
+| _ -> ()
+```
+
+We recommend a Makefile like this:
+
+```make
+OCAMLBUILD=ocamlbuild -verbose 1 -use-ocamlfind -plugin-tag "package(solvuu-build)"
+
+FORCE:
+_build/%: FORCE
+	$(OCAMLBUILD) $(patsubst _build/%, %, $@)
+
+clean:
+	rm -rf _build
+
+```
+
+Now type `make _build/_client/myweb.js` and `make _build/_server/myweb.cma`.
