@@ -141,7 +141,7 @@ val app
 type content = string list
 (** Content of a file represented as a list of lines. *)
 
-val merlin_file : item list -> content
+val merlin_file : ?short_paths:unit -> item list -> content
 
 val meta_file : version:string -> lib list -> Fl_metascanner.pkg_expr option
 (** Return a findlib META file for given libs, where [version] should

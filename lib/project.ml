@@ -277,9 +277,11 @@ end
 (******************************************************************************)
 type content = string list
 
-let merlin_file items : string list =
+let merlin_file ?short_paths items : string list =
   [
     ["B +threads"; "PKG solvuu-build"];
+
+    (if short_paths = Some () then ["FLG -short-paths"] else []) ;
 
     (* libs *)
     List.map (filter_libs items) ~f:(fun x ->
