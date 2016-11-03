@@ -198,6 +198,13 @@ let module_paths ~style_matters lib =
     | `Basic -> module_paths_orig
     | `Pack _ -> [path_of_pack ~suffix:"" lib]
 
+let module_dir ~style_matters lib =
+  match style_matters with
+  | false -> lib.dir
+  | true -> match lib.style with
+    | `Basic -> lib.dir
+    | `Pack _ -> dirname lib.dir
+
 let obj_suffix = function `Byte -> ".cmo" | `Native -> ".cmx"
 let lib_suffix = function `Byte -> ".cma" | `Native -> ".cmxa"
 let exe_suffix = function `Byte -> ".byte" | `Native -> ".native"
@@ -695,11 +702,10 @@ let build_lib (x:lib) =
   let c_files = List.map x.c_files ~f:(fun y -> x.dir/y) in
 
   let pathI = List.sort_uniq ~cmp:String.compare @@
-    x.dir
-    ::(dirname x.dir)
+    (module_dir ~style_matters:false x)
     ::(
       filter_libs x.internal_deps |>
-      List.map ~f:(fun x -> dirname x.dir)
+      List.map ~f:(module_dir ~style_matters:true)
     )
   in
 
