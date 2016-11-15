@@ -284,37 +284,88 @@ end
 (******************************************************************************)
 type content = string list
 
-let merlin_file ?short_paths items : string list =
+let merlin_file ?safe_string ?short_paths ?thread ?w items : string list =
+  let pick ~cmp l =
+    let l' = List.sort_uniq ~cmp:(Option.compare cmp) l in
+    match l' with
+    | [] -> (* [items] is empty *)
+      None
+    | [x] -> (* all [items] specify same value, possibly None *)
+      x
+    | _ -> (* [items] have different values, randomly pick last *)
+      List.last_exn l
+  in
+  let safe_string : unit option = match safe_string with
+    | Some x -> x
+    | None ->
+      List.map items ~f:(function
+        | Lib x -> x.safe_string
+        | App x -> x.safe_string
+      ) |>
+      pick ~cmp:Unit.compare
+  in
+  let short_paths : unit option = match short_paths with
+    | Some x -> x
+    | None ->
+      List.map items ~f:(function
+        | Lib x -> x.short_paths
+        | App x -> x.short_paths
+      ) |>
+      pick ~cmp:Unit.compare
+  in
+  let thread : unit option = match thread with
+    | Some x -> x
+    | None ->
+      List.map items ~f:(function
+        | Lib x -> x.thread
+        | App x -> x.thread
+      ) |>
+      pick ~cmp:Unit.compare
+  in
+  let w : string option = match w with
+    | Some x -> x
+    | None ->
+      List.map items ~f:(function
+        | Lib x -> x.w
+        | App x -> x.w
+      ) |>
+      pick ~cmp:String.compare
+  in
+
   [
-    ["B +threads"; "PKG solvuu-build"];
+    (match thread with Some () -> ["B +threads"] | None -> []);
+    (match safe_string with Some () -> ["FLG -safe-string"] | None -> []);
+    (match short_paths with Some () -> ["FLG -short-paths"] | None -> []);
+    (match w with Some w -> [sprintf "FLG -w %s" w] | None -> []);
 
-    (if short_paths = Some () then ["FLG -short-paths"] else []) ;
+    (* source directories *)
+    List.map items ~f:(function
+      | Lib x -> sprintf "S %s" x.dir
+      | App x -> sprintf "S %s" (dirname x.file)
+    ) |>
+    List.sort_uniq ~cmp:String.compare;
 
-    (* libs *)
-    List.map (filter_libs items) ~f:(fun x ->
-      [
-        sprintf "S %s" x.dir;
-        sprintf "B _build/%s" x.dir;
-        sprintf "B _build/%s" (dirname x.dir);
-      ]
-    ) |> List.concat;
-
-    (* apps *)
-    List.map (filter_apps items) ~f:(fun x ->
-      [
-        sprintf "S %s" (dirname x.file);
-        sprintf "B _build/%s" (dirname x.file);
-      ]
-    ) |> List.concat;
+    (* build directories *)
+    List.map items ~f:(function
+      | Lib x ->
+        [
+          sprintf "B _build/%s" x.dir;
+          sprintf "B _build/%s" (dirname x.dir);
+        ]
+      | App x ->
+        [sprintf "B _build/%s" (dirname x.file)]
+    ) |>
+    List.concat |>
+    List.sort_uniq ~cmp:String.compare;
 
     (* findlib packages *)
     (
-      all_findlib_pkgs items
+      "solvuu-build"::(all_findlib_pkgs items)
       |> List.map ~f:(sprintf "PKG %s")
+      |> List.sort_uniq ~cmp:String.compare
     );
   ]
   |> List.concat
-  |> List.sort_uniq ~cmp:String.compare
 
 let meta_file ~version libs : Fl_metascanner.pkg_expr option =
   let def ?(preds=[]) var value =

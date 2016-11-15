@@ -141,7 +141,24 @@ val app
 type content = string list
 (** Content of a file represented as a list of lines. *)
 
-val merlin_file : ?short_paths:unit -> item list -> content
+(** [merlin_file items] returns content of a .merlin file. It provides
+    S and B lines for merlin to find the source and build directories
+    of all [items] and PKG lines to let merlin search over all findlib
+    packages used by [items] (the package "solvuu-build" is also
+    added).
+
+    The optional arguments correspond to flags that can be specified
+    for each item of [items]. If you set them differently, it isn't
+    clear what value to use in the .merlin file. By default, we use a
+    heuristic to pick, but you can provide a value explicitly if
+    desired. *)
+val merlin_file
+  :  ?safe_string:unit option
+  -> ?short_paths:unit option
+  -> ?thread:unit option
+  -> ?w:string option
+  -> item list
+  -> content
 
 val meta_file : version:string -> lib list -> Fl_metascanner.pkg_expr option
 (** Return a findlib META file for given libs, where [version] should
