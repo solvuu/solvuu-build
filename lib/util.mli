@@ -75,6 +75,15 @@ module List : sig
 
 end
 
+module Option : sig
+  val map : 'a option -> f:('a -> 'b) -> 'b option
+  val compare : ('a -> 'a -> int) -> 'a option -> 'a option -> int
+end
+
+module Unit : sig
+  val compare : unit -> unit -> int
+end
+
 module Filename : sig
   include module type of Filename
 

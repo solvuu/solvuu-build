@@ -224,6 +224,22 @@ module List = struct
 
 end
 
+module Option = struct
+  let map x ~f = match x with None -> None | Some y -> Some (f y)
+
+  let compare cmp x y =
+    match x,y with
+    | None, None -> 0
+    | None, Some _ -> -1
+    | Some _, None -> 1
+    | Some x, Some y -> cmp x y
+
+end
+
+module Unit = struct
+  let compare () () = 0
+end
+
 module Filename = struct
   include Filename
 
