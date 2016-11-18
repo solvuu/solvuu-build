@@ -18,6 +18,7 @@ type app = {
   g : unit option;
   safe_string : unit option;
   short_paths : unit option;
+  strict_sequence : unit option;
   thread : unit option;
   w : string option;
 }
@@ -39,6 +40,7 @@ and lib = {
   g : unit option;
   safe_string : unit option;
   short_paths : unit option;
+  strict_sequence : unit option;
   thread : unit option;
   w : string option;
   linkall : unit option;
@@ -47,7 +49,8 @@ and lib = {
 and item = Lib of lib | App of app
 
 let lib
-    ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
+    ?annot ?bin_annot ?g ?safe_string ?short_paths ?strict_sequence
+    ?thread ?w ?linkall
     ?(internal_deps=[]) ?(findlib_deps=[])
     ?ml_files ?mli_files ?c_files ?(build_plugin=true) ~pkg ~style ~dir name
   =
@@ -70,17 +73,18 @@ let lib
   Lib {
     name; internal_deps; findlib_deps; style;
     dir; ml_files; mli_files; c_files; pkg; build_plugin;
-    annot; bin_annot; g; safe_string; short_paths; thread; w; linkall;
+    annot; bin_annot; g; safe_string; short_paths; strict_sequence;
+    thread; w; linkall;
   }
 
 let app
-    ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+    ?annot ?bin_annot ?g ?safe_string ?short_paths ?strict_sequence ?thread ?w
     ?(internal_deps=[]) ?(findlib_deps=[])
     ~file name
   =
   App {
     name; internal_deps; findlib_deps; file;
-    annot; bin_annot; g; safe_string; short_paths; thread; w;
+    annot; bin_annot; g; safe_string; short_paths; strict_sequence; thread; w;
   }
 
 
@@ -284,7 +288,9 @@ end
 (******************************************************************************)
 type content = string list
 
-let merlin_file ?safe_string ?short_paths ?thread ?w items : string list =
+let merlin_file ?safe_string ?short_paths ?strict_sequence ?thread ?w items
+  : string list
+  =
   let pick ~cmp l =
     let l' = List.sort_uniq ~cmp:(Option.compare cmp) l in
     match l' with
@@ -313,6 +319,15 @@ let merlin_file ?safe_string ?short_paths ?thread ?w items : string list =
       ) |>
       pick ~cmp:Unit.compare
   in
+  let strict_sequence : unit option = match strict_sequence with
+    | Some x -> x
+    | None ->
+      List.map items ~f:(function
+        | Lib x -> x.strict_sequence
+        | App x -> x.strict_sequence
+      ) |>
+      pick ~cmp:Unit.compare
+  in
   let thread : unit option = match thread with
     | Some x -> x
     | None ->
@@ -336,6 +351,10 @@ let merlin_file ?safe_string ?short_paths ?thread ?w items : string list =
     (match thread with Some () -> ["B +threads"] | None -> []);
     (match safe_string with Some () -> ["FLG -safe-string"] | None -> []);
     (match short_paths with Some () -> ["FLG -short-paths"] | None -> []);
+    (match strict_sequence with
+     | Some () -> ["FLG -strict-sequence"]
+     | None -> []
+    );
     (match w with Some w -> [sprintf "FLG -w %s" w] | None -> []);
 
     (* source directories *)
@@ -716,6 +735,7 @@ let build_lib (x:lib) =
   let g = x.g in
   let safe_string = x.safe_string in
   let short_paths = x.short_paths in
+  let strict_sequence = x.strict_sequence in
   let thread = x.thread in
   let w = x.w in
   let linkall = x.linkall in
@@ -726,13 +746,15 @@ let build_lib (x:lib) =
   let ocamlc ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom files =
     ocamlfind_ocamlc files
       ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom
-      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
+      ?annot ?bin_annot ?g ?safe_string ?short_paths ?strict_sequence
+      ?thread ?w ?linkall
   in
 
   let ocamlopt ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack files =
     ocamlfind_ocamlopt files
       ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack
-      ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w ?linkall
+      ?annot ?bin_annot ?g ?safe_string ?short_paths ?strict_sequence
+      ?thread ?w ?linkall
   in
 
   (* Abstraction of ocamlc/ocamlopt above. Use above if any options
@@ -934,6 +956,7 @@ let build_app (x:app) =
   let g = x.g in
   let safe_string = x.safe_string in
   let short_paths = x.short_paths in
+  let strict_sequence = x.strict_sequence in
   let thread = x.thread in
   let w = x.w in
   let package = findlib_deps_all (App x) in
@@ -948,7 +971,8 @@ let build_app (x:app) =
   List.iter [`Byte; `Native] ~f:(fun mode ->
     let ocaml ?o files = ocamlfind_ocaml_compiler mode files
         ?o
-        ?annot ?bin_annot ?g ?safe_string ?short_paths ?thread ?w
+        ?annot ?bin_annot ?g ?safe_string ?short_paths ?strict_sequence
+        ?thread ?w
         ~package ~pathI ~linkpkg:()
     in
     let path_of_lib (x:lib) = path_of_lib x ~suffix:(lib_suffix mode) in
@@ -1042,14 +1066,17 @@ let solvuu1
   let g = Some () in
   let safe_string = Some () in
   let short_paths = Some () in
+  let strict_sequence = Some () in
   let thread = Some () in
   let w = Some "A-4-33-41-42-44-45-48" in
 
   let items = List.map items ~f:(function
     | Lib x ->
-      Lib {x with annot; bin_annot; g; safe_string; short_paths; thread; w}
+      Lib {x with annot; bin_annot; g; safe_string; short_paths;
+                  strict_sequence;thread; w}
     | App x ->
-      App {x with annot; bin_annot; g; safe_string; short_paths; thread; w}
+      App {x with annot; bin_annot; g; safe_string; short_paths;
+                  strict_sequence; thread; w}
   )
   in
 

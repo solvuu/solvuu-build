@@ -61,6 +61,7 @@ type app = {
   g : unit option;
   safe_string : unit option;
   short_paths : unit option;
+  strict_sequence : unit option;
   thread : unit option;
   w : string option;
 }
@@ -82,6 +83,7 @@ and lib = {
   g : unit option;
   safe_string : unit option;
   short_paths : unit option;
+  strict_sequence : unit option;
   thread : unit option;
   w : string option;
   linkall : unit option;
@@ -106,6 +108,7 @@ val lib
   -> ?g:unit
   -> ?safe_string:unit
   -> ?short_paths:unit
+  -> ?strict_sequence:unit
   -> ?thread:unit
   -> ?w:string
   -> ?linkall:unit
@@ -127,6 +130,7 @@ val app
   -> ?g:unit
   -> ?safe_string:unit
   -> ?short_paths:unit
+  -> ?strict_sequence:unit
   -> ?thread:unit
   -> ?w:string
   -> ?internal_deps:item list
@@ -155,6 +159,7 @@ type content = string list
 val merlin_file
   :  ?safe_string:unit option
   -> ?short_paths:unit option
+  -> ?strict_sequence:unit option
   -> ?thread:unit option
   -> ?w:string option
   -> item list
