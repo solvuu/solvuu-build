@@ -15,12 +15,14 @@ type app = {
 
   annot : unit option;
   bin_annot : unit option;
+  color : [`auto | `always | `never] option;
   g : unit option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
   thread : unit option;
   w : string option;
+  warn_error : string option;
 }
 
 and lib = {
@@ -37,20 +39,23 @@ and lib = {
 
   annot : unit option;
   bin_annot : unit option;
+  color : [`auto | `always | `never] option;
   g : unit option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
   thread : unit option;
   w : string option;
+  warn_error : string option;
+
   linkall : unit option;
 }
 
 and item = Lib of lib | App of app
 
 let lib
-    ?annot ?bin_annot ?g ?safe_string ?short_paths ?strict_sequence
-    ?thread ?w ?linkall
+    ?annot ?bin_annot ?color ?g ?safe_string ?short_paths ?strict_sequence
+    ?thread ?w ?warn_error ?linkall
     ?(internal_deps=[]) ?(findlib_deps=[])
     ?ml_files ?mli_files ?c_files ?(build_plugin=true) ~pkg ~style ~dir name
   =
@@ -73,18 +78,20 @@ let lib
   Lib {
     name; internal_deps; findlib_deps; style;
     dir; ml_files; mli_files; c_files; pkg; build_plugin;
-    annot; bin_annot; g; safe_string; short_paths; strict_sequence;
-    thread; w; linkall;
+    annot; bin_annot; color; g; safe_string; short_paths; strict_sequence;
+    thread; w; warn_error; linkall;
   }
 
 let app
-    ?annot ?bin_annot ?g ?safe_string ?short_paths ?strict_sequence ?thread ?w
+    ?annot ?bin_annot ?color ?g ?safe_string ?short_paths ?strict_sequence
+    ?thread ?w ?warn_error
     ?(internal_deps=[]) ?(findlib_deps=[])
     ~file name
   =
   App {
     name; internal_deps; findlib_deps; file;
-    annot; bin_annot; g; safe_string; short_paths; strict_sequence; thread; w;
+    annot; bin_annot; color; g; safe_string; short_paths; strict_sequence;
+    thread; w; warn_error;
   }
 
 
@@ -288,7 +295,9 @@ end
 (******************************************************************************)
 type content = string list
 
-let merlin_file ?safe_string ?short_paths ?strict_sequence ?thread ?w items
+let merlin_file
+    ?safe_string ?short_paths ?strict_sequence ?thread ?w ?warn_error
+    items
   : string list
   =
   let pick ~cmp l =
@@ -346,6 +355,15 @@ let merlin_file ?safe_string ?short_paths ?strict_sequence ?thread ?w items
       ) |>
       pick ~cmp:String.compare
   in
+  let warn_error : string option = match warn_error with
+    | Some x -> x
+    | None ->
+      List.map items ~f:(function
+        | Lib x -> x.warn_error
+        | App x -> x.warn_error
+      ) |>
+      pick ~cmp:String.compare
+  in
 
   [
     (match thread with Some () -> ["B +threads"] | None -> []);
@@ -356,6 +374,10 @@ let merlin_file ?safe_string ?short_paths ?strict_sequence ?thread ?w items
      | None -> []
     );
     (match w with Some w -> [sprintf "FLG -w %s" w] | None -> []);
+    (match warn_error with
+     | Some x -> [sprintf "FLG -warn-error %s" x]
+     | None -> []
+    );
 
     (* source directories *)
     List.map items ~f:(function
@@ -732,12 +754,14 @@ let build_lib (x:lib) =
   (****************************************************************************)
   let annot = x.annot in
   let bin_annot = x.bin_annot in
+  let color = x.color in
   let g = x.g in
   let safe_string = x.safe_string in
   let short_paths = x.short_paths in
   let strict_sequence = x.strict_sequence in
   let thread = x.thread in
   let w = x.w in
+  let warn_error = x.warn_error in
   let linkall = x.linkall in
 
   (****************************************************************************)
@@ -746,15 +770,15 @@ let build_lib (x:lib) =
   let ocamlc ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom files =
     ocamlfind_ocamlc files
       ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom
-      ?annot ?bin_annot ?g ?safe_string ?short_paths ?strict_sequence
-      ?thread ?w ?linkall
+      ?annot ?bin_annot ?color ?g ?safe_string ?short_paths ?strict_sequence
+      ?thread ?w ?warn_error ?linkall
   in
 
   let ocamlopt ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack files =
     ocamlfind_ocamlopt files
       ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack
-      ?annot ?bin_annot ?g ?safe_string ?short_paths ?strict_sequence
-      ?thread ?w ?linkall
+      ?annot ?bin_annot ?color ?g ?safe_string ?short_paths ?strict_sequence
+      ?thread ?w ?warn_error ?linkall
   in
 
   (* Abstraction of ocamlc/ocamlopt above. Use above if any options
@@ -953,12 +977,14 @@ let build_lib (x:lib) =
 let build_app (x:app) =
   let annot = x.annot in
   let bin_annot = x.bin_annot in
+  let color = x.color in
   let g = x.g in
   let safe_string = x.safe_string in
   let short_paths = x.short_paths in
   let strict_sequence = x.strict_sequence in
   let thread = x.thread in
   let w = x.w in
+  let warn_error = x.warn_error in
   let package = findlib_deps_all (App x) in
   let pathI =
     internal_deps_all (App x) |>
@@ -971,8 +997,8 @@ let build_app (x:app) =
   List.iter [`Byte; `Native] ~f:(fun mode ->
     let ocaml ?o files = ocamlfind_ocaml_compiler mode files
         ?o
-        ?annot ?bin_annot ?g ?safe_string ?short_paths ?strict_sequence
-        ?thread ?w
+        ?annot ?bin_annot ?color ?g ?safe_string ?short_paths ?strict_sequence
+        ?thread ?w ?warn_error
         ~package ~pathI ~linkpkg:()
     in
     let path_of_lib (x:lib) = path_of_lib x ~suffix:(lib_suffix mode) in

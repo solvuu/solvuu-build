@@ -58,12 +58,14 @@ type app = {
 
   annot : unit option;
   bin_annot : unit option;
+  color : [`auto | `always | `never] option;
   g : unit option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
   thread : unit option;
   w : string option;
+  warn_error : string option;
 }
 
 and lib = {
@@ -80,12 +82,15 @@ and lib = {
 
   annot : unit option;
   bin_annot : unit option;
+  color : [`auto | `always | `never] option;
   g : unit option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
   thread : unit option;
   w : string option;
+  warn_error : string option;
+
   linkall : unit option;
 }
 
@@ -105,12 +110,14 @@ and item = Lib of lib | App of app
 val lib
   :  ?annot:unit
   -> ?bin_annot:unit
+  -> ?color:[`auto | `always | `never]
   -> ?g:unit
   -> ?safe_string:unit
   -> ?short_paths:unit
   -> ?strict_sequence:unit
   -> ?thread:unit
   -> ?w:string
+  -> ?warn_error:string
   -> ?linkall:unit
   -> ?internal_deps:item list
   -> ?findlib_deps:pkg list
@@ -127,12 +134,14 @@ val lib
 val app
   :  ?annot:unit
   -> ?bin_annot:unit
+  -> ?color:[`auto | `always | `never]
   -> ?g:unit
   -> ?safe_string:unit
   -> ?short_paths:unit
   -> ?strict_sequence:unit
   -> ?thread:unit
   -> ?w:string
+  -> ?warn_error:string
   -> ?internal_deps:item list
   -> ?findlib_deps:pkg list
   -> file:string
@@ -162,6 +171,7 @@ val merlin_file
   -> ?strict_sequence:unit option
   -> ?thread:unit option
   -> ?w:string option
+  -> ?warn_error:string option
   -> item list
   -> content
 
