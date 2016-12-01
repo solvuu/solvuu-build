@@ -157,15 +157,27 @@ val ocamlfind_ocamlc :
 (** {2 ocamlopt} *)
 (******************************************************************************)
 
-(** The [~keep_assembly] argument corresponds to ocamlopt's [-S]
-    argument. *)
+(**
+   Some flag names have to be changed due to OCaml syntax restrictions. These
+   are:
+   - [~optimize2] is [-O2]
+   - [~optimize3] is [-O3]
+   - [~optimize_classic] is [-Oclassic]
+   - [~keep_assembly] is [-S]
+*)
 type 'a ocamlopt_args = (
   ?compact:unit ->
   ?inline:int ->
+  ?inlining_report:unit ->
   ?nodynlink:unit ->
+  ?optimize_classic:unit ->
+  ?optimize2:unit ->
+  ?optimize3:unit ->
   ?p:unit ->
+  ?remove_unused_arguments:unit ->
   ?keep_assembly:unit ->
   ?shared:unit ->
+  ?unbox_closures:unit ->
   'a
 ) ocaml_compiler_args
 

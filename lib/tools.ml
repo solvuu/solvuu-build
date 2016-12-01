@@ -460,10 +460,16 @@ let ocamlfind_ocamlc
 type 'a ocamlopt_args = (
   ?compact:unit ->
   ?inline:int ->
+  ?inlining_report:unit ->
   ?nodynlink:unit ->
+  ?optimize_classic:unit ->
+  ?optimize2:unit ->
+  ?optimize3:unit ->
   ?p:unit ->
+  ?remove_unused_arguments:unit ->
   ?keep_assembly:unit ->
   ?shared:unit ->
+  ?unbox_closures:unit ->
   'a
 ) ocaml_compiler_args
 
@@ -484,7 +490,10 @@ let ocamlopt_args_specs
     ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
+    ?compact ?inline ?inlining_report ?nodynlink
+    ?optimize_classic ?optimize2 ?optimize3
+    ?p ?remove_unused_arguments ?keep_assembly ?shared
+    ?unbox_closures
 
     ()
   : spec option list list
@@ -509,10 +518,16 @@ let ocamlopt_args_specs
      | None -> [None]
      | Some x -> [Some (A "-inline"); Some (A (string_of_int x))]
     );
+    unit "-inlining-report" inlining_report;
     unit "-nodynlink" nodynlink;
+    unit "-Oclassic" optimize_classic;
+    unit "-O2" optimize2;
+    unit "-O3" optimize3;
     unit "-p" p;
+    unit "-remove-unused-arguments" remove_unused_arguments;
     unit "-S" keep_assembly;
     unit "-shared" shared;
+    unit "-unbox-closures" unbox_closures;
   ]
 
 let ocamlopt
@@ -532,7 +547,10 @@ let ocamlopt
     ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
+    ?compact ?inline ?inlining_report ?nodynlink
+    ?optimize_classic ?optimize2 ?optimize3
+    ?p ?remove_unused_arguments ?keep_assembly ?shared
+    ?unbox_closures
 
     files
   =
@@ -550,7 +568,11 @@ let ocamlopt
      ?nopervasives ?dsource ?dparsetree ?dtypedtree
      ?drawlambda ?dlambda ?dinstr
      ?help
-     ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared ()
+     ?compact ?inline ?inlining_report ?nodynlink
+     ?optimize_classic ?optimize2 ?optimize3
+     ?p ?remove_unused_arguments ?keep_assembly ?shared
+     ?unbox_closures
+     ()
   )@[List.map files ~f:(fun file -> Some (A file))]
   |> specs_to_command
 
@@ -577,7 +599,10 @@ let ocamlfind_ocamlopt
     ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
+    ?compact ?inline ?inlining_report ?nodynlink
+    ?optimize_classic ?optimize2 ?optimize3
+    ?p ?remove_unused_arguments ?keep_assembly ?shared
+    ?unbox_closures
 
     files
   =
@@ -595,7 +620,11 @@ let ocamlfind_ocamlopt
       ?nopervasives ?dsource ?dparsetree ?dtypedtree
       ?drawlambda ?dlambda ?dinstr
       ?help
-      ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared ()
+      ?compact ?inline ?inlining_report ?nodynlink
+      ?optimize_classic ?optimize2 ?optimize3
+      ?p ?remove_unused_arguments ?keep_assembly ?shared
+      ?unbox_closures
+      ()
    )
   @(ocamlfind_ocaml_compiler_args_specs
       ?package ?linkpkg ?predicates ?dontlink
@@ -1242,7 +1271,10 @@ let eliomopt
     ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared
+    ?compact ?inline ?inlining_report ?nodynlink
+    ?optimize_classic ?optimize2 ?optimize3
+    ?p ?remove_unused_arguments ?keep_assembly ?shared
+    ?unbox_closures
 
     files
   =
@@ -1265,7 +1297,11 @@ let eliomopt
       ?nopervasives ?dsource ?dparsetree ?dtypedtree
       ?drawlambda ?dlambda ?dinstr
       ?help
-      ?compact ?inline ?nodynlink ?p ?keep_assembly ?shared ()
+      ?compact ?inline ?inlining_report ?nodynlink
+      ?optimize_classic ?optimize2 ?optimize3
+      ?p ?remove_unused_arguments ?keep_assembly ?shared
+      ?unbox_closures
+      ()
    )
   @[List.map files ~f:(fun x -> Some (A x))]
   |> specs_to_command
