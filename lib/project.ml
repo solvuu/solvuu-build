@@ -17,10 +17,17 @@ type app = {
   bin_annot : unit option;
   color : [`auto | `always | `never] option;
   g : unit option;
+  inline : int option;
+  inlining_report : unit option;
+  optimize_classic : unit option;
+  optimize2 : unit option;
+  optimize3 : unit option;
+  remove_unused_arguments : unit option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
   thread : unit option;
+  unbox_closures : unit option;
   w : string option;
   warn_error : string option;
 }
@@ -41,10 +48,17 @@ and lib = {
   bin_annot : unit option;
   color : [`auto | `always | `never] option;
   g : unit option;
+  inline : int option;
+  inlining_report : unit option;
+  optimize_classic : unit option;
+  optimize2 : unit option;
+  optimize3 : unit option;
+  remove_unused_arguments : unit option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
   thread : unit option;
+  unbox_closures : unit option;
   w : string option;
   warn_error : string option;
 
@@ -54,8 +68,11 @@ and lib = {
 and item = Lib of lib | App of app
 
 let lib
-    ?annot ?bin_annot ?color ?g ?safe_string ?short_paths ?strict_sequence
-    ?thread ?w ?warn_error ?linkall
+    ?annot ?bin_annot ?color ?g
+    ?inline ?inlining_report ?optimize_classic ?optimize2 ?optimize3
+    ?remove_unused_arguments
+    ?safe_string ?short_paths ?strict_sequence
+    ?thread ?unbox_closures ?w ?warn_error ?linkall
     ?(internal_deps=[]) ?(findlib_deps=[])
     ?ml_files ?mli_files ?c_files ?(build_plugin=true) ~pkg ~style ~dir name
   =
@@ -78,20 +95,27 @@ let lib
   Lib {
     name; internal_deps; findlib_deps; style;
     dir; ml_files; mli_files; c_files; pkg; build_plugin;
-    annot; bin_annot; color; g; safe_string; short_paths; strict_sequence;
-    thread; w; warn_error; linkall;
+    annot; bin_annot; color; g;
+    inline; inlining_report; optimize_classic; optimize2; optimize3;
+    remove_unused_arguments; safe_string; short_paths; strict_sequence;
+    thread; unbox_closures; w; warn_error; linkall;
   }
 
 let app
-    ?annot ?bin_annot ?color ?g ?safe_string ?short_paths ?strict_sequence
-    ?thread ?w ?warn_error
+    ?annot ?bin_annot ?color ?g
+    ?inline ?inlining_report ?optimize_classic ?optimize2 ?optimize3
+    ?remove_unused_arguments
+    ?safe_string ?short_paths ?strict_sequence
+    ?thread ?unbox_closures ?w ?warn_error
     ?(internal_deps=[]) ?(findlib_deps=[])
     ~file name
   =
   App {
     name; internal_deps; findlib_deps; file;
-    annot; bin_annot; color; g; safe_string; short_paths; strict_sequence;
-    thread; w; warn_error;
+    annot; bin_annot; color; g;
+    inline; inlining_report; optimize_classic; optimize2; optimize3;
+    remove_unused_arguments; safe_string; short_paths; strict_sequence;
+    thread; unbox_closures; w; warn_error;
   }
 
 
@@ -756,9 +780,16 @@ let build_lib (x:lib) =
   let bin_annot = x.bin_annot in
   let color = x.color in
   let g = x.g in
+  let inline = x.inline in
+  let inlining_report = x.inlining_report in
+  let optimize_classic = x.optimize_classic in
+  let optimize2 = x.optimize2 in
+  let optimize3 = x.optimize3 in
+  let remove_unused_arguments = x.remove_unused_arguments in
   let safe_string = x.safe_string in
   let short_paths = x.short_paths in
   let strict_sequence = x.strict_sequence in
+  let unbox_closures = x.unbox_closures in
   let thread = x.thread in
   let w = x.w in
   let warn_error = x.warn_error in
@@ -777,8 +808,11 @@ let build_lib (x:lib) =
   let ocamlopt ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack files =
     ocamlfind_ocamlopt files
       ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack
-      ?annot ?bin_annot ?color ?g ?safe_string ?short_paths ?strict_sequence
-      ?thread ?w ?warn_error ?linkall
+      ?annot ?bin_annot ?color ?g
+      ?inline ?inlining_report ?optimize_classic ?optimize2 ?optimize3
+      ?remove_unused_arguments
+      ?safe_string ?short_paths ?strict_sequence
+      ?thread ?unbox_closures ?w ?warn_error ?linkall
   in
 
   (* Abstraction of ocamlc/ocamlopt above. Use above if any options
@@ -979,10 +1013,17 @@ let build_app (x:app) =
   let bin_annot = x.bin_annot in
   let color = x.color in
   let g = x.g in
+  let inline = x.inline in
+  let inlining_report = x.inlining_report in
+  let optimize_classic = x.optimize_classic in
+  let optimize2 = x.optimize2 in
+  let optimize3 = x.optimize3 in
+  let remove_unused_arguments = x.remove_unused_arguments in
   let safe_string = x.safe_string in
   let short_paths = x.short_paths in
   let strict_sequence = x.strict_sequence in
   let thread = x.thread in
+  let unbox_closures = x.unbox_closures in
   let w = x.w in
   let warn_error = x.warn_error in
   let package = findlib_deps_all (App x) in
@@ -994,13 +1035,25 @@ let build_app (x:app) =
     ) |>
     List.sort_uniq ~cmp:String.compare
   in
-  List.iter [`Byte; `Native] ~f:(fun mode ->
-    let ocaml ?o files = ocamlfind_ocaml_compiler mode files
+  let ocaml mode ?o files = match mode with
+    | `Byte ->
+      ocamlfind_ocamlc files
         ?o
-        ?annot ?bin_annot ?color ?g ?safe_string ?short_paths ?strict_sequence
+        ?annot ?bin_annot ?color ?g
+        ?safe_string ?short_paths ?strict_sequence
         ?thread ?w ?warn_error
         ~package ~pathI ~linkpkg:()
-    in
+    | `Native ->
+      ocamlfind_ocamlopt files
+        ?o
+        ?annot ?bin_annot ?color ?g
+        ?inline ?inlining_report ?optimize_classic ?optimize2 ?optimize3
+        ?remove_unused_arguments
+        ?safe_string ?short_paths ?strict_sequence
+        ?thread ?unbox_closures ?w ?warn_error
+        ~package ~pathI ~linkpkg:()
+  in
+  List.iter [`Byte; `Native] ~f:(fun mode ->
     let path_of_lib (x:lib) = path_of_lib x ~suffix:(lib_suffix mode) in
     let path_of_app (x:app) = path_of_app x ~suffix:(exe_suffix mode) in
     let files =
@@ -1026,7 +1079,7 @@ let build_app (x:app) =
     in
     let prod = path_of_app x in
     Rule.rule ~deps ~prods:[prod]
-      (fun _ _ -> ocaml ~o:prod files)
+      (fun _ _ -> ocaml mode ~o:prod files)
   )
 ;;
 

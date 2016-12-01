@@ -60,10 +60,17 @@ type app = {
   bin_annot : unit option;
   color : [`auto | `always | `never] option;
   g : unit option;
+  inline : int option;
+  inlining_report : unit option;
+  optimize_classic : unit option;
+  optimize2 : unit option;
+  optimize3 : unit option;
+  remove_unused_arguments : unit option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
   thread : unit option;
+  unbox_closures : unit option;
   w : string option;
   warn_error : string option;
 }
@@ -84,10 +91,17 @@ and lib = {
   bin_annot : unit option;
   color : [`auto | `always | `never] option;
   g : unit option;
+  inline : int option;
+  inlining_report : unit option;
+  optimize_classic : unit option;
+  optimize2 : unit option;
+  optimize3 : unit option;
+  remove_unused_arguments : unit option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
   thread : unit option;
+  unbox_closures : unit option;
   w : string option;
   warn_error : string option;
 
@@ -112,10 +126,17 @@ val lib
   -> ?bin_annot:unit
   -> ?color:[`auto | `always | `never]
   -> ?g:unit
+  -> ?inline:int
+  -> ?inlining_report:unit
+  -> ?optimize_classic:unit
+  -> ?optimize2:unit
+  -> ?optimize3:unit
+  -> ?remove_unused_arguments:unit
   -> ?safe_string:unit
   -> ?short_paths:unit
   -> ?strict_sequence:unit
   -> ?thread:unit
+  -> ?unbox_closures:unit
   -> ?w:string
   -> ?warn_error:string
   -> ?linkall:unit
@@ -136,10 +157,17 @@ val app
   -> ?bin_annot:unit
   -> ?color:[`auto | `always | `never]
   -> ?g:unit
+  -> ?inline:int
+  -> ?inlining_report:unit
+  -> ?optimize_classic:unit
+  -> ?optimize2:unit
+  -> ?optimize3:unit
+  -> ?remove_unused_arguments:unit
   -> ?safe_string:unit
   -> ?short_paths:unit
   -> ?strict_sequence:unit
   -> ?thread:unit
+  -> ?unbox_closures:unit
   -> ?w:string
   -> ?warn_error:string
   -> ?internal_deps:item list
