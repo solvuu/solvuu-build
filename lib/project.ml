@@ -896,11 +896,11 @@ let build_lib (x:lib) =
     let c = () in
     Rule.rule ~deps:[c_file] ~prods:[obj] (fun _ _ ->
       Ocamlbuild_plugin.(Seq [
-        ocamlc ~c ~pathI ~o:obj [c_file];
+        ocamlc ~c ~pathI [c_file];
 
-        (* OCaml compiler appears to ignore the -o option set
-           above. Output file always goes into _build, so moving
-           manually. *)
+        (* OCaml < 4.04.0 treat combination of -o and -c poorly. See 4.04.0
+           release notes on PR#6475. We workaround this by not using -o above
+           and instead manually mv'ing the output. *)
         Cmd (S [A"mv"; A"-f"; A(basename obj); A obj]);
       ])
     )
