@@ -1,5 +1,12 @@
 # solvuu-build release notes
 
+## solvuu-build 0.2.0 2016-12-09
+* Add support for Eliom.
+* Improve generated .merlin file.
+* Support additional OCaml compiler flags.
+* Allow projects building only an app.
+* Various bug fixes.
+
 ## solvuu-build 0.1.0 2016-09-27
 * Renamed project to solvuu-build instead of solvuu_build.
 * Completely new API.
