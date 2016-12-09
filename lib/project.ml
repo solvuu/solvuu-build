@@ -706,6 +706,7 @@ let makefile ~project_name items : string list =
   let outsource_to_ocamlbuild = [
     "_build/%: FORCE";
     "\t$(OCAMLBUILD) $(patsubst _build/%,%,$@)";
+    "\trm -f $(notdir $@)";
   ]
   in
   let meta =

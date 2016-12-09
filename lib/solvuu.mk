@@ -1,4 +1,4 @@
-OCAMLBUILD=ocamlbuild -use-ocamlfind -no-links -plugin-tag "package(solvuu-build)"
+OCAMLBUILD=ocamlbuild -use-ocamlfind -plugin-tag "package(solvuu-build)"
 
 include _build/project.mk
 
