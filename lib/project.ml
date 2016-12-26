@@ -1144,7 +1144,7 @@ let solvuu1
   let annot = Some () in
   let bin_annot = Some () in
   let g = Some () in
-  let safe_string = Some () in
+  let safe_string = None in
   let short_paths = Some () in
   let strict_sequence = Some () in
   let thread = Some () in
