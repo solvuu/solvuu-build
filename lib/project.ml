@@ -1031,7 +1031,7 @@ let build_app (x:app) =
   let pathI =
     internal_deps_all (App x) |>
     List.filter_map ~f:(function
-      | Lib x -> Some (dirname x.dir)
+      | Lib x -> Some (module_dir ~style_matters:true x)
       | App _ -> None
     ) |>
     List.sort_uniq ~cmp:String.compare
