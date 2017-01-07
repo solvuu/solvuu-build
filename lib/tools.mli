@@ -167,7 +167,7 @@ val ocamlfind_ocamlc :
 *)
 type 'a ocamlopt_args = (
   ?compact:unit ->
-  ?inline:int ->
+  ?inline:string ->
   ?inline_alloc_cost:string ->
   ?inline_branch_cost:string ->
   ?inline_branch_factor:string ->

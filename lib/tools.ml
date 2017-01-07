@@ -459,7 +459,7 @@ let ocamlfind_ocamlc
 (******************************************************************************)
 type 'a ocamlopt_args = (
   ?compact:unit ->
-  ?inline:int ->
+  ?inline:string ->
   ?inline_alloc_cost:string ->
   ?inline_branch_cost:string ->
   ?inline_branch_factor:string ->
@@ -531,11 +531,7 @@ let ocamlopt_args_specs
      ?help ()
   )@[
     unit "-compact" compact;
-    int ~delim:`Space "-inline" inline;
-    (match inline with
-     | None -> [None]
-     | Some x -> [Some (A "-inline"); Some (A (string_of_int x))]
-    );
+    string ~delim:`Space "-inline" inline;
     string ~delim:`Space "-inline-alloc-cost" inline_alloc_cost;
     string ~delim:`Space "-inline-branch-cost" inline_branch_cost;
     string ~delim:`Space "-inline-branch-factor" inline_branch_factor;

@@ -60,7 +60,7 @@ type app = {
   bin_annot : unit option;
   color : [`auto | `always | `never] option;
   g : unit option;
-  inline : int option;
+  inline : string option;
   inline_alloc_cost : string option;
   inline_branch_cost : string option;
   inline_branch_factor : string option;
@@ -103,7 +103,7 @@ and lib = {
   bin_annot : unit option;
   color : [`auto | `always | `never] option;
   g : unit option;
-  inline : int option;
+  inline : string option;
   inline_alloc_cost : string option;
   inline_branch_cost : string option;
   inline_branch_factor : string option;
@@ -150,7 +150,7 @@ val lib
   -> ?bin_annot:unit
   -> ?color:[`auto | `always | `never]
   -> ?g:unit
-  -> ?inline:int
+  -> ?inline:string
   -> ?inline_alloc_cost:string
   -> ?inline_branch_cost:string
   -> ?inline_branch_factor:string
@@ -193,7 +193,7 @@ val app
   -> ?bin_annot:unit
   -> ?color:[`auto | `always | `never]
   -> ?g:unit
-  -> ?inline:int
+  -> ?inline:string
   -> ?inline_alloc_cost:string
   -> ?inline_branch_cost:string
   -> ?inline_branch_factor:string
