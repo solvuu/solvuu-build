@@ -134,6 +134,39 @@ and lib = {
 
 and item = Lib of lib | App of app
 
+type 'a with_options =
+     ?annot:unit
+  -> ?bin_annot:unit
+  -> ?color:[`auto | `always | `never]
+  -> ?g:unit
+  -> ?inline:string
+  -> ?inline_alloc_cost:string
+  -> ?inline_branch_cost:string
+  -> ?inline_branch_factor:string
+  -> ?inline_call_cost:string
+  -> ?inline_indirect_cost:string
+  -> ?inline_lifting_benefit:string
+  -> ?inline_max_depth:string
+  -> ?inline_max_unroll:string
+  -> ?inline_prim_cost:string
+  -> ?inlining_report:unit
+  -> ?no_unbox_free_vars_of_closures:unit
+  -> ?no_unbox_specialised_args:unit
+  -> ?optimize_classic:unit
+  -> ?optimize2:unit
+  -> ?optimize3:unit
+  -> ?remove_unused_arguments:unit
+  -> ?rounds:int
+  -> ?safe_string:unit
+  -> ?short_paths:unit
+  -> ?strict_sequence:unit
+  -> ?thread:unit
+  -> ?unbox_closures:unit
+  -> ?w:string
+  -> ?warn_error:string
+  -> 'a
+
+
 (** Construct a [lib]. Most arguments correspond to the OCaml
     compiler or to fields in type [lib]. Other arguments are:
 
@@ -145,37 +178,8 @@ and item = Lib of lib | App of app
 
     - [build_plugin]: Default is true, which means compile cmxs files.
 *)
-val lib
-  :  ?annot:unit
-  -> ?bin_annot:unit
-  -> ?color:[`auto | `always | `never]
-  -> ?g:unit
-  -> ?inline:string
-  -> ?inline_alloc_cost:string
-  -> ?inline_branch_cost:string
-  -> ?inline_branch_factor:string
-  -> ?inline_call_cost:string
-  -> ?inline_indirect_cost:string
-  -> ?inline_lifting_benefit:string
-  -> ?inline_max_depth:string
-  -> ?inline_max_unroll:string
-  -> ?inline_prim_cost:string
-  -> ?inlining_report:unit
-  -> ?no_unbox_free_vars_of_closures:unit
-  -> ?no_unbox_specialised_args:unit
-  -> ?optimize_classic:unit
-  -> ?optimize2:unit
-  -> ?optimize3:unit
-  -> ?remove_unused_arguments:unit
-  -> ?rounds:int
-  -> ?safe_string:unit
-  -> ?short_paths:unit
-  -> ?strict_sequence:unit
-  -> ?thread:unit
-  -> ?unbox_closures:unit
-  -> ?w:string
-  -> ?warn_error:string
-  -> ?linkall:unit
+val lib : (
+     ?linkall:unit
   -> ?internal_deps:item list
   -> ?findlib_deps:pkg list
   -> ?ml_files:[`Add of string list | `Replace of string list]
@@ -187,42 +191,15 @@ val lib
   -> dir:string
   -> string
   -> item
+) with_options
 
-val app
-  :  ?annot:unit
-  -> ?bin_annot:unit
-  -> ?color:[`auto | `always | `never]
-  -> ?g:unit
-  -> ?inline:string
-  -> ?inline_alloc_cost:string
-  -> ?inline_branch_cost:string
-  -> ?inline_branch_factor:string
-  -> ?inline_call_cost:string
-  -> ?inline_indirect_cost:string
-  -> ?inline_lifting_benefit:string
-  -> ?inline_max_depth:string
-  -> ?inline_max_unroll:string
-  -> ?inline_prim_cost:string
-  -> ?inlining_report:unit
-  -> ?no_unbox_free_vars_of_closures:unit
-  -> ?no_unbox_specialised_args:unit
-  -> ?optimize_classic:unit
-  -> ?optimize2:unit
-  -> ?optimize3:unit
-  -> ?remove_unused_arguments:unit
-  -> ?rounds:int
-  -> ?safe_string:unit
-  -> ?short_paths:unit
-  -> ?strict_sequence:unit
-  -> ?thread:unit
-  -> ?unbox_closures:unit
-  -> ?w:string
-  -> ?warn_error:string
-  -> ?internal_deps:item list
+val app : (
+     ?internal_deps:item list
   -> ?findlib_deps:pkg list
   -> file:string
   -> string
   -> item
+) with_options
 
 (******************************************************************************)
 (** {2 Static Files} *)

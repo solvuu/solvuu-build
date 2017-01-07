@@ -91,6 +91,38 @@ and lib = {
 
 and item = Lib of lib | App of app
 
+type 'a with_options =
+     ?annot:unit
+  -> ?bin_annot:unit
+  -> ?color:[`auto | `always | `never]
+  -> ?g:unit
+  -> ?inline:string
+  -> ?inline_alloc_cost:string
+  -> ?inline_branch_cost:string
+  -> ?inline_branch_factor:string
+  -> ?inline_call_cost:string
+  -> ?inline_indirect_cost:string
+  -> ?inline_lifting_benefit:string
+  -> ?inline_max_depth:string
+  -> ?inline_max_unroll:string
+  -> ?inline_prim_cost:string
+  -> ?inlining_report:unit
+  -> ?no_unbox_free_vars_of_closures:unit
+  -> ?no_unbox_specialised_args:unit
+  -> ?optimize_classic:unit
+  -> ?optimize2:unit
+  -> ?optimize3:unit
+  -> ?remove_unused_arguments:unit
+  -> ?rounds:int
+  -> ?safe_string:unit
+  -> ?short_paths:unit
+  -> ?strict_sequence:unit
+  -> ?thread:unit
+  -> ?unbox_closures:unit
+  -> ?w:string
+  -> ?warn_error:string
+  -> 'a
+
 let lib
     ?annot ?bin_annot ?color ?g
     ?inline
