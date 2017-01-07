@@ -460,13 +460,25 @@ let ocamlfind_ocamlc
 type 'a ocamlopt_args = (
   ?compact:unit ->
   ?inline:int ->
+  ?inline_alloc_cost:string ->
+  ?inline_branch_cost:string ->
+  ?inline_branch_factor:string ->
+  ?inline_call_cost:string ->
+  ?inline_indirect_cost:string ->
+  ?inline_lifting_benefit:string ->
+  ?inline_max_depth:string ->
+  ?inline_max_unroll:string ->
+  ?inline_prim_cost:string ->
   ?inlining_report:unit ->
+  ?no_unbox_free_vars_of_closures:unit ->
+  ?no_unbox_specialised_args:unit ->
   ?nodynlink:unit ->
   ?optimize_classic:unit ->
   ?optimize2:unit ->
   ?optimize3:unit ->
   ?p:unit ->
   ?remove_unused_arguments:unit ->
+  ?rounds:int ->
   ?keep_assembly:unit ->
   ?shared:unit ->
   ?unbox_closures:unit ->
@@ -490,9 +502,15 @@ let ocamlopt_args_specs
     ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?inlining_report ?nodynlink
+    ?compact ?inline
+    ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
+    ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
+    ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
+    ?inlining_report
+    ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
+    ?nodynlink
     ?optimize_classic ?optimize2 ?optimize3
-    ?p ?remove_unused_arguments ?keep_assembly ?shared
+    ?p ?remove_unused_arguments ?rounds ?keep_assembly ?shared
     ?unbox_closures
 
     ()
@@ -518,13 +536,25 @@ let ocamlopt_args_specs
      | None -> [None]
      | Some x -> [Some (A "-inline"); Some (A (string_of_int x))]
     );
+    string ~delim:`Space "-inline-alloc-cost" inline_alloc_cost;
+    string ~delim:`Space "-inline-branch-cost" inline_branch_cost;
+    string ~delim:`Space "-inline-branch-factor" inline_branch_factor;
+    string ~delim:`Space "-inline-call-cost" inline_call_cost;
+    string ~delim:`Space "-inline-indirect-cost" inline_indirect_cost;
+    string ~delim:`Space "-inline-lifting-benefit" inline_lifting_benefit;
+    string ~delim:`Space "-inline-max-depth" inline_max_depth;
+    string ~delim:`Space "-inline-max-unroll" inline_max_unroll;
+    string ~delim:`Space "-inline-prim-cost" inline_prim_cost;
     unit "-inlining-report" inlining_report;
+    unit "-no-unbox-free-vars-of-closures" no_unbox_free_vars_of_closures;
+    unit "-no-unbox-specialized-args" no_unbox_specialised_args;
     unit "-nodynlink" nodynlink;
     unit "-Oclassic" optimize_classic;
     unit "-O2" optimize2;
     unit "-O3" optimize3;
     unit "-p" p;
     unit "-remove-unused-arguments" remove_unused_arguments;
+    int ~delim:`Space "-rounds" rounds;
     unit "-S" keep_assembly;
     unit "-shared" shared;
     unit "-unbox-closures" unbox_closures;
@@ -547,9 +577,15 @@ let ocamlopt
     ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?inlining_report ?nodynlink
+    ?compact ?inline
+    ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
+    ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
+    ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
+    ?inlining_report
+    ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
+    ?nodynlink
     ?optimize_classic ?optimize2 ?optimize3
-    ?p ?remove_unused_arguments ?keep_assembly ?shared
+    ?p ?remove_unused_arguments ?rounds ?keep_assembly ?shared
     ?unbox_closures
 
     files
@@ -568,9 +604,15 @@ let ocamlopt
      ?nopervasives ?dsource ?dparsetree ?dtypedtree
      ?drawlambda ?dlambda ?dinstr
      ?help
-     ?compact ?inline ?inlining_report ?nodynlink
+     ?compact ?inline
+     ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
+     ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
+     ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
+     ?inlining_report
+     ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
+     ?nodynlink
      ?optimize_classic ?optimize2 ?optimize3
-     ?p ?remove_unused_arguments ?keep_assembly ?shared
+     ?p ?remove_unused_arguments ?rounds ?keep_assembly ?shared
      ?unbox_closures
      ()
   )@[List.map files ~f:(fun file -> Some (A file))]
@@ -599,9 +641,15 @@ let ocamlfind_ocamlopt
     ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?inlining_report ?nodynlink
+    ?compact ?inline
+    ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
+    ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
+    ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
+    ?inlining_report
+    ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
+    ?nodynlink
     ?optimize_classic ?optimize2 ?optimize3
-    ?p ?remove_unused_arguments ?keep_assembly ?shared
+    ?p ?remove_unused_arguments ?rounds ?keep_assembly ?shared
     ?unbox_closures
 
     files
@@ -620,9 +668,15 @@ let ocamlfind_ocamlopt
       ?nopervasives ?dsource ?dparsetree ?dtypedtree
       ?drawlambda ?dlambda ?dinstr
       ?help
-      ?compact ?inline ?inlining_report ?nodynlink
+      ?compact ?inline
+      ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
+      ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
+      ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
+      ?inlining_report
+      ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
+      ?nodynlink
       ?optimize_classic ?optimize2 ?optimize3
-      ?p ?remove_unused_arguments ?keep_assembly ?shared
+      ?p ?remove_unused_arguments ?rounds ?keep_assembly ?shared
       ?unbox_closures
       ()
    )
@@ -1271,9 +1325,15 @@ let eliomopt
     ?help
 
     (* ocamlopt_args *)
-    ?compact ?inline ?inlining_report ?nodynlink
+    ?compact ?inline
+    ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
+    ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
+    ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
+    ?inlining_report
+    ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
+    ?nodynlink
     ?optimize_classic ?optimize2 ?optimize3
-    ?p ?remove_unused_arguments ?keep_assembly ?shared
+    ?p ?remove_unused_arguments ?rounds ?keep_assembly ?shared
     ?unbox_closures
 
     files
@@ -1297,9 +1357,15 @@ let eliomopt
       ?nopervasives ?dsource ?dparsetree ?dtypedtree
       ?drawlambda ?dlambda ?dinstr
       ?help
-      ?compact ?inline ?inlining_report ?nodynlink
+      ?compact ?inline
+      ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
+      ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
+      ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
+      ?inlining_report
+      ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
+      ?nodynlink
       ?optimize_classic ?optimize2 ?optimize3
-      ?p ?remove_unused_arguments ?keep_assembly ?shared
+      ?p ?remove_unused_arguments ?rounds ?keep_assembly ?shared
       ?unbox_closures
       ()
    )

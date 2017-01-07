@@ -61,11 +61,23 @@ type app = {
   color : [`auto | `always | `never] option;
   g : unit option;
   inline : int option;
+  inline_alloc_cost : string option;
+  inline_branch_cost : string option;
+  inline_branch_factor : string option;
+  inline_call_cost : string option;
+  inline_indirect_cost : string option;
+  inline_lifting_benefit : string option;
+  inline_max_depth : string option;
+  inline_max_unroll : string option;
+  inline_prim_cost : string option;
   inlining_report : unit option;
+  no_unbox_free_vars_of_closures : unit option;
+  no_unbox_specialised_args : unit option;
   optimize_classic : unit option;
   optimize2 : unit option;
   optimize3 : unit option;
   remove_unused_arguments : unit option;
+  rounds : int option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
@@ -92,11 +104,23 @@ and lib = {
   color : [`auto | `always | `never] option;
   g : unit option;
   inline : int option;
+  inline_alloc_cost : string option;
+  inline_branch_cost : string option;
+  inline_branch_factor : string option;
+  inline_call_cost : string option;
+  inline_indirect_cost : string option;
+  inline_lifting_benefit : string option;
+  inline_max_depth : string option;
+  inline_max_unroll : string option;
+  inline_prim_cost : string option;
   inlining_report : unit option;
+  no_unbox_free_vars_of_closures : unit option;
+  no_unbox_specialised_args : unit option;
   optimize_classic : unit option;
   optimize2 : unit option;
   optimize3 : unit option;
   remove_unused_arguments : unit option;
+  rounds : int option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
@@ -127,11 +151,23 @@ val lib
   -> ?color:[`auto | `always | `never]
   -> ?g:unit
   -> ?inline:int
+  -> ?inline_alloc_cost:string
+  -> ?inline_branch_cost:string
+  -> ?inline_branch_factor:string
+  -> ?inline_call_cost:string
+  -> ?inline_indirect_cost:string
+  -> ?inline_lifting_benefit:string
+  -> ?inline_max_depth:string
+  -> ?inline_max_unroll:string
+  -> ?inline_prim_cost:string
   -> ?inlining_report:unit
+  -> ?no_unbox_free_vars_of_closures:unit
+  -> ?no_unbox_specialised_args:unit
   -> ?optimize_classic:unit
   -> ?optimize2:unit
   -> ?optimize3:unit
   -> ?remove_unused_arguments:unit
+  -> ?rounds:int
   -> ?safe_string:unit
   -> ?short_paths:unit
   -> ?strict_sequence:unit
@@ -158,11 +194,23 @@ val app
   -> ?color:[`auto | `always | `never]
   -> ?g:unit
   -> ?inline:int
+  -> ?inline_alloc_cost:string
+  -> ?inline_branch_cost:string
+  -> ?inline_branch_factor:string
+  -> ?inline_call_cost:string
+  -> ?inline_indirect_cost:string
+  -> ?inline_lifting_benefit:string
+  -> ?inline_max_depth:string
+  -> ?inline_max_unroll:string
+  -> ?inline_prim_cost:string
   -> ?inlining_report:unit
+  -> ?no_unbox_free_vars_of_closures:unit
+  -> ?no_unbox_specialised_args:unit
   -> ?optimize_classic:unit
   -> ?optimize2:unit
   -> ?optimize3:unit
   -> ?remove_unused_arguments:unit
+  -> ?rounds:int
   -> ?safe_string:unit
   -> ?short_paths:unit
   -> ?strict_sequence:unit

@@ -168,13 +168,25 @@ val ocamlfind_ocamlc :
 type 'a ocamlopt_args = (
   ?compact:unit ->
   ?inline:int ->
+  ?inline_alloc_cost:string ->
+  ?inline_branch_cost:string ->
+  ?inline_branch_factor:string ->
+  ?inline_call_cost:string ->
+  ?inline_indirect_cost:string ->
+  ?inline_lifting_benefit:string ->
+  ?inline_max_depth:string ->
+  ?inline_max_unroll:string ->
+  ?inline_prim_cost:string ->
   ?inlining_report:unit ->
+  ?no_unbox_free_vars_of_closures:unit ->
+  ?no_unbox_specialised_args:unit ->
   ?nodynlink:unit ->
   ?optimize_classic:unit ->
   ?optimize2:unit ->
   ?optimize3:unit ->
   ?p:unit ->
   ?remove_unused_arguments:unit ->
+  ?rounds:int ->
   ?keep_assembly:unit ->
   ?shared:unit ->
   ?unbox_closures:unit ->

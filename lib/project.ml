@@ -18,11 +18,23 @@ type app = {
   color : [`auto | `always | `never] option;
   g : unit option;
   inline : int option;
+  inline_alloc_cost : string option;
+  inline_branch_cost : string option;
+  inline_branch_factor : string option;
+  inline_call_cost : string option;
+  inline_indirect_cost : string option;
+  inline_lifting_benefit : string option;
+  inline_max_depth : string option;
+  inline_max_unroll : string option;
+  inline_prim_cost : string option;
   inlining_report : unit option;
+  no_unbox_free_vars_of_closures : unit option;
+  no_unbox_specialised_args : unit option;
   optimize_classic : unit option;
   optimize2 : unit option;
   optimize3 : unit option;
   remove_unused_arguments : unit option;
+  rounds : int option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
@@ -36,7 +48,7 @@ and lib = {
   name : string;
   internal_deps : item list;
   findlib_deps : pkg list;
-  style : [ `Basic | `Pack of string];
+  style : [ `Basic | `Pack of string ];
   dir : string;
   ml_files : string list;
   mli_files : string list;
@@ -49,11 +61,23 @@ and lib = {
   color : [`auto | `always | `never] option;
   g : unit option;
   inline : int option;
+  inline_alloc_cost : string option;
+  inline_branch_cost : string option;
+  inline_branch_factor : string option;
+  inline_call_cost : string option;
+  inline_indirect_cost : string option;
+  inline_lifting_benefit : string option;
+  inline_max_depth : string option;
+  inline_max_unroll : string option;
+  inline_prim_cost : string option;
   inlining_report : unit option;
+  no_unbox_free_vars_of_closures : unit option;
+  no_unbox_specialised_args : unit option;
   optimize_classic : unit option;
   optimize2 : unit option;
   optimize3 : unit option;
   remove_unused_arguments : unit option;
+  rounds : int option;
   safe_string : unit option;
   short_paths : unit option;
   strict_sequence : unit option;
@@ -69,8 +93,14 @@ and item = Lib of lib | App of app
 
 let lib
     ?annot ?bin_annot ?color ?g
-    ?inline ?inlining_report ?optimize_classic ?optimize2 ?optimize3
-    ?remove_unused_arguments
+    ?inline
+    ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
+    ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
+    ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
+    ?inlining_report
+    ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
+    ?optimize_classic ?optimize2 ?optimize3
+    ?remove_unused_arguments ?rounds
     ?safe_string ?short_paths ?strict_sequence
     ?thread ?unbox_closures ?w ?warn_error ?linkall
     ?(internal_deps=[]) ?(findlib_deps=[])
@@ -96,15 +126,28 @@ let lib
     name; internal_deps; findlib_deps; style;
     dir; ml_files; mli_files; c_files; pkg; build_plugin;
     annot; bin_annot; color; g;
-    inline; inlining_report; optimize_classic; optimize2; optimize3;
-    remove_unused_arguments; safe_string; short_paths; strict_sequence;
+    inline;
+    inline_alloc_cost; inline_branch_cost; inline_branch_factor;
+    inline_call_cost; inline_indirect_cost; inline_lifting_benefit;
+    inline_max_depth; inline_max_unroll; inline_prim_cost;
+    inlining_report;
+    no_unbox_free_vars_of_closures; no_unbox_specialised_args;
+    optimize_classic; optimize2; optimize3;
+    remove_unused_arguments; rounds;
+    safe_string; short_paths; strict_sequence;
     thread; unbox_closures; w; warn_error; linkall;
   }
 
 let app
     ?annot ?bin_annot ?color ?g
-    ?inline ?inlining_report ?optimize_classic ?optimize2 ?optimize3
-    ?remove_unused_arguments
+    ?inline
+    ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
+    ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
+    ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
+    ?inlining_report
+    ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
+    ?optimize_classic ?optimize2 ?optimize3
+    ?remove_unused_arguments ?rounds
     ?safe_string ?short_paths ?strict_sequence
     ?thread ?unbox_closures ?w ?warn_error
     ?(internal_deps=[]) ?(findlib_deps=[])
@@ -113,8 +156,15 @@ let app
   App {
     name; internal_deps; findlib_deps; file;
     annot; bin_annot; color; g;
-    inline; inlining_report; optimize_classic; optimize2; optimize3;
-    remove_unused_arguments; safe_string; short_paths; strict_sequence;
+    inline;
+    inline_alloc_cost; inline_branch_cost; inline_branch_factor;
+    inline_call_cost; inline_indirect_cost; inline_lifting_benefit;
+    inline_max_depth; inline_max_unroll; inline_prim_cost;
+    inlining_report;
+    no_unbox_free_vars_of_closures; no_unbox_specialised_args;
+    optimize_classic; optimize2; optimize3;
+    remove_unused_arguments; rounds;
+    safe_string; short_paths; strict_sequence;
     thread; unbox_closures; w; warn_error;
   }
 
@@ -782,11 +832,23 @@ let build_lib (x:lib) =
   let color = x.color in
   let g = x.g in
   let inline = x.inline in
+  let inline_alloc_cost = x.inline_alloc_cost in
+  let inline_branch_cost = x.inline_branch_cost in
+  let inline_branch_factor = x.inline_branch_factor in
+  let inline_call_cost = x.inline_call_cost in
+  let inline_indirect_cost = x.inline_indirect_cost in
+  let inline_lifting_benefit = x.inline_lifting_benefit in
+  let inline_max_depth = x.inline_max_depth in
+  let inline_max_unroll = x.inline_max_unroll in
+  let inline_prim_cost = x.inline_prim_cost in
   let inlining_report = x.inlining_report in
+  let no_unbox_free_vars_of_closures = x.no_unbox_free_vars_of_closures in
+  let no_unbox_specialised_args = x.no_unbox_specialised_args in
   let optimize_classic = x.optimize_classic in
   let optimize2 = x.optimize2 in
   let optimize3 = x.optimize3 in
   let remove_unused_arguments = x.remove_unused_arguments in
+  let rounds = x.rounds in
   let safe_string = x.safe_string in
   let short_paths = x.short_paths in
   let strict_sequence = x.strict_sequence in
@@ -810,8 +872,14 @@ let build_lib (x:lib) =
     ocamlfind_ocamlopt files
       ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack
       ?annot ?bin_annot ?color ?g
-      ?inline ?inlining_report ?optimize_classic ?optimize2 ?optimize3
-      ?remove_unused_arguments
+      ?inline
+      ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
+      ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
+      ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
+      ?inlining_report
+      ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
+      ?optimize_classic ?optimize2 ?optimize3
+      ?remove_unused_arguments ?rounds
       ?safe_string ?short_paths ?strict_sequence
       ?thread ?unbox_closures ?w ?warn_error ?linkall
   in
@@ -1015,11 +1083,23 @@ let build_app (x:app) =
   let color = x.color in
   let g = x.g in
   let inline = x.inline in
+  let inline_alloc_cost = x.inline_alloc_cost in
+  let inline_branch_cost = x.inline_branch_cost in
+  let inline_branch_factor = x.inline_branch_factor in
+  let inline_call_cost = x.inline_call_cost in
+  let inline_indirect_cost = x.inline_indirect_cost in
+  let inline_lifting_benefit = x.inline_lifting_benefit in
+  let inline_max_depth = x.inline_max_depth in
+  let inline_max_unroll = x.inline_max_unroll in
+  let inline_prim_cost = x.inline_prim_cost in
   let inlining_report = x.inlining_report in
+  let no_unbox_free_vars_of_closures = x.no_unbox_free_vars_of_closures in
+  let no_unbox_specialised_args = x.no_unbox_specialised_args in
   let optimize_classic = x.optimize_classic in
   let optimize2 = x.optimize2 in
   let optimize3 = x.optimize3 in
   let remove_unused_arguments = x.remove_unused_arguments in
+  let rounds = x.rounds in
   let safe_string = x.safe_string in
   let short_paths = x.short_paths in
   let strict_sequence = x.strict_sequence in
@@ -1048,8 +1128,14 @@ let build_app (x:app) =
       ocamlfind_ocamlopt files
         ?o
         ?annot ?bin_annot ?color ?g
-        ?inline ?inlining_report ?optimize_classic ?optimize2 ?optimize3
-        ?remove_unused_arguments
+        ?inline
+        ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
+        ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
+        ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
+        ?inlining_report
+        ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
+        ?optimize_classic ?optimize2 ?optimize3
+        ?remove_unused_arguments ?rounds
         ?safe_string ?short_paths ?strict_sequence
         ?thread ?unbox_closures ?w ?warn_error
         ~package ~pathI ~linkpkg:()
