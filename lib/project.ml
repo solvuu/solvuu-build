@@ -15,6 +15,9 @@ type app = {
 
   annot : unit option;
   bin_annot : unit option;
+  cc : string option;
+  cclib : string option;
+  ccopt : string option;
   color : [`auto | `always | `never] option;
   g : unit option;
   inline : string option;
@@ -59,6 +62,9 @@ and lib = {
 
   annot : unit option;
   bin_annot : unit option;
+  cc : string option;
+  cclib : string option;
+  ccopt : string option;
   color : [`auto | `always | `never] option;
   g : unit option;
   inline : string option;
@@ -95,6 +101,9 @@ and item = Lib of lib | App of app
 type 'a with_options =
      ?annot:unit
   -> ?bin_annot:unit
+  -> ?cc:string
+  -> ?cclib:string
+  -> ?ccopt:string
   -> ?color:[`auto | `always | `never]
   -> ?g:unit
   -> ?inline:string
@@ -125,7 +134,7 @@ type 'a with_options =
   -> 'a
 
 let lib
-    ?annot ?bin_annot ?color ?g
+    ?annot ?bin_annot ?cc ?cclib ?ccopt ?color ?g
     ?inline
     ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
     ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
@@ -160,7 +169,7 @@ let lib
   Lib {
     name; internal_deps; findlib_deps; style;
     dir; ml_files; mli_files; c_files; h_files; pkg; build_plugin;
-    annot; bin_annot; color; g;
+    annot; bin_annot; cc; cclib; ccopt; color; g;
     inline;
     inline_alloc_cost; inline_branch_cost; inline_branch_factor;
     inline_call_cost; inline_indirect_cost; inline_lifting_benefit;
@@ -174,7 +183,7 @@ let lib
   }
 
 let app
-    ?annot ?bin_annot ?color ?g
+    ?annot ?bin_annot ?cc ?cclib ?ccopt ?color ?g
     ?inline
     ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
     ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
@@ -190,7 +199,7 @@ let app
   =
   App {
     name; internal_deps; findlib_deps; file;
-    annot; bin_annot; color; g;
+    annot; bin_annot; cc; cclib; ccopt; color; g;
     inline;
     inline_alloc_cost; inline_branch_cost; inline_branch_factor;
     inline_call_cost; inline_indirect_cost; inline_lifting_benefit;
@@ -864,6 +873,9 @@ let build_lib (x:lib) =
   (****************************************************************************)
   let annot = x.annot in
   let bin_annot = x.bin_annot in
+  let cc = x.cc in
+  let cclib = x.cclib in
+  let ccopt = x.ccopt in
   let color = x.color in
   let g = x.g in
   let inline = x.inline in
@@ -899,14 +911,15 @@ let build_lib (x:lib) =
   let ocamlc ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom files =
     ocamlfind_ocamlc files
       ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom
-      ?annot ?bin_annot ?color ?g ?safe_string ?short_paths ?strict_sequence
+      ?annot ?bin_annot ?cc ?cclib ?ccopt
+      ?color ?g ?safe_string ?short_paths ?strict_sequence
       ?thread ?w ?warn_error ?linkall
   in
 
   let ocamlopt ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack files =
     ocamlfind_ocamlopt files
       ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack
-      ?annot ?bin_annot ?color ?g
+      ?annot ?bin_annot ?cc ?cclib ?ccopt ?color ?g
       ?inline
       ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
       ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
@@ -1117,6 +1130,9 @@ let build_lib (x:lib) =
 let build_app (x:app) =
   let annot = x.annot in
   let bin_annot = x.bin_annot in
+  let cc = x.cc in
+  let cclib = x.cclib in
+  let ccopt = x.ccopt in
   let color = x.color in
   let g = x.g in
   let inline = x.inline in
@@ -1157,14 +1173,14 @@ let build_app (x:app) =
     | `Byte ->
       ocamlfind_ocamlc files
         ?o
-        ?annot ?bin_annot ?color ?g
+        ?annot ?bin_annot ?cc ?cclib ?ccopt ?color ?g
         ?safe_string ?short_paths ?strict_sequence
         ?thread ?w ?warn_error
         ~package ~pathI ~linkpkg:()
     | `Native ->
       ocamlfind_ocamlopt files
         ?o
-        ?annot ?bin_annot ?color ?g
+        ?annot ?bin_annot ?cc ?cclib ?ccopt ?color ?g
         ?inline
         ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
         ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit

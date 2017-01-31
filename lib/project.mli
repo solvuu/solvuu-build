@@ -58,6 +58,9 @@ type app = {
 
   annot : unit option;
   bin_annot : unit option;
+  cc : string option;
+  cclib : string option;
+  ccopt : string option;
   color : [`auto | `always | `never] option;
   g : unit option;
   inline : string option;
@@ -102,6 +105,9 @@ and lib = {
 
   annot : unit option;
   bin_annot : unit option;
+  cc : string option;
+  cclib : string option;
+  ccopt : string option;
   color : [`auto | `always | `never] option;
   g : unit option;
   inline : string option;
@@ -138,6 +144,9 @@ and item = Lib of lib | App of app
 type 'a with_options =
      ?annot:unit
   -> ?bin_annot:unit
+  -> ?cc:string
+  -> ?cclib:string
+  -> ?ccopt:string
   -> ?color:[`auto | `always | `never]
   -> ?g:unit
   -> ?inline:string
