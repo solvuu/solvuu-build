@@ -53,6 +53,7 @@ and lib = {
   ml_files : string list;
   mli_files : string list;
   c_files : string list;
+  h_files : string list;
   pkg : Solvuu_build_findlib.pkg;
   build_plugin : bool;
 
@@ -136,7 +137,8 @@ let lib
     ?safe_string ?short_paths ?strict_sequence
     ?thread ?unbox_closures ?w ?warn_error ?linkall
     ?(internal_deps=[]) ?(findlib_deps=[])
-    ?ml_files ?mli_files ?c_files ?(build_plugin=true) ~pkg ~style ~dir name
+    ?ml_files ?mli_files ?c_files ?h_files
+    ?(build_plugin=true) ~pkg ~style ~dir name
   =
   let all_files =
     try Sys.readdir dir |> Array.to_list
@@ -154,9 +156,10 @@ let lib
   let ml_files = select_files ".ml" ?add_replace:ml_files in
   let mli_files = select_files ".mli" ?add_replace:mli_files in
   let c_files = select_files ".c" ?add_replace:c_files in
+  let h_files = select_files ".h" ?add_replace:h_files in
   Lib {
     name; internal_deps; findlib_deps; style;
-    dir; ml_files; mli_files; c_files; pkg; build_plugin;
+    dir; ml_files; mli_files; c_files; h_files; pkg; build_plugin;
     annot; bin_annot; color; g;
     inline;
     inline_alloc_cost; inline_branch_cost; inline_branch_factor;
@@ -932,6 +935,7 @@ let build_lib (x:lib) =
   let ml_files = List.map x.ml_files ~f:(fun y -> x.dir/y) in
   let mli_files = List.map x.mli_files ~f:(fun y -> x.dir/y) in
   let c_files = List.map x.c_files ~f:(fun y -> x.dir/y) in
+  let h_files = List.map x.h_files ~f:(fun y -> x.dir/y) in
 
   let pathI = List.sort_uniq ~cmp:String.compare @@
     (module_dir ~style_matters:false x)
@@ -995,7 +999,8 @@ let build_lib (x:lib) =
     let base = chop_suffix c_file ".c" in
     let obj = sprintf "%s.o" base in
     let c = () in
-    Rule.rule ~deps:[c_file] ~prods:[obj] (fun _ _ ->
+    let deps = c_file::h_files in
+    Rule.rule ~deps ~prods:[obj] (fun _ _ ->
       Ocamlbuild_plugin.(Seq [
         ocamlc ~c ~pathI ~package [c_file];
 
