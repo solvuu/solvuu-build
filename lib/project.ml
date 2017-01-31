@@ -997,7 +997,7 @@ let build_lib (x:lib) =
     let c = () in
     Rule.rule ~deps:[c_file] ~prods:[obj] (fun _ _ ->
       Ocamlbuild_plugin.(Seq [
-        ocamlc ~c ~pathI [c_file];
+        ocamlc ~c ~pathI ~package [c_file];
 
         (* OCaml < 4.04.0 treat combination of -o and -c poorly. See 4.04.0
            release notes on PR#6475. We workaround this by not using -o above
