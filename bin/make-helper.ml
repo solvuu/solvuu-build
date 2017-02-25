@@ -12,7 +12,7 @@ let make_install_file ~project_name ~pack_name : unit =
     List.filter ~f:(fun x -> Filename.check_suffix x ".ml") |>
     List.map ~f:Filename.chop_extension |>
     List.map ~f:(fun x ->
-      ["annot";"cmi";"cmo";"cmt";"cmti";"cmx";"o";"ml";"mli"] |>
+      ["annot";"cmt";"cmti";"ml";"mli"] |>
       List.map ~f:(fun suffix -> sprintf "?_build/lib/%s.%s" x suffix)
     ) |>
     List.flatten
