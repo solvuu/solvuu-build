@@ -408,7 +408,23 @@ val internal_deps_files : [`Byte | `Native] -> item -> string list
 
 val obj_suffix : [`Byte | `Native] -> string
 (** Return suffix of object file for given mode, either ".cmo" or
-    ".cmx". *)
+    ".cmx". See also {!obj_suffixes} below. *)
+
+val obj_suffixes : [`Byte | `Native] -> string list
+(** Return suffixes of files representing a compiled
+    implementation. For byte code, there is just one file, ".cmo". For
+    native code, there are two, ".cmx" and ".o".
+
+    Usually you only need to refer to the .cmx since ocaml will
+    automatically look for the corresponding .o, which {!obj_suffix}
+    above provides. In other contexts, e.g. when describing
+    depedencies, you may need to know the full set of file extensions,
+    which this function provides. *)
+
+val add_o_to_cmx : string list -> string list
+(** For every .cmx file in given list, add a corresponding .o
+    file. Example: [a.cmi; b.cmx; c.cmx] returns [a.cmi; b.cmx; b.o;
+    c.cmx; c.o]. The order of the original files is not altered. *)
 
 val lib_suffix : [`Byte | `Native] -> string
 (** Return suffix of a library for the given mode, either ".cma" or

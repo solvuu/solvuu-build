@@ -335,8 +335,20 @@ let module_dir ~style_matters lib =
     | `Pack _ -> dirname lib.dir
 
 let obj_suffix = function `Byte -> ".cmo" | `Native -> ".cmx"
+let obj_suffixes = function `Byte -> [".cmo"] | `Native -> [".cmx"; ".o"]
 let lib_suffix = function `Byte -> ".cma" | `Native -> ".cmxa"
 let exe_suffix = function `Byte -> ".byte" | `Native -> ".native"
+
+let add_o_to_cmx l =
+  let rec loop accum = function
+    | [] -> accum
+    | x::l ->
+      match String.chop_suffix x ~suffix:".cmx" with
+      | None -> loop (x::accum) l
+      | Some base -> loop ((base^".o")::x::accum) l
+  in
+  loop [] l
+  |> List.rev
 
 let internal_deps_files mode x =
   internal_deps x |>
@@ -984,7 +996,7 @@ let build_lib (x:lib) =
 
     let c = () in
 
-    (* .ml -> .cmo/.cmx and .cmi if no corresponding .mli *)
+    (* .ml -> .cmo/.cmx,.o and .cmi if no corresponding .mli *)
     List.iter [`Byte; `Native] ~f:(fun mode ->
       let obj = base ^ (obj_suffix mode) in
       let internal_deps = internal_deps_files mode (Lib x) in
@@ -993,7 +1005,10 @@ let build_lib (x:lib) =
         then ml::cmi::internal_deps
         else ml::internal_deps
       in
-      let prods = if mli_exists then [obj] else [obj;cmi] in
+      let prods =
+        let objs = add_o_to_cmx [obj] in
+        if mli_exists then objs else cmi::objs
+      in
       Rule.rule ~deps ~prods
         (fun _ build ->
            build_deps_cmi_files build ~pathI ~package file_base_of_module ml;
@@ -1025,15 +1040,16 @@ let build_lib (x:lib) =
     )
   );
 
-  ((* .cmo*/.cmx* -> packed .cmo/.cmx *)
+  ((* .cmo*/.cmx,.o* -> packed .cmo/.cmx,.o *)
     match x.style with
     | `Basic -> ()
     | `Pack _ ->
       List.iter [`Byte; `Native] ~f:(fun mode ->
-        let prod = path_of_pack x ~suffix:(obj_suffix mode) in
-        Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
+        let obj = path_of_pack x ~suffix:(obj_suffix mode) in
+        let prods = add_o_to_cmx [obj] in
+        Rule.rule ~deps:ml_files ~prods (fun _ build ->
           let deps = build_ml_files_sorted mode build ~package ml_files in
-          ocaml mode ~pack:() ~o:prod deps
+          ocaml mode ~pack:() ~o:obj deps
         )
       )
   );
@@ -1047,9 +1063,10 @@ let build_lib (x:lib) =
       | [] -> ( (* No C files. Call ocamlc/ocamlopt directly. *)
           match x.style with
           | `Pack _ ->
-            let deps = [path_of_pack x ~suffix:(obj_suffix `Native)] in
+            let objs = [path_of_pack x ~suffix:(obj_suffix `Native)] in
+            let deps = add_o_to_cmx objs in
             Rule.rule ~deps ~prods:[plugin] (fun _ _ ->
-              ocamlopt ~shared:() ~o:plugin deps
+              ocamlopt ~shared:() ~o:plugin objs
             )
           | `Basic ->
             Rule.rule ~deps:ml_files ~prods:[plugin] (fun _ build ->
@@ -1072,9 +1089,10 @@ let build_lib (x:lib) =
           let prod = ml_lib mode in
           match x.style with
           | `Pack _ -> (
-              let deps = [ ml_packed_obj mode] in
+              let obj = ml_packed_obj mode in
+              let deps = add_o_to_cmx [obj] in
               Rule.rule ~deps ~prods:[prod]
-                (fun _ _ -> ocaml mode ~a:() ~o:prod deps)
+                (fun _ _ -> ocaml mode ~a:() ~o:prod [obj])
             )
           | `Basic          -> ( (* Ensure all cmo files exist *)
               Rule.rule ~deps:ml_files ~prods:[prod] (fun _ build ->
@@ -1093,7 +1111,7 @@ let build_lib (x:lib) =
         in
 
         List.iter [`Byte;`Native] ~f:(fun mode ->
-          let deps =
+          let objs =
             match x.style with
             | `Pack _ -> [ ml_packed_obj mode]
             | `Basic          ->
@@ -1106,8 +1124,9 @@ let build_lib (x:lib) =
             sprintf "%s/%s" (dirname x.dir) x.name |>
             Filename.normalize
           in
-          Rule.rule ~deps:(deps@clibs) ~prods:[prod] (fun _ _ ->
-            ocamlmklib ~o deps
+          let deps = (add_o_to_cmx objs)@clibs in
+          Rule.rule ~deps ~prods:[prod] (fun _ _ ->
+            ocamlmklib ~o objs
           )
         );
 
