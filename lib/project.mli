@@ -405,3 +405,16 @@ val internal_deps_files : [`Byte | `Native] -> item -> string list
 (** Return list of file paths corresponding to the internal
     dependencies of given item, for either byte or native mode.
 *)
+
+val obj_suffix : [`Byte | `Native] -> string
+(** Return suffix of object file for given mode, either ".cmo" or
+    ".cmx". *)
+
+val lib_suffix : [`Byte | `Native] -> string
+(** Return suffix of a library for the given mode, either ".cma" or
+    ".cmxa". *)
+
+val exe_suffix : [`Byte | `Native] -> string
+(** Return suffix of an executable for the given mode, either ".byte"
+    or ".native". These are a choice we make. OCaml doesn't require
+    these, and we do not use them when installing executables. *)
