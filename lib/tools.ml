@@ -1107,6 +1107,31 @@ let menhir_rule ?base ?(dep="%.mly") () =
 (******************************************************************************)
 (** {2 js_of_ocaml} *)
 (******************************************************************************)
+type 'a js_of_ocaml_rule_args =
+  ?custom_header:string ->
+  ?debug:string ->
+  ?debug_info:unit ->
+  ?disable:string ->
+  ?enable:string ->
+  ?no_inline:unit ->
+  ?no_runtime:unit ->
+  ?o:string ->
+  ?opt:int ->
+  ?pretty:unit ->
+  ?set:(string * string) list ->
+  ?source_map_inline:unit ->
+  ?source_map_no_source:unit ->
+  ?source_map_root:string ->
+  ?source_map:unit ->
+  ?extern_fs:unit ->
+  ?file:string list ->
+  ?pathI:string list ->
+  ?ofs:string ->
+  ?linkall:unit ->
+  ?no_cmis:unit ->
+  ?toplevel:unit ->
+  'a
+
 type 'a js_of_ocaml_args =
   ?custom_header:string ->
   ?debug:string ->
@@ -1206,6 +1231,28 @@ let js_of_ocaml
     List.map (js_files@[cma]) ~f:(fun x -> Some (A x))
   ]
   |> specs_to_command
+
+let js_of_ocaml_rule
+    ?custom_header ?debug ?debug_info ?disable ?enable
+    ?no_inline ?no_runtime ?o ?opt ?pretty ?set
+    ?source_map_inline ?source_map_no_source
+    ?source_map_root ?source_map
+    ?extern_fs ?file ?pathI ?ofs
+    ?linkall ?no_cmis ?toplevel
+    ?(extra_js=[]) dep
+  =
+  let base = Filename.chop_extension dep in
+  let prod = match o with None -> base ^ ".js" | Some o -> o in
+  Rule.rule ~deps:[dep] ~prods:[prod] (fun _ _ ->
+      js_of_ocaml
+        ?custom_header ?debug ?debug_info ?disable ?enable
+        ?no_inline ?no_runtime ?o ?opt ?pretty ?set
+        ?source_map_inline ?source_map_no_source
+        ?source_map_root ?source_map
+        ?extern_fs ?file ?pathI ?ofs
+        ?linkall ?no_cmis ?toplevel
+        extra_js dep
+    )
 
 (******************************************************************************)
 (** {2 eliomc/eliomopt} *)
