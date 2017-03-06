@@ -255,9 +255,9 @@ val makefile : project_name:string -> item list -> content
 val build_lib : lib -> unit
 val build_app : app -> unit
 
-(** [static_file path content] registers a rule to create a file at
-    [path] with given [content]. *)
-val build_static_file : string -> content -> unit
+(** [static_file path f] registers a rule to create a file at
+    [path] with content [f ()]. *)
+val build_static_file : string -> (unit -> content) -> unit
 
 
 (******************************************************************************)

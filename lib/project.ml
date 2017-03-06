@@ -430,6 +430,7 @@ let merlin_file
     items
   : string list
   =
+  printf ".merlin: computing content\n%!";
   let pick ~cmp l =
     let l' = List.sort_uniq ~cmp:(Option.compare cmp) l in
     match l' with
@@ -1244,12 +1245,14 @@ let build_app (x:app) =
   )
 ;;
 
-let build_static_file path content =
+let build_static_file path build_content =
+  printf "%s: registering rule to build file\n%!" path;
   let open Ocamlbuild_plugin in
   let open Util in
   let path = Filename.normalize path in
-  let content = List.map content ~f:(sprintf "%s\n") in
-  rule path ~prod:path (fun _ _ ->
+  Rule.rule ~prods:[path] (fun _ _ ->
+    printf "%s: building file\n%!" path;
+    let content = build_content () |> List.map ~f:(sprintf "%s\n") in
     Seq [
       Cmd (Sh (sprintf "mkdir -p %s" (dirname path)));
       Echo (content,path);
@@ -1279,10 +1282,14 @@ let basic1
       List.iter libs ~f:build_lib;
       List.iter apps ~f:build_app;
 
-      build_static_file ".merlin" (merlin_file items);
+      build_static_file ".merlin"
+        (fun () -> merlin_file items);
+
       build_static_file ".ocamlinit"
-        (ocamlinit_file ~postfix:ocamlinit_postfix items);
-      build_static_file "project.mk" (makefile ~project_name items);
+        (fun () -> ocamlinit_file ~postfix:ocamlinit_postfix items);
+
+      build_static_file "project.mk"
+        (fun () -> makefile ~project_name items);
 
       (match meta_file ~version libs with
        | Some x -> Findlib.build_meta_file x
@@ -1290,7 +1297,7 @@ let basic1
       );
 
       build_static_file (sprintf "%s.install" project_name)
-        (install_file items);
+        (fun () -> install_file items);
     )
   | _ -> ()
 
@@ -1350,10 +1357,14 @@ let solvuu1
       List.iter libs ~f:build_lib;
       List.iter apps ~f:build_app;
 
-      build_static_file ".merlin" (merlin_file items);
+      build_static_file ".merlin"
+        (fun () -> merlin_file items);
+
       build_static_file ".ocamlinit"
-        (ocamlinit_file ~postfix:ocamlinit_postfix items);
-      build_static_file "project.mk" (makefile ~project_name items);
+        (fun () -> ocamlinit_file ~postfix:ocamlinit_postfix items);
+
+      build_static_file "project.mk"
+        (fun () -> makefile ~project_name items);
 
       (match meta_file ~version libs with
        | Some x -> Findlib.build_meta_file x
@@ -1361,6 +1372,6 @@ let solvuu1
       );
 
       build_static_file (sprintf "%s.install" project_name)
-        (install_file items);
+        (fun () -> install_file items);
     )
   | _ -> ()

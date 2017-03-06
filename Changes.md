@@ -1,5 +1,9 @@
 # solvuu-build release notes
 
+## solvuu-build X.Y.Z YYYY-MM-DD
+* Various performance improvements, see #58.
+* Project.build_static_file: API change due to #58.
+
 ## solvuu-build 0.2.0 2016-12-09
 * Add support for Eliom.
 * Improve generated .merlin file.
