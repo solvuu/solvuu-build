@@ -818,7 +818,9 @@ let makefile ~project_name items : string list =
   let meta =
     if build_meta_file items then
       [
-        "META: # Deprecated. Do `make _build/META` instead.";
+        "META:";
+        "\t@echo WARNING: The META target will be deleted in a future release. \
+         Directly request _build/META instead.";
         "\tmake _build/META";
       ]
     else
