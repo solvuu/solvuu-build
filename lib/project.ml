@@ -783,31 +783,31 @@ let makefile ~project_name items : string list =
   in
   let libs mode =
     filter_libs items |>
-    List.map ~f:(fun x -> "_build"/(path_of_lib x ~suffix:(lib_suffix mode)))
+    List.map ~f:(fun x -> path_of_lib x ~suffix:(lib_suffix mode))
   in
   let apps mode =
     filter_apps items |>
-    List.map ~f:(fun x -> "_build"/(path_of_app x ~suffix:(exe_suffix mode)))
+    List.map ~f:(fun x -> path_of_app x ~suffix:(exe_suffix mode))
   in
   let plugins =
     filter_libs items |>
     List.filter_map ~f:(fun x ->
       match x.build_plugin with
       | false -> None
-      | true -> Some ("_build"/(path_of_lib x ~suffix:".cmxs"))
+      | true -> Some (path_of_lib x ~suffix:".cmxs")
     )
   in
   let byte =
     [libs `Byte; apps `Byte] |>
     List.concat |>
-    String.concat ~sep:" " |>
-    sprintf "byte: %s"
+    String.concat ~sep:" " |> fun targets ->
+    ["byte:"; sprintf "\t$(OCAMLBUILD) %s" targets]
   in
   let native =
     [libs `Native; plugins; apps `Native] |>
     List.concat |>
-    String.concat ~sep:" " |>
-    sprintf "native: %s"
+    String.concat ~sep:" " |> fun targets ->
+    ["native:"; sprintf "\t$(OCAMLBUILD) %s" targets]
   in
   let outsource_to_ocamlbuild = [
     "_build/%: FORCE";
@@ -837,8 +837,8 @@ let makefile ~project_name items : string list =
     ln ".merlin";
     ln ".ocamlinit";
     ln @@ sprintf "%s.install" project_name;
-    [byte];
-    [native];
+    byte;
+    native;
     meta;
     clean;
     phony;
