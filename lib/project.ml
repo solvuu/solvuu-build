@@ -430,7 +430,6 @@ let merlin_file
     items
   : string list
   =
-  printf ".merlin: computing content\n%!";
   let pick ~cmp l =
     let l' = List.sort_uniq ~cmp:(Option.compare cmp) l in
     match l' with
@@ -1246,12 +1245,10 @@ let build_app (x:app) =
 ;;
 
 let build_static_file path build_content =
-  printf "%s: registering rule to build file\n%!" path;
   let open Ocamlbuild_plugin in
   let open Util in
   let path = Filename.normalize path in
   Rule.rule ~prods:[path] (fun _ _ ->
-    printf "%s: building file\n%!" path;
     let content = build_content () |> List.map ~f:(sprintf "%s\n") in
     Seq [
       Cmd (Sh (sprintf "mkdir -p %s" (dirname path)));
