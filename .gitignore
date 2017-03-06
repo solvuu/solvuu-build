@@ -2,3 +2,7 @@
 /solvuu-build.install
 /tmp
 .DS_Store
+/demo/*/_build
+/demo/*/.merlin
+/demo/*/.ocamlinit
+/demo/*/*.install
