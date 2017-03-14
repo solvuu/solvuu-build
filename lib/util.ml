@@ -234,6 +234,13 @@ module Option = struct
     | Some _, None -> 1
     | Some x, Some y -> cmp x y
 
+  let is_some = function Some _ -> true | None -> false
+  let is_none = function Some _ -> false | None -> true
+
+  let value_exn = function
+    | Some x -> x
+    | None -> failwith "value_exn: got None"
+
 end
 
 module Unit = struct

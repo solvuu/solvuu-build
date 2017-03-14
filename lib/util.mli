@@ -78,6 +78,9 @@ end
 module Option : sig
   val map : 'a option -> f:('a -> 'b) -> 'b option
   val compare : ('a -> 'a -> int) -> 'a option -> 'a option -> int
+  val is_some : 'a option -> bool
+  val is_none : 'a option -> bool
+  val value_exn : 'a option -> 'a
 end
 
 module Unit : sig
