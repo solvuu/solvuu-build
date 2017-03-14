@@ -10,7 +10,7 @@
 * :warning: Make installation of libs optional: #35. Backwards
   incompatibility: `pkg` argument to make lib is now optional, renamed
   to `install`, and of a different type.
-* App installation is now optional. See #66.
+* App installation is now optional. See #60.
 * Bug fixes. See #21, #51, #57.
 
 ## solvuu-build 0.2.0 2016-12-09
