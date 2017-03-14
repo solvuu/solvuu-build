@@ -45,6 +45,9 @@
 
     - [file]: Path to the file implementing the app, relative to the
       repo root.
+
+    - [install]: [`No] means do not install. [`Opam] means install in
+      location dictated by opam.
 *)
 
 
@@ -56,6 +59,7 @@ type app = {
   internal_deps : item list;
   findlib_deps : findlib_pkg list;
   file : string;
+  install : [`No | `Opam];
 
   annot : unit option;
   bin_annot : unit option;
@@ -205,9 +209,16 @@ val lib : (
   -> item
 ) with_options
 
+(** [app ~file name] constructs an app. Arguments are:
+
+    - [file]: The file implementing the executable.
+    - [name]: Desired name of the executable.
+    - [install]: Default: [`Opam].
+*)
 val app : (
      ?internal_deps:item list
   -> ?findlib_deps:findlib_pkg list
+  -> ?install:[`No | `Opam]
   -> file:string
   -> string
   -> item

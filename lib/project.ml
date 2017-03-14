@@ -12,6 +12,7 @@ type app = {
   internal_deps : item list;
   findlib_deps : findlib_pkg list;
   file : string;
+  install : [`No | `Opam];
 
   annot : unit option;
   bin_annot : unit option;
@@ -194,11 +195,11 @@ let app
     ?remove_unused_arguments ?rounds
     ?safe_string ?short_paths ?strict_sequence
     ?thread ?unbox_closures ?w ?warn_error
-    ?(internal_deps=[]) ?(findlib_deps=[])
+    ?(internal_deps=[]) ?(findlib_deps=[]) ?(install=`Opam)
     ~file name
   =
   App {
-    name; internal_deps; findlib_deps; file;
+    name; internal_deps; findlib_deps; file; install;
     annot; bin_annot; cc; cclib; ccopt; color; g;
     inline;
     inline_alloc_cost; inline_branch_cost; inline_branch_factor;
@@ -540,9 +541,9 @@ let merlin_file
 
 let meta_file ~version libs : Fl_metascanner.pkg_expr option =
   let libs = List.filter libs
-      ~f:(fun x -> match x.install with `Findlib _ -> true | `No -> false)
+      ~f:(fun (x:lib) -> match x.install with `Findlib _ -> true | `No -> false)
   in
-  let findlib_pkg x = match x.install with
+  let findlib_pkg (x:lib) = match x.install with
     | `Findlib x -> x
     | `No -> assert false
   in
@@ -634,7 +635,7 @@ let install_file items : string list =
   in
 
   (* Directory to install most lib files in for given dir. *)
-  let install_dir x =
+  let install_dir (x:lib) =
     match x.install with
     | `No -> None
     | `Findlib pkg ->
@@ -730,6 +731,9 @@ let install_file items : string list =
 
   let bin = section "bin" (
     filter_apps items |>
+    List.filter ~f:(fun x ->
+      match x.install with `Opam -> true | `No -> false
+    ) |>
     List.map ~f:(fun (x:app) ->
       List.map [`Byte; `Native] ~f:(fun mode ->
         let src = "?_build"/(path_of_app x ~suffix:(exe_suffix mode)) in
