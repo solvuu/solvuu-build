@@ -7,7 +7,7 @@ let version = "dev"
 let lib : Project.item = Project.lib project_name
   ~dir:"lib"
   ~style:(`Pack project_name)
-  ~pkg:project_name
+  ~install:(`Findlib project_name)
 
 let app : Project.item = Project.app "my-app"
   ~file:"app/my_app.ml"

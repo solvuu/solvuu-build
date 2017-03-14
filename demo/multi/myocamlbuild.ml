@@ -14,7 +14,7 @@ let make_lib ?findlib_deps ?internal_deps lib_name =
     ?findlib_deps ?internal_deps
     ~dir:(sprintf "lib/%s" lib_name)
     ~style:(`Pack wrap_name)
-    ~pkg:(sprintf "%s.%s" project_name lib_name)
+    ~install:(`Findlib (sprintf "%s.%s" project_name lib_name))
 
 let make_app = Project.app ~thread
 

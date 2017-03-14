@@ -7,7 +7,7 @@ let version = "dev"
 let lib : Project.item = Project.lib project_name
   ~dir:"lib"
   ~style:(`Pack project_name)
-  ~pkg:project_name
+  ~install:(`Findlib project_name)
 
 let ocamlinit_postfix = [
   sprintf "open %s" (String.capitalize project_name);
