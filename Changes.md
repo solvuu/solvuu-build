@@ -2,14 +2,15 @@
 
 ## solvuu-build 0.3.0 2017-03-14
 * Support additional OCaml compiler flags, particularly those relating
-  to flambda and compilation of C code.
+  to flambda and compilation of C code. See #42, #50,
+  77c80482da04911eceab93311c86cfb70361fff0.
 * Improve build times of targets in generated Makefile. See #58.
 * :warning: Allow faster building of static files. Backwards
   incompatibility: type of `Project.build_static_file` has
   changed. See #58.
-* :warning: Make installation of libs optional: #35. Backwards
+* :warning: Make installation of libs optional. Backwards
   incompatibility: `pkg` argument to make lib is now optional, renamed
-  to `install`, and of a different type.
+  to `install`, and of a different type. See #35.
 * App installation is now optional. See #60.
 * Bug fixes. See #21, #51, #57.
 
