@@ -1,15 +1,16 @@
 # solvuu-build release notes
 
 ## solvuu-build X.Y.Z YYYY-MM-DD
-* Various performance improvements, see #58.
-* Project.build_static_file: API change due to #58.
 * Support additional OCaml compiler flags, particularly those relating
   to flambda and compilation of C code.
-* Performance improvements: #58.
+* Improve build times of targets in generated Makefile. See #58.
+* :warning: Allow faster building of static files. Backwards
+  incompatibility: type of `Project.build_static_file` has
+  changed. See #58.
 * :warning: Make installation of libs optional: #35. Backwards
-  incompatibility: `pgk` argument to make lib is now optional, called
-  `install`, and of a different type.
-* Bug fixes: #21, #51, #57.
+  incompatibility: `pkg` argument to make lib is now optional, renamed
+  to `install`, and of a different type.
+* Bug fixes. See #21, #51, #57.
 
 ## solvuu-build 0.2.0 2016-12-09
 * Add support for Eliom.
