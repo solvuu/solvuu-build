@@ -1,6 +1,6 @@
 PROJECT=solvuu-build
 PACK=solvuu_build
-VERSION=dev
+VERSION=0.3.0
 OCAMLBUILD=ocamlbuild -use-ocamlfind
 DEMOS=$(sort $(dir $(wildcard demo/*/)))
 
