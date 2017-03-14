@@ -182,8 +182,9 @@ type 'a with_options =
   -> 'a
 
 
-(** Construct a [lib]. Most arguments correspond to the OCaml
-    compiler or to fields in type [lib]. Other arguments are:
+(** [lib ~style ~dir name] constructs a [lib]. Most arguments
+    correspond to the OCaml compiler or to fields in type [lib]. Other
+    arguments are:
 
     - [ml_files], [mli_files]: The default list of [ml_files] and
       [mli_files] is the files statically present in [dir]. You can
@@ -192,6 +193,10 @@ type 'a with_options =
       ones you provide. All paths should be relative to [dir].
 
     - [build_plugin]: Default is true, which means compile cmxs files.
+
+    - [install]: Default is [`Findlib name]. This is certainly
+      incorrect for projects containing multiple libs. You should
+      provide a distinct findlib package name for each lib.
 *)
 val lib : (
      ?linkall:unit

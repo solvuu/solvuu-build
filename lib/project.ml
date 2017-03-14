@@ -148,8 +148,12 @@ let lib
     ?thread ?unbox_closures ?w ?warn_error ?linkall
     ?(internal_deps=[]) ?(findlib_deps=[])
     ?ml_files ?mli_files ?c_files ?h_files
-    ?(build_plugin=true) ?(install=`No) ~style ~dir name
+    ?(build_plugin=true) ?install ~style ~dir name
   =
+  let install = match install with
+    | Some x -> x
+    | None -> `Findlib name
+  in
   let all_files =
     try Sys.readdir dir |> Array.to_list
     with _ -> []
