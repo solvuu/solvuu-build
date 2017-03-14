@@ -1,6 +1,6 @@
 # solvuu-build release notes
 
-## solvuu-build X.Y.Z YYYY-MM-DD
+## solvuu-build 0.3.0 2017-03-14
 * Support additional OCaml compiler flags, particularly those relating
   to flambda and compilation of C code.
 * Improve build times of targets in generated Makefile. See #58.
