@@ -6,6 +6,9 @@
 * Support additional OCaml compiler flags, particularly those relating
   to flambda and compilation of C code.
 * Performance improvements: #58.
+* :warning: Make installation of libs optional: #35. Backwards
+  incompatibility: `pgk` argument to make lib is now optional, called
+  `install`, and of a different type.
 * Bug fixes: #21, #51, #57.
 
 ## solvuu-build 0.2.0 2016-12-09

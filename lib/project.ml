@@ -5,12 +5,12 @@ open Util
 open Util.Filename
 let (/) = Util.Filename.concat
 
-type pkg = string
+type findlib_pkg = Solvuu_build_findlib.pkg
 
 type app = {
   name : string;
   internal_deps : item list;
-  findlib_deps : pkg list;
+  findlib_deps : findlib_pkg list;
   file : string;
 
   annot : unit option;
@@ -50,14 +50,14 @@ type app = {
 and lib = {
   name : string;
   internal_deps : item list;
-  findlib_deps : pkg list;
+  findlib_deps : findlib_pkg list;
   style : [ `Basic | `Pack of string ];
   dir : string;
   ml_files : string list;
   mli_files : string list;
   c_files : string list;
   h_files : string list;
-  pkg : Solvuu_build_findlib.pkg;
+  install : [`No | `Findlib of findlib_pkg];
   build_plugin : bool;
 
   annot : unit option;
@@ -147,7 +147,7 @@ let lib
     ?thread ?unbox_closures ?w ?warn_error ?linkall
     ?(internal_deps=[]) ?(findlib_deps=[])
     ?ml_files ?mli_files ?c_files ?h_files
-    ?(build_plugin=true) ~pkg ~style ~dir name
+    ?(build_plugin=true) ?(install=`No) ~style ~dir name
   =
   let all_files =
     try Sys.readdir dir |> Array.to_list
@@ -168,7 +168,7 @@ let lib
   let h_files = select_files ".h" ?add_replace:h_files in
   Lib {
     name; internal_deps; findlib_deps; style;
-    dir; ml_files; mli_files; c_files; h_files; pkg; build_plugin;
+    dir; ml_files; mli_files; c_files; h_files; install; build_plugin;
     annot; bin_annot; cc; cclib; ccopt; color; g;
     inline;
     inline_alloc_cost; inline_branch_cost; inline_branch_factor;
@@ -539,6 +539,13 @@ let merlin_file
   |> List.concat
 
 let meta_file ~version libs : Fl_metascanner.pkg_expr option =
+  let libs = List.filter libs
+      ~f:(fun x -> match x.install with `Findlib _ -> true | `No -> false)
+  in
+  let findlib_pkg x = match x.install with
+    | `Findlib x -> x
+    | `No -> assert false
+  in
   let def ?(preds=[]) var value =
       {
         Fl_metascanner.def_var = var;
@@ -550,7 +557,7 @@ let meta_file ~version libs : Fl_metascanner.pkg_expr option =
   let pkg_defs_of_lib (x:lib) =
     [
       def "directory"
-        (Findlib.to_path x.pkg |> List.tl |> String.concat ~sep:"/");
+        (findlib_pkg x |> Findlib.to_path |> List.tl |> String.concat ~sep:"/");
       def "version" version;
       def ~preds:[`Pred "byte"] "archive"
         (sprintf "%s.cma" x.name);
@@ -565,17 +572,18 @@ let meta_file ~version libs : Fl_metascanner.pkg_expr option =
         @(
           internal_deps (Lib x)
           |> filter_libs
-          |> List.map ~f:(fun x -> x.pkg)
+          |> List.map ~f:findlib_pkg
         )
         |> String.concat ~sep:" "
       );
       def "exists_if" (sprintf "%s.cma" x.name);
     ]
   in
-  let pkgs = List.map libs ~f:(fun x -> x.pkg) in
+  let pkgs = List.map libs ~f:findlib_pkg in
   let graph = Findlib.Graph.of_list pkgs in
   let pkg_defs (pkg:Findlib.pkg) =
-    try pkg_defs_of_lib @@ List.find libs ~f:(fun x -> x.pkg = pkg)
+    try pkg_defs_of_lib @@ List.find libs
+        ~f:(fun x -> findlib_pkg x = pkg)
     with _ -> []
   in
   let rec pkg_expr (pkg:Findlib.pkg) =
@@ -597,14 +605,11 @@ let meta_file ~version libs : Fl_metascanner.pkg_expr option =
     | l -> failwithf "cannot create META file for findlib packages with \
                       multiple roots: %s" (String.concat ~sep:"," l) ()
 
-(** Return true if a META file should be built, i.e. if the number of
-    libraries in the project is non-zero. Returns true iff [meta_file]
-    returns [Some _], and false iff [meta_file] returns [None]. We
-    don't use [meta_file] to implement this only because it slighly
-    more convenient to have this function take [items] rather than
-    [libs]. *)
+(** Return true if a META file should be built. *)
 let build_meta_file items =
-  List.length (filter_libs items) <> 0
+  filter_libs items
+  |> meta_file ~version:"<none>"
+  |> Option.is_some
 
 let install_file items : string list =
 
@@ -630,9 +635,13 @@ let install_file items : string list =
 
   (* Directory to install most lib files in for given dir. *)
   let install_dir x =
-    Findlib.to_path x.pkg |>
-    List.tl |>
-    List.fold_left ~init:"" ~f:Filename.concat
+    match x.install with
+    | `No -> None
+    | `Findlib pkg ->
+      Findlib.to_path pkg |>
+      List.tl |>
+      List.fold_left ~init:"" ~f:Filename.concat |>
+      fun x -> Some x
   in
 
   (* META file for lib section. *)
@@ -646,28 +655,31 @@ let install_file items : string list =
   let clibs : (string * string option) list =
     filter_libs items |>
     List.filter_map ~f:(fun (x:lib) ->
-      let install_dir = install_dir x in
-      match x.c_files with
-      | [] -> None
-      | _ ->
-        let file = sprintf "lib%s.a" x.name in
-        let src = sprintf "?_build/%s/%s" (dirname x.dir) file in
-        let dst = Some (install_dir/file) in
-        Some (src,dst)
+      match install_dir x with
+      | None -> None
+      | Some install_dir ->
+        match x.c_files with
+        | [] -> None
+        | _ ->
+          let file = sprintf "lib%s.a" x.name in
+          let src = sprintf "?_build/%s/%s" (dirname x.dir) file in
+          let dst = Some (install_dir/file) in
+          Some (src,dst)
     )
   in
 
   (* OCaml lib files for lib section. *)
   let libs : (string * string option) list =
     filter_libs items |>
-    List.map ~f:(fun (x:lib) ->
-      let install_dir = install_dir x in
-      [".a"; ".cma"; ".cmxa"; ".cmxs"; ".dll"; ".o"] |>
-      List.map ~f:(fun suffix ->
-        let src = "?_build"/(path_of_lib ~suffix x) in
-        let base = basename src in
-        let dst = Some (install_dir/base) in
-        src,dst
+    List.filter_map ~f:(fun (x:lib) ->
+      Option.map (install_dir x) ~f:(fun install_dir ->
+        [".a"; ".cma"; ".cmxa"; ".cmxs"; ".dll"; ".o"] |>
+        List.map ~f:(fun suffix ->
+          let src = "?_build"/(path_of_lib ~suffix x) in
+          let base = basename src in
+          let dst = Some (install_dir/base) in
+          src,dst
+        )
       )
     ) |>
     List.flatten
@@ -676,19 +688,20 @@ let install_file items : string list =
   (* Files related to modules for lib section. *)
   let module_files : (string * string option) list =
     filter_libs items |>
-    List.map ~f:(fun (x:lib) ->
-      let install_dir = install_dir x in
-      let module_paths = module_paths ~style_matters:true x in
-      let suffixes = [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] in
-      List.map suffixes ~f:(fun suffix ->
-        List.map module_paths ~f:(fun module_path ->
-          let src = "?_build"/(module_path ^ suffix) in
-          let base = basename src in
-          let dst = Some (install_dir/base) in
-          src,dst
-        )
-      ) |>
-      List.flatten
+    List.filter_map ~f:(fun (x:lib) ->
+      Option.map (install_dir x) ~f:(fun install_dir ->
+        let module_paths = module_paths ~style_matters:true x in
+        let suffixes = [".annot";".cmi";".cmo";".cmt";".cmti";".cmx"] in
+        List.map suffixes ~f:(fun suffix ->
+          List.map module_paths ~f:(fun module_path ->
+            let src = "?_build"/(module_path ^ suffix) in
+            let base = basename src in
+            let dst = Some (install_dir/base) in
+            src,dst
+          )
+        ) |>
+        List.flatten
+      )
     ) |>
     List.flatten
   in
@@ -699,14 +712,18 @@ let install_file items : string list =
 
   let stublibs = section "stublibs" (
     filter_libs items |>
-    List.filter_map ~f:(fun (x:lib) -> match x.c_files with
-      | [] -> None
-      | _ -> (
-          let file = sprintf "dll%s.so" x.name in
-          let src = sprintf "?_build/%s/%s" (dirname x.dir) file in
-          let dst = Some file in
-          Some (src,dst)
-        )
+    List.filter_map ~f:(fun (x:lib) ->
+      match x.install with
+      | `No -> None
+      | `Findlib _ ->
+        match x.c_files with
+        | [] -> None
+        | _ -> (
+            let file = sprintf "dll%s.so" x.name in
+            let src = sprintf "?_build/%s/%s" (dirname x.dir) file in
+            let dst = Some file in
+            Some (src,dst)
+          )
     )
   )
   in

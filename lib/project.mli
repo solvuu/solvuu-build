@@ -33,11 +33,12 @@
       relative to the repo root. It is assumed that all files in this
       [dir] and no other files comprise the library.
 
-    - [pkg]: The findlib package name for this library. If your
-      project installs a single package, you likely want this equal to
-      the project name. If it installs several packages, you likely
-      want this equal to "project_name.lib_name". In the latter case,
-      the dot is interpreted leading to findlib sub-packages.
+    - [install]: [`No] means do not install. [`Findlib x] means
+      install as a findlib package named [x]. If your project installs
+      a single package, you likely want this equal to the project
+      name. If it installs several packages, you possibly want this
+      equal to "project_name.lib_name", in which case the dot is
+      interpreted to mean a findlib sub-package.
 
 
     Apps additionally have the fields:
@@ -48,12 +49,12 @@
 
 
 (** Findlib package name. *)
-type pkg = string
+type findlib_pkg = Solvuu_build_findlib.pkg
 
 type app = {
   name : string;
   internal_deps : item list;
-  findlib_deps : pkg list;
+  findlib_deps : findlib_pkg list;
   file : string;
 
   annot : unit option;
@@ -93,14 +94,14 @@ type app = {
 and lib = {
   name : string;
   internal_deps : item list;
-  findlib_deps : pkg list;
+  findlib_deps : findlib_pkg list;
   style : [ `Basic | `Pack of string ];
   dir : string;
   ml_files : string list;
   mli_files : string list;
   c_files : string list;
   h_files : string list;
-  pkg : Solvuu_build_findlib.pkg;
+  install : [`No | `Findlib of findlib_pkg];
   build_plugin : bool;
 
   annot : unit option;
@@ -191,13 +192,13 @@ type 'a with_options =
 val lib : (
      ?linkall:unit
   -> ?internal_deps:item list
-  -> ?findlib_deps:pkg list
+  -> ?findlib_deps:findlib_pkg list
   -> ?ml_files:[`Add of string list | `Replace of string list]
   -> ?mli_files:[`Add of string list | `Replace of string list]
   -> ?c_files:[`Add of string list | `Replace of string list]
   -> ?h_files:[`Add of string list | `Replace of string list]
   -> ?build_plugin:bool
-  -> pkg : Solvuu_build_findlib.pkg
+  -> ?install : [`No | `Findlib of findlib_pkg]
   -> style : [ `Basic | `Pack of string ]
   -> dir:string
   -> string
@@ -206,7 +207,7 @@ val lib : (
 
 val app : (
      ?internal_deps:item list
-  -> ?findlib_deps:pkg list
+  -> ?findlib_deps:findlib_pkg list
   -> file:string
   -> string
   -> item
@@ -241,8 +242,9 @@ val merlin_file
 
 val meta_file : version:string -> lib list -> Fl_metascanner.pkg_expr option
 (** Return a findlib META file for given libs, where [version] should
-    be the version of your project. Return None if given list is
-    empty. *)
+    be the version of your project. Libs whose [install] field is
+    [`No] are ignored. Raise exception if remaining libs form a graph
+    without exactly 1 root. Return None if resulting list is empty. *)
 
 val install_file : item list -> content
 val ocamlinit_file : ?postfix:string list -> item list -> content
@@ -284,13 +286,13 @@ val solvuu1 :
 (** {2 Dependency Operations} *)
 (******************************************************************************)
 val internal_deps : item -> item list
-val findlib_deps : item -> pkg list
+val findlib_deps : item -> findlib_pkg list
 
 val internal_deps_all : item -> item list
-val findlib_deps_all : item -> pkg list
+val findlib_deps_all : item -> findlib_pkg list
 
 (** Return all findlib packages mentioned in all given items. *)
-val all_findlib_pkgs : item list -> pkg list
+val all_findlib_pkgs : item list -> findlib_pkg list
 
 
 (******************************************************************************)
@@ -344,7 +346,7 @@ val is_app : item -> bool
 val filter_libs : item list -> lib list
 val filter_apps : item list -> app list
 
-val dep_opts_sat : item -> Solvuu_build_findlib.pkg list -> bool
+val dep_opts_sat : item -> findlib_pkg list -> bool
 (** [dep_opt_sat x pkgs] returns true if the optional dependencies
     [pkgs] are satisfied for [x], i.e. either [x] doesn't depend on
     the [pkgs] or any package it does depend on is installed. *)
