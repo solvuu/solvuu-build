@@ -3,6 +3,10 @@
 ## solvuu-build X.Y.Z YYYY-MM-DD
 * Various performance improvements, see #58.
 * Project.build_static_file: API change due to #58.
+* Support additional OCaml compiler flags, particularly those relating
+  to flambda and compilation of C code.
+* Performance improvements: #58.
+* Bug fixes: #21, #51, #57.
 
 ## solvuu-build 0.2.0 2016-12-09
 * Add support for Eliom.
