@@ -1269,6 +1269,26 @@ let build_app (x:app) =
   )
 ;;
 
+let build_js_of_ocaml
+    ?custom_header ?debug ?debug_info ?disable ?enable
+    ?no_inline ?no_runtime ?o ?opt ?pretty ?set
+    ?source_map_inline ?source_map_no_source
+    ?source_map_root ?source_map
+    ?extern_fs ?file ?pathI ?ofs
+    ?linkall ?no_cmis ?toplevel
+    ?extra_js (item : item) =
+  let name = name item in
+  let dep = name ^ (match item with Lib _ -> lib_suffix `Byte | App _ -> exe_suffix `Byte) in
+  Tools.js_of_ocaml_rule
+    ?custom_header ?debug ?debug_info ?disable ?enable
+    ?no_inline ?no_runtime ?o ?opt ?pretty ?set
+    ?source_map_inline ?source_map_no_source
+    ?source_map_root ?source_map
+    ?extern_fs ?file ?pathI ?ofs
+    ?linkall ?no_cmis ?toplevel
+    ?extra_js dep
+;;
+
 let build_static_file path build_content =
   let open Ocamlbuild_plugin in
   let open Util in

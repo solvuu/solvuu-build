@@ -329,6 +329,31 @@ val menhir_rule : ?base:string -> ?dep:string -> unit -> unit
 (******************************************************************************)
 (** {2 js_of_ocaml} *)
 (******************************************************************************)
+type 'a js_of_ocaml_rule_args =
+  ?custom_header:string ->
+  ?debug:string ->
+  ?debug_info:unit ->
+  ?disable:string ->
+  ?enable:string ->
+  ?no_inline:unit ->
+  ?no_runtime:unit ->
+  ?o:string ->
+  ?opt:int ->
+  ?pretty:unit ->
+  ?set:(string * string) list ->
+  ?source_map_inline:unit ->
+  ?source_map_no_source:unit ->
+  ?source_map_root:string ->
+  ?source_map:unit ->
+  ?extern_fs:unit ->
+  ?file:string list ->
+  ?pathI:string list ->
+  ?ofs:string ->
+  ?linkall:unit ->
+  ?no_cmis:unit ->
+  ?toplevel:unit ->
+  'a
+
 type 'a js_of_ocaml_args =
   ?custom_header:string ->
   ?debug:string ->
@@ -359,6 +384,8 @@ type 'a js_of_ocaml_args =
 val js_of_ocaml :
   (Pathname.t list -> Pathname.t -> Command.t) js_of_ocaml_args
 
+val js_of_ocaml_rule :
+  (?extra_js:Pathname.t list -> Pathname.t -> unit) js_of_ocaml_rule_args
 
 (******************************************************************************)
 (** {2 eliomc/eliomopt} *)

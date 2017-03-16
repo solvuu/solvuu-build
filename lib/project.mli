@@ -49,7 +49,7 @@
     - [install]: [`No] means do not install. [`Opam] means install in
       location dictated by opam.
 *)
-
+open Ocamlbuild_plugin
 
 (** Findlib package name. *)
 type findlib_pkg = Solvuu_build_findlib.pkg
@@ -273,10 +273,13 @@ val makefile : project_name:string -> item list -> content
 val build_lib : lib -> unit
 val build_app : app -> unit
 
+(** Register a rule to build [lib] using js_of_ocaml *)
+val build_js_of_ocaml :
+  (?extra_js:Pathname.t list -> item -> unit) Tools.js_of_ocaml_rule_args
+
 (** [static_file path f] registers a rule to create a file at
     [path] with content [f ()]. *)
 val build_static_file : string -> (unit -> content) -> unit
-
 
 (******************************************************************************)
 (** {2 Plugins} *)
