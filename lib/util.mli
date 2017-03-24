@@ -105,6 +105,18 @@ module Filename : sig
   val normalize : string -> string
 end
 
+module Sys : sig
+  include module type of Sys
+
+  (** [sub_dirs dir] returns the sub-directories of [dir]. Result does
+      not include [dir] itself and paths are relative to
+      [dir]. Traversal is done to [depth], e.g. passing [~depth:1]
+      will give only the immediate sub-directories. Default: [depth]
+      is 1. *)
+  val sub_dirs : ?depth:int -> string -> string list
+
+end
+
 (** Functions related to Ocamlbuild's rules. *)
 module Rule : sig
   open Ocamlbuild_plugin

@@ -297,6 +297,36 @@ module Rule = struct
 
 end
 
+module Sys = struct
+  include Sys
+
+  let sub_dirs ?(depth=1) root =
+    let root = Filename.normalize root in
+    let (/) = Filename.concat in
+    let immediate_sub_dirs dir =
+      Sys.readdir dir |> Array.to_list |>
+      List.filter_map ~f:(fun x ->
+        let x = dir/x in
+        match file_exists x && is_directory x with
+        | true -> Some x
+        | false -> None
+      )
+    in
+    let rec loop depth accum dirs =
+      let immediate_sub_dirs =
+        List.map dirs ~f:immediate_sub_dirs |>
+        List.flatten
+      in
+      let accum = accum@immediate_sub_dirs in
+      if depth <= 1
+      then accum
+      else loop (depth-1) accum immediate_sub_dirs
+    in
+    loop depth [] [root] |>
+    List.map ~f:(String.chop_prefix_exn ~prefix:(sprintf "%s/" root))
+
+end
+
 module Spec = struct
   module List0 = List
   open Ocamlbuild_plugin
