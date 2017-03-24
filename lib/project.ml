@@ -154,9 +154,21 @@ let lib
     | Some x -> x
     | None -> `Findlib name
   in
-  let all_files =
+  let dir_files dir =
     try Sys.readdir dir |> Array.to_list
     with _ -> []
+  in
+  let all_files =
+    let root_files = dir_files dir in
+    let sub_dir_files =
+      Sys.sub_dirs ~depth:5 dir |>
+      List.map ~f:(fun sub_dir ->
+        dir_files (dir/sub_dir) |>
+        List.map ~f:(fun x -> sub_dir/x)
+      ) |>
+      List.flatten
+    in
+    root_files@sub_dir_files
   in
   let select_files ?add_replace suffix =
     List.filter all_files ~f:(fun x -> check_suffix x suffix) |> fun l ->
@@ -332,12 +344,16 @@ let module_paths ~style_matters lib =
     | `Basic -> module_paths_orig
     | `Pack _ -> [path_of_pack ~suffix:"" lib]
 
-let module_dir ~style_matters lib =
-  match style_matters with
-  | false -> lib.dir
-  | true -> match lib.style with
-    | `Basic -> lib.dir
-    | `Pack _ -> dirname lib.dir
+let module_dirs ~style_matters lib =
+  match style_matters,lib.style with
+  | true, `Pack _ ->
+    [dirname lib.dir]
+  | false, _
+  | true, `Basic ->
+    (lib.ml_files@lib.mli_files@lib.c_files@lib.h_files) |>
+    List.map ~f:dirname |>
+    List.sort_uniq ~cmp:String.compare |>
+    List.map ~f:(fun x -> lib.dir/x)
 
 let obj_suffix = function `Byte -> ".cmo" | `Native -> ".cmx"
 let obj_suffixes = function `Byte -> [".cmo"] | `Native -> [".cmx"; ".o"]
@@ -989,12 +1005,14 @@ let build_lib (x:lib) =
   let c_files = List.map x.c_files ~f:(fun y -> x.dir/y) in
   let h_files = List.map x.h_files ~f:(fun y -> x.dir/y) in
 
-  let pathI = List.sort_uniq ~cmp:String.compare @@
-    (module_dir ~style_matters:false x)
+  let pathI =
+    (module_dirs ~style_matters:false x)
     ::(
       filter_libs x.internal_deps |>
-      List.map ~f:(module_dir ~style_matters:true)
-    )
+      List.map ~f:(module_dirs ~style_matters:true)
+    ) |>
+    List.flatten |>
+    List.sort_uniq ~cmp:String.compare
   in
 
   let file_base_of_module : string -> string option = file_base_of_module x in
@@ -1210,9 +1228,10 @@ let build_app (x:app) =
   let pathI =
     internal_deps_all (App x) |>
     List.filter_map ~f:(function
-      | Lib x -> Some (module_dir ~style_matters:true x)
+      | Lib x -> Some (module_dirs ~style_matters:true x)
       | App _ -> None
     ) |>
+    List.flatten |>
     List.sort_uniq ~cmp:String.compare
   in
   let ocaml mode ?o files = match mode with

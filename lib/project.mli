@@ -416,7 +416,7 @@ val module_paths : style_matters:bool -> lib -> string list
     consists of only a single module.
 *)
 
-val module_dir : style_matters:bool -> lib -> string
+val module_dirs : style_matters:bool -> lib -> string list
 (** Return directory where the modules (i.e. cmo, cmx, cmi files) of
     [lib] will be output. See {!module_paths} above for explanation of
     [style_matters].
