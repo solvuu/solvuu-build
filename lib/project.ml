@@ -41,6 +41,7 @@ type app = {
   rounds : int option;
   safe_string : unit option;
   short_paths : unit option;
+  strict_formats : unit option;
   strict_sequence : unit option;
   thread : unit option;
   unbox_closures : unit option;
@@ -88,6 +89,7 @@ and lib = {
   rounds : int option;
   safe_string : unit option;
   short_paths : unit option;
+  strict_formats : unit option;
   strict_sequence : unit option;
   thread : unit option;
   unbox_closures : unit option;
@@ -127,6 +129,7 @@ type 'a with_options =
   -> ?rounds:int
   -> ?safe_string:unit
   -> ?short_paths:unit
+  -> ?strict_formats:unit
   -> ?strict_sequence:unit
   -> ?thread:unit
   -> ?unbox_closures:unit
@@ -144,7 +147,7 @@ let lib
     ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
     ?optimize_classic ?optimize2 ?optimize3
     ?remove_unused_arguments ?rounds
-    ?safe_string ?short_paths ?strict_sequence
+    ?safe_string ?short_paths ?strict_formats ?strict_sequence
     ?thread ?unbox_closures ?w ?warn_error ?linkall
     ?(internal_deps=[]) ?(findlib_deps=[])
     ?ml_files ?mli_files ?c_files ?h_files
@@ -195,7 +198,7 @@ let lib
     no_unbox_free_vars_of_closures; no_unbox_specialised_args;
     optimize_classic; optimize2; optimize3;
     remove_unused_arguments; rounds;
-    safe_string; short_paths; strict_sequence;
+    safe_string; short_paths; strict_formats; strict_sequence;
     thread; unbox_closures; w; warn_error; linkall;
   }
 
@@ -209,7 +212,7 @@ let app
     ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
     ?optimize_classic ?optimize2 ?optimize3
     ?remove_unused_arguments ?rounds
-    ?safe_string ?short_paths ?strict_sequence
+    ?safe_string ?short_paths ?strict_formats ?strict_sequence
     ?thread ?unbox_closures ?w ?warn_error
     ?(internal_deps=[]) ?(findlib_deps=[]) ?(install=`Opam)
     ~file name
@@ -225,7 +228,7 @@ let app
     no_unbox_free_vars_of_closures; no_unbox_specialised_args;
     optimize_classic; optimize2; optimize3;
     remove_unused_arguments; rounds;
-    safe_string; short_paths; strict_sequence;
+    safe_string; short_paths; strict_formats; strict_sequence;
     thread; unbox_closures; w; warn_error;
   }
 
@@ -447,7 +450,8 @@ end
 type content = string list
 
 let merlin_file
-    ?safe_string ?short_paths ?strict_sequence ?thread ?w ?warn_error
+    ?safe_string ?short_paths ?strict_formats ?strict_sequence
+    ?thread ?w ?warn_error
     items
   : string list
   =
@@ -476,6 +480,15 @@ let merlin_file
       List.map items ~f:(function
         | Lib x -> x.short_paths
         | App x -> x.short_paths
+      ) |>
+      pick ~cmp:Unit.compare
+  in
+  let strict_formats : unit option = match strict_formats with
+    | Some x -> x
+    | None ->
+      List.map items ~f:(function
+        | Lib x -> x.strict_formats
+        | App x -> x.strict_formats
       ) |>
       pick ~cmp:Unit.compare
   in
@@ -520,6 +533,10 @@ let merlin_file
     (match thread with Some () -> ["B +threads"] | None -> []);
     (match safe_string with Some () -> ["FLG -safe-string"] | None -> []);
     (match short_paths with Some () -> ["FLG -short-paths"] | None -> []);
+    (match strict_formats with
+     | Some () -> ["FLG -strict-formats"]
+     | None -> []
+    );
     (match strict_sequence with
      | Some () -> ["FLG -strict-sequence"]
      | None -> []
@@ -953,6 +970,7 @@ let build_lib (x:lib) =
   let rounds = x.rounds in
   let safe_string = x.safe_string in
   let short_paths = x.short_paths in
+  let strict_formats = x.strict_formats in
   let strict_sequence = x.strict_sequence in
   let unbox_closures = x.unbox_closures in
   let thread = x.thread in
@@ -967,7 +985,7 @@ let build_lib (x:lib) =
     ocamlfind_ocamlc files
       ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom
       ?annot ?bin_annot ?cc ?cclib ?ccopt
-      ?color ?g ?safe_string ?short_paths ?strict_sequence
+      ?color ?g ?safe_string ?short_paths ?strict_formats ?strict_sequence
       ?thread ?w ?warn_error ?linkall
   in
 
@@ -983,7 +1001,7 @@ let build_lib (x:lib) =
       ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
       ?optimize_classic ?optimize2 ?optimize3
       ?remove_unused_arguments ?rounds
-      ?safe_string ?short_paths ?strict_sequence
+      ?safe_string ?short_paths ?strict_formats ?strict_sequence
       ?thread ?unbox_closures ?w ?warn_error ?linkall
   in
 
@@ -1219,6 +1237,7 @@ let build_app (x:app) =
   let rounds = x.rounds in
   let safe_string = x.safe_string in
   let short_paths = x.short_paths in
+  let strict_formats = x.strict_formats in
   let strict_sequence = x.strict_sequence in
   let thread = x.thread in
   let unbox_closures = x.unbox_closures in
@@ -1239,7 +1258,7 @@ let build_app (x:app) =
       ocamlfind_ocamlc files
         ?o
         ?annot ?bin_annot ?cc ?cclib ?ccopt ?color ?g
-        ?safe_string ?short_paths ?strict_sequence
+        ?safe_string ?short_paths ?strict_formats ?strict_sequence
         ?thread ?w ?warn_error
         ~package ~pathI ~linkpkg:()
     | `Native ->
@@ -1254,7 +1273,7 @@ let build_app (x:app) =
         ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
         ?optimize_classic ?optimize2 ?optimize3
         ?remove_unused_arguments ?rounds
-        ?safe_string ?short_paths ?strict_sequence
+        ?safe_string ?short_paths ?strict_formats ?strict_sequence
         ?thread ?unbox_closures ?w ?warn_error
         ~package ~pathI ~linkpkg:()
   in

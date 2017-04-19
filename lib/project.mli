@@ -88,6 +88,7 @@ type app = {
   rounds : int option;
   safe_string : unit option;
   short_paths : unit option;
+  strict_formats : unit option;
   strict_sequence : unit option;
   thread : unit option;
   unbox_closures : unit option;
@@ -135,6 +136,7 @@ and lib = {
   rounds : int option;
   safe_string : unit option;
   short_paths : unit option;
+  strict_formats : unit option;
   strict_sequence : unit option;
   thread : unit option;
   unbox_closures : unit option;
@@ -174,6 +176,7 @@ type 'a with_options =
   -> ?rounds:int
   -> ?safe_string:unit
   -> ?short_paths:unit
+  -> ?strict_formats:unit
   -> ?strict_sequence:unit
   -> ?thread:unit
   -> ?unbox_closures:unit
@@ -249,6 +252,7 @@ type content = string list
 val merlin_file
   :  ?safe_string:unit option
   -> ?short_paths:unit option
+  -> ?strict_formats:unit option
   -> ?strict_sequence:unit option
   -> ?thread:unit option
   -> ?w:string option
