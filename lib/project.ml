@@ -32,6 +32,7 @@ type app = {
   inline_max_unroll : string option;
   inline_prim_cost : string option;
   inlining_report : unit option;
+  no_check_prims : unit option ;
   no_unbox_free_vars_of_closures : unit option;
   no_unbox_specialised_args : unit option;
   optimize_classic : unit option;
@@ -80,6 +81,7 @@ and lib = {
   inline_max_unroll : string option;
   inline_prim_cost : string option;
   inlining_report : unit option;
+  no_check_prims : unit option ;
   no_unbox_free_vars_of_closures : unit option;
   no_unbox_specialised_args : unit option;
   optimize_classic : unit option;
@@ -120,6 +122,7 @@ type 'a with_options =
   -> ?inline_max_unroll:string
   -> ?inline_prim_cost:string
   -> ?inlining_report:unit
+  -> ?no_check_prims:unit
   -> ?no_unbox_free_vars_of_closures:unit
   -> ?no_unbox_specialised_args:unit
   -> ?optimize_classic:unit
@@ -144,6 +147,7 @@ let lib
     ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
     ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
     ?inlining_report
+    ?no_check_prims
     ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
     ?optimize_classic ?optimize2 ?optimize3
     ?remove_unused_arguments ?rounds
@@ -194,7 +198,7 @@ let lib
     inline_alloc_cost; inline_branch_cost; inline_branch_factor;
     inline_call_cost; inline_indirect_cost; inline_lifting_benefit;
     inline_max_depth; inline_max_unroll; inline_prim_cost;
-    inlining_report;
+    inlining_report; no_check_prims ;
     no_unbox_free_vars_of_closures; no_unbox_specialised_args;
     optimize_classic; optimize2; optimize3;
     remove_unused_arguments; rounds;
@@ -208,7 +212,7 @@ let app
     ?inline_alloc_cost ?inline_branch_cost ?inline_branch_factor
     ?inline_call_cost ?inline_indirect_cost ?inline_lifting_benefit
     ?inline_max_depth ?inline_max_unroll ?inline_prim_cost
-    ?inlining_report
+    ?inlining_report ?no_check_prims
     ?no_unbox_free_vars_of_closures ?no_unbox_specialised_args
     ?optimize_classic ?optimize2 ?optimize3
     ?remove_unused_arguments ?rounds
@@ -224,7 +228,7 @@ let app
     inline_alloc_cost; inline_branch_cost; inline_branch_factor;
     inline_call_cost; inline_indirect_cost; inline_lifting_benefit;
     inline_max_depth; inline_max_unroll; inline_prim_cost;
-    inlining_report;
+    inlining_report; no_check_prims ;
     no_unbox_free_vars_of_closures; no_unbox_specialised_args;
     optimize_classic; optimize2; optimize3;
     remove_unused_arguments; rounds;
@@ -961,6 +965,7 @@ let build_lib (x:lib) =
   let inline_max_unroll = x.inline_max_unroll in
   let inline_prim_cost = x.inline_prim_cost in
   let inlining_report = x.inlining_report in
+  let no_check_prims = x.no_check_prims in
   let no_unbox_free_vars_of_closures = x.no_unbox_free_vars_of_closures in
   let no_unbox_specialised_args = x.no_unbox_specialised_args in
   let optimize_classic = x.optimize_classic in
@@ -986,7 +991,7 @@ let build_lib (x:lib) =
       ?pack ?o ?a ?c ?pathI ?package ?for_pack ?custom
       ?annot ?bin_annot ?cc ?cclib ?ccopt
       ?color ?g ?safe_string ?short_paths ?strict_formats ?strict_sequence
-      ?thread ?w ?warn_error ?linkall
+      ?thread ?w ?warn_error ?linkall ?no_check_prims
   in
 
   let ocamlopt ?pack ?o ?a ?shared ?c ?pathI ?package ?for_pack files =
@@ -1228,6 +1233,7 @@ let build_app (x:app) =
   let inline_max_unroll = x.inline_max_unroll in
   let inline_prim_cost = x.inline_prim_cost in
   let inlining_report = x.inlining_report in
+  let no_check_prims = x.no_check_prims in
   let no_unbox_free_vars_of_closures = x.no_unbox_free_vars_of_closures in
   let no_unbox_specialised_args = x.no_unbox_specialised_args in
   let optimize_classic = x.optimize_classic in

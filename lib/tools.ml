@@ -314,6 +314,7 @@ type 'a ocamlc_args = (
   ?dllib:string ->
   ?dllpath:string ->
   ?vmthread:unit ->
+  ?no_check_prims:unit ->
   'a
 ) ocaml_compiler_args
 
@@ -323,7 +324,8 @@ let ocamlc_args_specs
     ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
     ?config ?for_pack ?g ?i ?pathI
     ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-    ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+    ?no_alias_deps ?no_app_funct ?no_check_prims ?noassert
+    ?noautolink ?nolabels
     ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
     ?rectypes ?runtime_variant ?safe_string ?short_paths
     ?strict_sequence ?strict_formats ?thread ?unsafe
@@ -360,6 +362,7 @@ let ocamlc_args_specs
     string "-dllib" dllib;
     string "-dllpath" dllpath;
     unit "-vmthread" vmthread;
+    unit "-no-check-prims" no_check_prims;
   ]
 
 let ocamlc
@@ -379,7 +382,7 @@ let ocamlc
     ?help
 
     (* ocamlc_args *)
-    ?compat_32 ?custom ?dllib ?dllpath ?vmthread
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread ?no_check_prims
 
     files
   =
@@ -388,7 +391,8 @@ let ocamlc
      ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
      ?config ?custom ?dllib ?dllpath ?for_pack ?g ?i ?pathI
      ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-     ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+     ?no_alias_deps ?no_app_funct ?no_check_prims ?noassert
+     ?noautolink ?nolabels
      ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
      ?rectypes ?runtime_variant ?safe_string ?short_paths
      ?strict_sequence ?strict_formats ?thread ?unsafe
@@ -425,7 +429,7 @@ let ocamlfind_ocamlc
     ?help
 
     (* ocamlc_args *)
-    ?compat_32 ?custom ?dllib ?dllpath ?vmthread
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread ?no_check_prims
 
     files
   =
@@ -434,7 +438,8 @@ let ocamlfind_ocamlc
       ?a ?absname ?annot ?bin_annot ?c ?cc ?cclib ?ccopt ?color
       ?config ?for_pack ?g ?i ?pathI
       ?impl ?intf ?intf_suffix ?labels ?linkall ?make_runtime
-      ?no_alias_deps ?no_app_funct ?noassert ?noautolink ?nolabels
+      ?no_alias_deps ?no_app_funct ?no_check_prims ?noassert
+      ?noautolink ?nolabels
       ?nostdlib ?o ?open_ ?output_obj ?pack ?pp ?ppx ?principal
       ?rectypes ?runtime_variant ?safe_string ?short_paths
       ?strict_sequence ?strict_formats ?thread ?unsafe
@@ -1318,7 +1323,7 @@ let eliomc
     ?help
 
     (* ocamlc_args *)
-    ?compat_32 ?custom ?dllib ?dllpath ?vmthread
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread ?no_check_prims
 
     files
   =
@@ -1341,7 +1346,7 @@ let eliomc
       ?nopervasives ?dsource ?dparsetree ?dtypedtree
       ?drawlambda ?dlambda ?dinstr
       ?help
-      ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
+      ?compat_32 ?custom ?dllib ?dllpath ?vmthread ?no_check_prims ()
    )
   @[List.map files ~f:(fun x -> Some (A x))]
   |> specs_to_command
@@ -1658,7 +1663,7 @@ let js_of_eliom
     ?help
 
     (* ocamlc_args *)
-    ?compat_32 ?custom ?dllib ?dllpath ?vmthread
+    ?compat_32 ?custom ?dllib ?dllpath ?vmthread ?no_check_prims
 
     files
   =
@@ -1692,7 +1697,7 @@ let js_of_eliom
       ?nopervasives ?dsource ?dparsetree ?dtypedtree
       ?drawlambda ?dlambda ?dinstr
       ?help
-      ?compat_32 ?custom ?dllib ?dllpath ?vmthread ()
+      ?compat_32 ?custom ?dllib ?dllpath ?vmthread ?no_check_prims ()
    )
   @[List.map files ~f:(fun x -> Some (A x))]
   |> specs_to_command

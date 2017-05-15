@@ -79,6 +79,7 @@ type app = {
   inline_max_unroll : string option;
   inline_prim_cost : string option;
   inlining_report : unit option;
+  no_check_prims : unit option ;
   no_unbox_free_vars_of_closures : unit option;
   no_unbox_specialised_args : unit option;
   optimize_classic : unit option;
@@ -127,6 +128,7 @@ and lib = {
   inline_max_unroll : string option;
   inline_prim_cost : string option;
   inlining_report : unit option;
+  no_check_prims : unit option ;
   no_unbox_free_vars_of_closures : unit option;
   no_unbox_specialised_args : unit option;
   optimize_classic : unit option;
@@ -167,6 +169,7 @@ type 'a with_options =
   -> ?inline_max_unroll:string
   -> ?inline_prim_cost:string
   -> ?inlining_report:unit
+  -> ?no_check_prims:unit
   -> ?no_unbox_free_vars_of_closures:unit
   -> ?no_unbox_specialised_args:unit
   -> ?optimize_classic:unit
