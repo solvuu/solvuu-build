@@ -323,7 +323,7 @@ let file_base_of_module x =
   in
   let bases = List.sort_uniq ~cmp:String.compare (ml_bases@mli_bases) in
   fun mod_name ->
-    List.filter bases ~f:(fun x -> String.capitalize (basename x) = mod_name)
+    List.filter bases ~f:(fun x -> String.capitalize_ascii (basename x) = mod_name)
     |> function
     | [] -> None (* Module is presumably from an external library. *)
     | x::[] -> Some x
@@ -1079,7 +1079,7 @@ let build_lib (x:lib) =
            | `Basic ->
              ocaml mode ~c ~pathI ~package ~o:obj [ml]
            | `Pack pack_name ->
-              let for_pack = String.capitalize pack_name in
+              let for_pack = String.capitalize_ascii pack_name in
               ocaml mode ~c ~pathI ~package ~for_pack ~o:obj [ml]
         )
     )
