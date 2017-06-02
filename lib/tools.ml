@@ -128,7 +128,7 @@ let ocaml_compiler_args_specs
     unit "-linkall" linkall;
     unit "-make-runtime" make_runtime;
     unit "-no-alias-deps" no_alias_deps;
-    unit "-no_app_funct" no_app_funct;
+    unit "-no-app-funct" no_app_funct;
     unit "-noassert" noassert;
     unit "-noautolink" noautolink;
     unit "-nolabels" nolabels;
