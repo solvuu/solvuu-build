@@ -1,5 +1,4 @@
 open Printf
-module Findlib = Solvuu_build_findlib
 open Util
 open Util.Filename
 let (/) = Util.Filename.concat
@@ -195,7 +194,7 @@ let build_lib_of_host host lib =
   let mli_files = lib.mli_files host in
   let package = lib.findlib_deps host in
   let for_pack = match lib.style with
-    | `Pack x -> Some (String.capitalize x)
+    | `Pack x -> Some (String.capitalize_ascii x)
   in
   let pathI = [(outdir host)/lib.dir] in
   mkdir ("_build"/(outdir host)/lib.dir);
