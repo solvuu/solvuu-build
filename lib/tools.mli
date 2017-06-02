@@ -144,6 +144,7 @@ type 'a ocamlc_args = (
   ?dllib:string ->
   ?dllpath:string ->
   ?vmthread:unit ->
+  ?no_check_prims:unit ->
   'a
 ) ocaml_compiler_args
 
